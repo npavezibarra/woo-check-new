@@ -1,0 +1,148 @@
+/* woo-check-style.css */
+
+/* Example: Change background color of the checkout form */
+.woocommerce-checkout form.checkout {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+/* Example: Style for billing fields */
+.woocommerce-checkout #customer_details .col-1,
+.woocommerce-checkout #customer_details .col-2 {
+    margin-bottom: 20px;
+}
+
+.woocommerce-checkout-review-order-table {
+    width: 100% !important;
+}
+
+.woocommerce-billing-fields__field-wrapper > p > label {
+    font-size: 12px; !important;
+    margin-bottom: 0px;
+}
+
+p#billing_country_field {
+    display: none;
+}
+
+#shipping_country_field {
+    display: none;
+}
+
+.woocommerce-shipping-fields__field-wrapper > p > label {
+    font-size: 12px; !important;
+    margin-bottom: 0px;
+}
+
+label.woocommerce-form__label.woocommerce-form__label-for-checkbox.checkbox {
+    font-size: 15px;
+    border: 1px solid #c8c8c8;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: #efefef;
+}
+
+table.shop_table.woocommerce-checkout-review-order-table {
+    font-size: 13px;
+    background: white;
+    border: 2px solid #c9c9c9;
+}
+
+#add_payment_method #payment, .woocommerce-cart #payment, .woocommerce-checkout #payment {
+    background: #ebebeb;
+    border-radius: 5px;
+}
+
+#add_payment_method #payment div.payment_box, .woocommerce-cart #payment div.payment_box, .woocommerce-checkout #payment div.payment_box {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 1em;
+    margin: 1em 0;
+    font-size: .92em;
+    border-radius: 2px;
+    line-height: 1.5;
+    background-color: #fafafa;
+    color: #515151;
+}
+
+#add_payment_method #payment div.payment_box::before, .woocommerce-cart #payment div.payment_box::before, .woocommerce-checkout #payment div.payment_box::before {
+    content: "";
+    display: block;
+    border: 1em solid #fafafa;
+    border-right-color: transparent;
+    border-left-color: transparent;
+    border-top-color: transparent;
+    position: absolute;
+    top: -.75em;
+    left: 0;
+    margin: -1em 0 0 2em;
+}
+
+.woocommerce-privacy-policy-text {
+    font-size: 14px;
+}
+
+#add_payment_method #payment div.payment_box, .woocommerce-cart #payment div.payment_box, .woocommerce-checkout #payment div.payment_box {
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    padding: 1em;
+    margin: 1em 0;
+    font-size: 12px;
+    border-radius: 2px;
+    line-height: 1.5;
+    background-color: #fafafa;
+    color: #515151;
+}
+
+.woocommerce-additional-fields {
+    display: none;
+}
+
+
+/* Customize jQuery UI Autocomplete dropdown */
+.ui-autocomplete {
+    background-color: white; /* Set the background to white */
+    border: 1px solid #ccc;
+    max-height: auto; /* Max height for scrolling */
+    max-width: 350px; /* Set max width
+    overflow-y: auto; /* Add scrolling if there are many items */
+    list-style-type: none; /* Remove bullet points */
+    padding: 0; /* Remove padding */
+    margin: 0; /* Remove margin */
+    z-index: 1000; /* Ensure the dropdown appears above other elements */
+}
+
+.ui-autocomplete li {
+    padding: 8px 12px; /* Add padding for clickable area */
+    cursor: pointer;
+}
+
+.ui-autocomplete li:hover {
+    background-color: #f0f0f0; /* Add a light background on hover */
+}
+
+
+.woocommerce-Address-title h2 {
+    text-align: left !important;
+}
+
+.woocommerce-Address-title a {
+    float: left !important;
+    font-size: 11px;
+    padding: 3px 5px;
+    border-radius: 3px;
+    border: 1px solid black;
+}
+
+.addresses address {
+    font-style: normal !important;
+    font-size: 14px !important;
+}
+
+
+p#forgot-aviso {
+    color: white;
+}

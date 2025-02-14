@@ -1,0 +1,243 @@
+.order-received-page {
+    text-align: center;
+}
+
+#info-clientes > h3 {
+    text-align: center;
+}
+
+.woocommerce-order-received .woocommerce-column--billing-address {
+    text-align: center;
+}
+
+.woocommerce-customer-details {
+    max-width: 800px;
+    margin: auto;
+    border-radius: 4px;
+}
+
+.woocommerce-order-received section > div > div > address {
+    margin: auto;
+}
+
+.woocommerce-order-received .woocommerce-column--shipping-address {
+    text-align: center;
+    border-radius: 6px;
+}
+
+.woocommerce-column--shipping-address > h4 {
+    font-size: 20px;
+    margin-bottom: 0px;
+    margin-top: 30px;
+    color: black;
+}
+
+.woocommerce-column--billing-address > h4 {
+    font-size: 20px;
+    margin-bottom: 0px;
+    margin-top: 30px;
+    color: black;
+}
+
+.order-products {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-product-item {
+    margin-bottom: 10px;
+}
+
+.product-flex-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+}
+
+.product-image img {
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+}
+
+.placeholder-image {
+    width: 50px;
+    height: 50px;
+    background-color: #eee;
+    border-radius: 4px;
+}
+
+.product-details {
+    flex: 1;
+    margin-left: 10px;
+}
+
+.product-total {
+    font-weight: bold;
+    color: #000;
+}
+
+ul.order-products {
+    margin: auto;
+    margin-top: 20px;
+    border: 1px solid black;
+    padding: 20px;
+}
+
+div#order-information {
+    max-width: 800px;
+    margin: auto;
+    background: #f9f9f9;
+    padding: 20px 0px;
+    border-radius: 6px;
+}
+
+.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1.only-billing {
+    width: 100%;
+    border-radius: 6px;
+}
+
+.woocommerce-order-received {
+    background: #f9f9f9;
+}
+
+#info-clientes > h3 {
+    color: rgb(0, 0, 0);
+}
+
+.order-received-page > h3 {
+    color: black;
+    margin-bottom: 0px;
+}
+
+.order-received-page {
+    margin-bottom: 50px;
+}
+
+@media (max-width: 767px) {
+    div#order-information {
+        max-width: 90%;
+
+    }
+    .woocommerce-customer-details {
+        max-width: 90%;
+        border-radius: 4px;
+    }
+
+    .woocommerce-column--billing-address > h4 {
+        font-size: 20px;
+        margin-bottom: 0px;
+        margin-top: 0px;
+        padding-top: 30px;
+        color: black;
+    }
+}
+
+.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
+    border-radius: 6px;
+}
+
+/* MY ACCOUNT > ORDERS > ORDER */
+
+.woocommerce-order-received .woocommerce-columns {
+    display: flex;
+}
+
+.woocommerce-order-received .woocommerce-columns .woocommerce-column {
+    flex: 1; /* Ensures both columns take equal width */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem; /* Padding inside the columns for better visuals */
+    box-sizing: border-box;
+}
+
+/* Add margin only between the two columns */
+.woocommerce-order-received .woocommerce-columns .woocommerce-column:not(:last-child) {
+    margin-right: 1rem; /* Space between the two columns */
+}
+
+/* Optional: For better responsiveness */
+@media (max-width: 768px) {
+    .woocommerce-order-received .woocommerce-columns {
+        flex-direction: column;
+    }
+    .woocommerce-order-received .woocommerce-columns .woocommerce-column {
+        margin-right: 0; /* Remove margin on mobile */
+        margin-bottom: 1rem; /* Add space between stacked columns */
+    }
+}
+
+p.titulo-seccion {
+    text-transform: uppercase;
+    color: white;
+    background: black;
+    font-weight: 600;
+    font-size: 20px;
+    max-width: 250px;
+    margin: auto;
+    padding: 10px;
+}
+
+.woocommerce-order-received .woocommerce-columns {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    position: relative; /* To position the dividing line */
+}
+
+.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
+    border-right: 1px solid black;
+    border-radius: 0px;
+    margin-right: 0px !important;
+}
+
+.woocommerce-columns.woocommerce-columns--2.woocommerce-columns--addresses.col2-set.addresses {
+    border: 1px solid black;
+}
+
+/* Mobile Styles (Screen Width < 768px) */
+@media (max-width: 767px) {
+    .woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
+        border-right: 0px solid black; /* Removes right border */
+        border-bottom: 1px solid black; /* Adds bottom border */
+        border-radius: 0px;
+        margin-right: 0px !important;
+    }
+
+    .woocommerce-columns.woocommerce-columns--2.woocommerce-columns--addresses.col2-set.addresses {
+        border: 1px solid black; /* Remains the same */
+    }
+}
+
+div#info-entrega {
+    border: 1px solid black;
+    padding: 20px;
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 40px;
+}
+
+div#info-entrega > p {
+    margin-top: 0px;
+    font-size: 12px;
+}
+
+div#estimacion-entrega {
+    padding: 10px 50px;
+}
+
+section#info-clientes {
+    margin-bottom: 50px !important;
+}
+
+div#info-extra-envio {
+    border: 1px solid black;
+    margin-top: 14px;
+}
+
+#info-extra-envio > p {
+    font-size: 12px;
+}
