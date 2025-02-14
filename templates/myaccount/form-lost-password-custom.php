@@ -22,7 +22,7 @@ $success_message = isset($_GET['reset_success']) ? sanitize_text_field($_GET['re
 
     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="woocommerce-ResetPassword lost_reset_password">
 
-        <p class="woocommerce-form-row">
+        <p class="woocommerce-form-row" id="elements-form-password">
             <label for="user_login"><?php esc_html_e('Correo electrónico o nombre de usuario', 'woocommerce'); ?> *</label>
             <input type="text" name="user_login" id="user_login" autocomplete="username" required />
         </p>

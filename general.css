@@ -23,9 +23,17 @@ button.woocommerce-button.button {
 }
 
 input#user_login {
-    max-width: 320px;
+    width: 320px;
     text-align: center;
     font-size: 18px;
+    padding: 10px 20px;
+}
+
+p#elements-form-password {
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
 }
 
 /* RESET PASSWORD */
