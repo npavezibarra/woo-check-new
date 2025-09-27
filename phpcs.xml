@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="Woo Check">
+  <description>WordPress Coding Standards for Woo Check plugin</description>
+  <file>.</file>
+  <exclude-pattern>vendor/*</exclude-pattern>
+  <rule ref="WordPress"/>
+  <rule ref="PHPCompatibilityWP"/>
+</ruleset>

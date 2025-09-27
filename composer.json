@@ -1,0 +1,25 @@
+{
+    "name": "nicolaspavez/woo-check",
+    "autoload": {
+        "psr-4": {
+            "Nicolaspavez\\WooCheck\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Nicolás Pavez",
+            "email": "63881641+npavezibarra@users.noreply.github.com"
+        }
+    ],
+    "require-dev": {
+        "wp-coding-standards/wpcs": "^3.2",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.1",
+        "phpcompatibility/phpcompatibility-wp": "^2.1",
+        "phpunit/phpunit": "^12.3"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
