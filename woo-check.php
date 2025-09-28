@@ -19,6 +19,7 @@ require_once plugin_dir_path(__FILE__) . 'functions.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-recibelo.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit-webhook.php';
 
 add_action( 'woocommerce_order_status_processing', 'wc_check_handle_processing_order', 10, 1 );
 

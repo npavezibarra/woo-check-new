@@ -24,6 +24,7 @@ class WC_Check_Admin {
     public function register_settings() {
         register_setting( 'woo_check_settings', 'woo_check_recibelo_token' );
         register_setting( 'woo_check_settings', 'woo_check_shipit_token' );
+        register_setting( 'woo_check_settings', 'wc_check_shipit_env' );
 
         add_settings_section(
             'woo_check_section',
@@ -47,6 +48,14 @@ class WC_Check_Admin {
             'woo-check-settings',
             'woo_check_section'
         );
+
+        add_settings_field(
+            'wc_check_shipit_env',
+            'Shipit Environment',
+            [ $this, 'shipit_environment_field_html' ],
+            'woo-check-settings',
+            'woo_check_section'
+        );
     }
 
     public function recibelo_token_field_html() {
@@ -57,6 +66,15 @@ class WC_Check_Admin {
     public function shipit_token_field_html() {
         $value = esc_attr( get_option( 'woo_check_shipit_token', '' ) );
         echo "<input type='text' name='woo_check_shipit_token' value='$value' class='regular-text' />";
+    }
+
+    public function shipit_environment_field_html() {
+        $value = esc_attr( get_option( 'wc_check_shipit_env', 'sandbox' ) );
+
+        echo "<select name='wc_check_shipit_env'>";
+        echo "<option value='sandbox'" . selected( $value, 'sandbox', false ) . '>Sandbox</option>';
+        echo "<option value='production'" . selected( $value, 'production', false ) . '>Production</option>';
+        echo '</select>';
     }
 
     public function settings_page_html() {
