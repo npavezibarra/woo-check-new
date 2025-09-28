@@ -159,6 +159,15 @@ table.shop_table.woocommerce-checkout-review-order-table {
     display: block;
 }
 
+.wc-block-components-notice-banner.is-info {
+    background-color: #fffce6;
+    border-color: #ffe16e;
+}
+
+.wc-block-components-notice-banner.is-info > svg {
+    background-color: #ba7d00;
+}
+
 .woo-check-comuna-suggestion--has-option {
     color: #333;
 }
