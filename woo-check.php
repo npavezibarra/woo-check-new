@@ -15,6 +15,11 @@ if (!defined('ABSPATH')) {
 require_once plugin_dir_path( __FILE__ ) . 'includes/email-customizations.php';
 // Include the plugin's functions.php file
 require_once plugin_dir_path(__FILE__) . 'functions.php';
+// Load WooCheck logistics dependencies
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-admin.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-recibelo.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-logistics.php';
 
 
 // Override WooCommerce checkout template if needed
