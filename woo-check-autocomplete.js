@@ -141,6 +141,8 @@ jQuery(document).ready(function ($) {
             .addClass('woo-check-comuna-suggestion--visible woo-check-comuna-suggestion--has-option')
             .append($('<span>').text('¿Quisiste decir '));
 
+        const suggestionRegion = comunaToRegionMap[normalizeString(suggestion)];
+
         const suggestionButton = $('<button>', {
             type: 'button',
             class: 'woo-check-comuna-suggestion__button',
@@ -153,7 +155,15 @@ jQuery(document).ready(function ($) {
             syncRegionWithComuna(comunaInput, regionSelect);
         });
 
-        container.append(suggestionButton).append($('<span>').text('?'));
+        container.append(suggestionButton);
+
+        if (suggestionRegion) {
+            container.append(
+                $('<span>').text(` en la región ${suggestionRegion}?`)
+            );
+        } else {
+            container.append($('<span>').text('?'));
+        }
     }
 
     function handleInvalidComuna(comunaInput, regionSelect) {
