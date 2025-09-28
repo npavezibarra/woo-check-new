@@ -189,6 +189,71 @@ table.shop_table.woocommerce-checkout-review-order-table {
     color: #fff;
 }
 
+.shipping-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+}
+
+.shipping-modal-overlay:not(.is-visible) {
+    display: none !important;
+}
+
+.shipping-modal-overlay.is-visible {
+    display: flex !important;
+}
+
+.shipping-modal {
+    background: #ffffff;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 10px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    padding: 32px;
+    position: relative;
+}
+
+.shipping-modal__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.shipping-modal__close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    cursor: pointer;
+    color: #333333;
+    padding: 0;
+}
+
+.shipping-modal__close:focus {
+    outline: 2px solid #007cba;
+    outline-offset: 2px;
+}
+
+.shipping-modal__title {
+    font-size: 20px;
+    margin: 0;
+}
+
+.shipping-modal__content {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+body.shipping-modal-open {
+    overflow: hidden;
+}
+
 .woo-check-comuna-input--invalid {
     border-color: #d03801 !important;
     box-shadow: 0 0 0 1px rgba(208, 56, 1, 0.2);
