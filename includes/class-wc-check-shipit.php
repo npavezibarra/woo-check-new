@@ -214,10 +214,10 @@ class WC_Check_Shipit {
     }
 
     /**
-     * Map WooCommerce shipping city/comuna to Shipit commune_id
+     * Find commune ID from Shipit communes.json
      */
     private function get_commune_id( $commune_name ) {
-        $file = plugin_dir_path( __FILE__ ) . 'communes.json';
+        $file = __DIR__ . '/communes.json';
 
         if ( ! file_exists( $file ) ) {
             error_log( "WooCheck Shipit: communes.json not found at {$file}" );
@@ -226,13 +226,46 @@ class WC_Check_Shipit {
 
         $communes = json_decode( file_get_contents( $file ), true );
 
+        if ( empty( $commune_name ) ) {
+            error_log( 'WooCheck Shipit: Commune is empty' );
+            return null;
+        }
+
+        $normalized = $this->normalize_string( $commune_name );
+
         foreach ( $communes as $commune ) {
-            if ( strcasecmp( $commune['name'], $commune_name ) === 0 ) {
+            $normalized_json = $this->normalize_string( $commune['name'] );
+
+            if ( $normalized === $normalized_json ) {
                 return $commune['id'];
             }
         }
 
+        $similar = [];
+        foreach ( $communes as $commune ) {
+            $lev = levenshtein( $normalized, $this->normalize_string( $commune['name'] ) );
+            if ( $lev < 3 ) {
+                $similar[] = $commune['name'];
+            }
+        }
+
+        error_log( "WooCheck Shipit: Commune '{$commune_name}' not found. Did you mean: " . implode( ', ', $similar ) );
+
         return null;
+    }
+
+    /**
+     * Normalize comuna names for consistent comparison.
+     */
+    private function normalize_string( $string ) {
+        $string = strtolower( (string) $string );
+        $normalized = iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
+
+        if ( false !== $normalized ) {
+            $string = $normalized;
+        }
+
+        return preg_replace( '/[^a-z0-9 ]/', '', $string );
     }
 
     private function extract_street_number( $street ) {
