@@ -25,6 +25,10 @@ class WC_Check_Shipit {
             return new WP_Error( 'wc_check_shipit_invalid_order', __( 'Invalid order instance provided.', 'woo-check' ) );
         }
 
+        error_log( 'WooCheck Shipit: Shipping city = ' . (string) $order->get_shipping_city() );
+        error_log( 'WooCheck Shipit: Billing city = ' . (string) $order->get_billing_city() );
+        error_log( 'WooCheck Shipit: All order data = ' . print_r( $order->get_data(), true ) );
+
         $data = $this->build_payload( $order );
 
         if ( empty( $data ) ) {
@@ -157,7 +161,7 @@ class WC_Check_Shipit {
             $phone = $order->get_billing_phone();
         }
 
-        $commune_name = $order->get_shipping_city();
+        $commune_name = $order->get_shipping_city() ?: $order->get_billing_city();
         $commune_id   = $this->get_commune_id( $commune_name );
 
         if ( ! $commune_id ) {
