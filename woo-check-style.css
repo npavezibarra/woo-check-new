@@ -1,6 +1,11 @@
 /* woo-check-style.css */
 
 /* Example: Change background color of the checkout form */
+form.checkout.woocommerce-checkout {
+    max-width: 900px;
+    margin: auto;
+}
+
 .woocommerce-checkout form.checkout {
     background-color: #f9f9f9;
     padding: 20px;
