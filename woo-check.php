@@ -19,7 +19,37 @@ require_once plugin_dir_path(__FILE__) . 'functions.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-recibelo.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-logistics.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit-webhook.php';
+
+add_action( 'woocommerce_order_status_processing', 'wc_check_handle_processing_order', 10, 1 );
+
+function wc_check_handle_processing_order( $order_id ) {
+    $order = wc_get_order( $order_id );
+
+    if ( ! $order ) {
+        return;
+    }
+
+    $shipping_state = strtoupper( (string) $order->get_shipping_state() );
+
+    if ( 'RM' === $shipping_state ) {
+        // Avoid duplicate submissions if tracking is already stored.
+        if ( $order->get_meta( '_recibelo_tracking', true ) ) {
+            return;
+        }
+
+        $recibelo = new WC_Check_Recibelo();
+        $recibelo->create_shipment( $order );
+        return;
+    }
+
+    if ( $order->get_meta( '_shipit_tracking', true ) ) {
+        return;
+    }
+
+    $shipit = new WC_Check_Shipit();
+    $shipit->create_shipment( $order );
+}
 
 
 // Override WooCommerce checkout template if needed

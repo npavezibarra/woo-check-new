@@ -47,6 +47,7 @@ class WC_Check_Admin {
             'woo-check-settings',
             'woo_check_section'
         );
+
     }
 
     public function recibelo_token_field_html() {
