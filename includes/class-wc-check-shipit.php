@@ -157,34 +157,10 @@ class WC_Check_Shipit {
             $phone = $order->get_billing_phone();
         }
 
-        $commune_candidates = array_filter(
-            [
-                $order->get_shipping_city(),
-                $order->get_meta( 'shipping_comuna', true ),
-                $order->get_meta( 'billing_comuna', true ),
-                $order->get_billing_city(),
-            ],
-            static function ( $value ) {
-                return '' !== trim( (string) $value );
-            }
-        );
+        $commune_name = $order->get_shipping_city();
+        $commune_id   = $this->get_commune_id( $commune_name );
 
-        $commune_name = '';
-        $commune_id   = null;
-
-        foreach ( $commune_candidates as $candidate ) {
-            $candidate    = trim( (string) $candidate );
-            $candidate_id = $this->get_commune_id_from_name( $candidate );
-
-            if ( ! is_null( $candidate_id ) ) {
-                $commune_name = $candidate;
-                $commune_id   = (int) $candidate_id;
-                break;
-            }
-        }
-
-        if ( is_null( $commune_id ) ) {
-            $commune_name = $order->get_shipping_city();
+        if ( ! $commune_id ) {
             error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
 
             return null;
@@ -193,7 +169,7 @@ class WC_Check_Shipit {
         $payload = [
             'shipment' => [
                 'platform'  => 2,
-                'reference' => (string) $order->get_order_number() . 'N',
+                'reference' => $order->get_id() . 'N',
                 'items'     => max( 1, $item_count ),
                 'sizes'     => $dimensions,
                 'courier'   => [
@@ -238,10 +214,17 @@ class WC_Check_Shipit {
     }
 
     /**
-     * Get Shipit commune_id from a comuna name using communes.json
+     * Map WooCommerce shipping city/comuna to Shipit commune_id
      */
-    private function get_commune_id_from_name( $commune_name ) {
-        $communes = json_decode( file_get_contents( plugin_dir_path( __FILE__ ) . 'communes.json' ), true );
+    private function get_commune_id( $commune_name ) {
+        $file = plugin_dir_path( __FILE__ ) . 'communes.json';
+
+        if ( ! file_exists( $file ) ) {
+            error_log( "WooCheck Shipit: communes.json not found at {$file}" );
+            return null;
+        }
+
+        $communes = json_decode( file_get_contents( $file ), true );
 
         foreach ( $communes as $commune ) {
             if ( strcasecmp( $commune['name'], $commune_name ) === 0 ) {
@@ -249,7 +232,7 @@ class WC_Check_Shipit {
             }
         }
 
-        return null; // Not found
+        return null;
     }
 
     private function extract_street_number( $street ) {
