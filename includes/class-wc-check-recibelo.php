@@ -5,7 +5,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Check_Recibelo {
 
-    public static function create_shipment( $order ) {
+    /**
+     * Create a Recíbelo shipment for the provided WooCommerce order.
+     *
+     * @param WC_Order $order Order being fulfilled.
+     *
+     * @return bool Whether the shipment was created successfully.
+     */
+    public function create_shipment( $order ) {
         if ( ! $order instanceof WC_Order ) {
             return false;
         }
@@ -20,7 +27,7 @@ class WC_Check_Recibelo {
         $endpoint = sprintf( 'https://app.recibelo.cl/webhook/%s/woocommerce', rawurlencode( $token ) );
 
         $items = array_map(
-            function ( $item ) {
+            static function ( $item ) {
                 return [
                     'name'  => $item->get_name(),
                     'qty'   => $item->get_quantity(),
@@ -46,6 +53,7 @@ class WC_Check_Recibelo {
             [
                 'headers' => [ 'Content-Type' => 'application/json' ],
                 'body'    => wp_json_encode( $data ),
+                'timeout' => 30,
             ]
         );
 
@@ -57,9 +65,10 @@ class WC_Check_Recibelo {
             return false;
         }
 
-        error_log( 'Recibelo Response: ' . wp_remote_retrieve_body( $response ) );
+        $response_body = wp_remote_retrieve_body( $response );
+        error_log( 'Recibelo Response: ' . $response_body );
 
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $body = json_decode( $response_body, true );
 
         if ( isset( $body['tracking_id'] ) ) {
             update_post_meta(

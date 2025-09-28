@@ -5,7 +5,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class WC_Check_Shipit {
 
-    public static function create_shipment( $order ) {
+    /**
+     * Create a Shipit shipment for the provided WooCommerce order.
+     *
+     * @param WC_Order $order Order being fulfilled.
+     *
+     * @return bool Whether the shipment was created successfully.
+     */
+    public function create_shipment( $order ) {
         if ( ! $order instanceof WC_Order ) {
             return false;
         }
@@ -17,10 +24,10 @@ class WC_Check_Shipit {
             return false;
         }
 
-        $comuna      = get_post_meta( $order->get_id(), 'shipping_comuna', true );
-        $commune_id  = self::map_commune_to_id( $comuna );
-        $items       = array_map(
-            function ( $item ) {
+        $comuna     = get_post_meta( $order->get_id(), 'shipping_comuna', true );
+        $commune_id = $this->map_commune_to_id( $comuna );
+        $items      = array_map(
+            static function ( $item ) {
                 return [
                     'name'  => $item->get_name(),
                     'qty'   => $item->get_quantity(),
@@ -60,6 +67,7 @@ class WC_Check_Shipit {
                     'Content-Type'  => 'application/json',
                 ],
                 'body'    => wp_json_encode( $data ),
+                'timeout' => 30,
             ]
         );
 
@@ -71,9 +79,10 @@ class WC_Check_Shipit {
             return false;
         }
 
-        error_log( 'Shipit Response: ' . wp_remote_retrieve_body( $response ) );
+        $response_body = wp_remote_retrieve_body( $response );
+        error_log( 'Shipit Response: ' . $response_body );
 
-        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        $body = json_decode( $response_body, true );
 
         if ( isset( $body['tracking_number'] ) ) {
             update_post_meta(
@@ -86,7 +95,7 @@ class WC_Check_Shipit {
         return true;
     }
 
-    private static function map_commune_to_id( $comuna ) {
+    private function map_commune_to_id( $comuna ) {
         // TODO: build proper mapping table for Shipit
         return 308;
     }
