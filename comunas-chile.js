@@ -49,7 +49,7 @@ const comunasChile = [
 			"San Juan de la Costa", "San Pablo", "Chaitén", "Futaleufú", "Hualaihué",
 			"Palena"
 			]
-		}, { region: "Aysén del General Carlos Ibáñez del Campo", comunas: [
+                }, { region: "Aisén del General Carlos Ibañez del Campo", comunas: [
 			"Coyhaique", "Lago Verde", "Aysén", "Cisnes", "Guaitecas",
 			"Río Ibáñez", "Cochrane", "O’Higgins", "Tortel", "Chile Chico"
 			]
