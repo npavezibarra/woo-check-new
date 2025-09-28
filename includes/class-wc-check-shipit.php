@@ -7,24 +7,33 @@ class WC_Check_Shipit {
 
     public static function create_shipment( $order ) {
         if ( ! $order instanceof WC_Order ) {
-            return;
+            return false;
         }
 
         $token = get_option( 'woo_check_shipit_token', '' );
 
         if ( empty( $token ) ) {
             error_log( 'Shipit token is missing. Skipping shipment.' );
-            return;
+            return false;
         }
 
         $comuna      = get_post_meta( $order->get_id(), 'shipping_comuna', true );
         $commune_id  = self::map_commune_to_id( $comuna );
-        $items_count = count( $order->get_items() );
+        $items       = array_map(
+            function ( $item ) {
+                return [
+                    'name'  => $item->get_name(),
+                    'qty'   => $item->get_quantity(),
+                    'price' => $item->get_total(),
+                ];
+            },
+            $order->get_items()
+        );
 
         $data = [
             'shipment' => [
                 'reference' => 'WC-' . $order->get_id(),
-                'items'     => $items_count,
+                'items'     => $items,
                 'sizes'     => [
                     'width'  => 10,
                     'height' => 10,
@@ -37,7 +46,7 @@ class WC_Check_Shipit {
                     'phone'        => $order->get_shipping_phone(),
                     'street'       => $order->get_shipping_address_1(),
                     'commune_id'   => $commune_id,
-                    'commune_name' => $comuna,
+                    'commune_name' => get_post_meta( $order->get_id(), 'billing_comuna', true ),
                     'kind'         => 'home_delivery',
                 ],
             ],
@@ -59,7 +68,7 @@ class WC_Check_Shipit {
         if ( is_wp_error( $response ) ) {
             error_log( 'Shipit Response: ' . $response->get_error_message() );
             error_log( 'Shipit error: ' . $response->get_error_message() );
-            return;
+            return false;
         }
 
         error_log( 'Shipit Response: ' . wp_remote_retrieve_body( $response ) );
@@ -73,6 +82,8 @@ class WC_Check_Shipit {
                 sanitize_text_field( $body['tracking_number'] )
             );
         }
+
+        return true;
     }
 
     private static function map_commune_to_id( $comuna ) {
