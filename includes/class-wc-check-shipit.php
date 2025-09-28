@@ -7,7 +7,6 @@ class WC_Check_Shipit {
     private $endpoint = 'https://api.shipit.cl/v/shipments';
     private $email;
     private $token;
-    private $communes = null;
 
     public function __construct() {
         $this->email = get_option( 'wc_check_shipit_email' );
@@ -27,6 +26,10 @@ class WC_Check_Shipit {
         }
 
         $data = $this->build_payload( $order );
+
+        if ( empty( $data ) ) {
+            return new WP_Error( 'wc_check_shipit_missing_commune', __( 'Unable to determine commune for Shipit shipment.', 'woo-check' ) );
+        }
 
         if ( empty( $this->email ) || empty( $this->token ) ) {
             $error = new WP_Error( 'wc_check_shipit_missing_credentials', __( 'Shipit credentials are missing.', 'woo-check' ) );
@@ -154,31 +157,43 @@ class WC_Check_Shipit {
             $phone = $order->get_billing_phone();
         }
 
-        $shipping_commune = $order->get_meta( 'shipping_comuna', true );
-        $billing_commune  = $order->get_meta( 'billing_comuna', true );
+        $commune_candidates = array_filter(
+            [
+                $order->get_shipping_city(),
+                $order->get_meta( 'shipping_comuna', true ),
+                $order->get_meta( 'billing_comuna', true ),
+                $order->get_billing_city(),
+            ],
+            static function ( $value ) {
+                return '' !== trim( (string) $value );
+            }
+        );
 
-        $commune          = $this->find_commune( $shipping_commune );
-        $commune_fallback = $this->find_commune( $billing_commune );
+        $commune_name = '';
+        $commune_id   = null;
 
-        if ( ! $commune && $commune_fallback ) {
-            $commune = $commune_fallback;
+        foreach ( $commune_candidates as $candidate ) {
+            $candidate    = trim( (string) $candidate );
+            $candidate_id = $this->get_commune_id_from_name( $candidate );
+
+            if ( ! is_null( $candidate_id ) ) {
+                $commune_name = $candidate;
+                $commune_id   = (int) $candidate_id;
+                break;
+            }
         }
 
-        if ( ! $commune ) {
-            $commune = $this->find_commune( $order->get_shipping_city() );
-        }
+        if ( is_null( $commune_id ) ) {
+            $commune_name = $order->get_shipping_city();
+            error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
 
-        if ( ! $commune ) {
-            $commune = $this->find_commune( $order->get_billing_city() );
+            return null;
         }
-
-        $commune_name = $commune ? $commune['name'] : ( $shipping_commune ?: $billing_commune ?: $order->get_shipping_city() );
-        $commune_id   = $commune ? (int) $commune['id'] : null;
 
         $payload = [
             'shipment' => [
                 'platform'  => 2,
-                'reference' => (string) $order->get_order_number(),
+                'reference' => (string) $order->get_order_number() . 'N',
                 'items'     => max( 1, $item_count ),
                 'sizes'     => $dimensions,
                 'courier'   => [
@@ -222,63 +237,19 @@ class WC_Check_Shipit {
         error_log( 'Shipit Response: ' . $response_body );
     }
 
-    private function find_commune( $name ) {
-        if ( empty( $name ) ) {
-            return null;
-        }
+    /**
+     * Get Shipit commune_id from a comuna name using communes.json
+     */
+    private function get_commune_id_from_name( $commune_name ) {
+        $communes = json_decode( file_get_contents( plugin_dir_path( __FILE__ ) . 'communes.json' ), true );
 
-        $normalized = $this->normalize_commune_name( $name );
-        $communes   = $this->get_communes();
-
-        return $communes[ $normalized ] ?? null;
-    }
-
-    private function get_communes() {
-        if ( null !== $this->communes ) {
-            return $this->communes;
-        }
-
-        $this->communes = [];
-
-        $file = plugin_dir_path( __FILE__ ) . 'communes.json';
-        if ( ! file_exists( $file ) ) {
-            return $this->communes;
-        }
-
-        $contents = file_get_contents( $file );
-        if ( false === $contents ) {
-            return $this->communes;
-        }
-
-        $decoded = json_decode( $contents, true );
-        if ( ! is_array( $decoded ) ) {
-            return $this->communes;
-        }
-
-        foreach ( $decoded as $commune ) {
-            if ( empty( $commune['name'] ) || empty( $commune['id'] ) ) {
-                continue;
+        foreach ( $communes as $commune ) {
+            if ( strcasecmp( $commune['name'], $commune_name ) === 0 ) {
+                return $commune['id'];
             }
-
-            $normalized = $this->normalize_commune_name( $commune['name'] );
-            $this->communes[ $normalized ] = $commune;
         }
 
-        return $this->communes;
-    }
-
-    private function normalize_commune_name( $value ) {
-        $value = remove_accents( (string) $value );
-        $value = preg_replace( '/\s+/', ' ', $value );
-        $value = trim( $value );
-
-        if ( function_exists( 'mb_strtoupper' ) ) {
-            $value = mb_strtoupper( $value, 'UTF-8' );
-        } else {
-            $value = strtoupper( $value );
-        }
-
-        return $value;
+        return null; // Not found
     }
 
     private function extract_street_number( $street ) {
