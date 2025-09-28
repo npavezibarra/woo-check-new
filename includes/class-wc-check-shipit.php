@@ -59,8 +59,7 @@ class WC_Check_Shipit {
             ],
         ];
 
-        $env      = get_option( 'wc_check_shipit_env', 'sandbox' );
-        $base_url = ( 'production' === $env ) ? 'https://api.shipit.cl/v' : 'https://sandbox.shipit.cl/v';
+        $base_url = 'https://api.shipit.cl/v';
         $endpoint = rtrim( $base_url, '/' ) . '/shipments';
 
         $response = wp_remote_post(
