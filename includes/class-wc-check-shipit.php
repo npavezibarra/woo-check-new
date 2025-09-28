@@ -142,19 +142,31 @@ class WC_Check_Shipit {
 
         $shipping_first_name = $order->get_shipping_first_name();
         $shipping_last_name  = $order->get_shipping_last_name();
-        $full_name           = trim( $shipping_first_name . ' ' . $shipping_last_name );
 
-        if ( '' === $full_name ) {
-            $full_name = $order->get_formatted_billing_full_name();
+        if ( '' === trim( $shipping_first_name . $shipping_last_name ) ) {
+            $shipping_first_name = $order->get_billing_first_name();
+            $shipping_last_name  = $order->get_billing_last_name();
         }
 
-        $street  = $order->get_shipping_address_1();
-        $street2 = $order->get_shipping_address_2();
+        $receiver_name = trim( $shipping_first_name . ' ' . $shipping_last_name );
 
-        if ( '' === $street ) {
-            $street  = $order->get_billing_address_1();
-            $street2 = $order->get_billing_address_2();
+        if ( '' === $receiver_name ) {
+            $receiver_name = $order->get_formatted_billing_full_name();
         }
+
+        if ( function_exists( 'remove_accents' ) ) {
+            $receiver_name = remove_accents( $receiver_name );
+        }
+
+        $street_raw = $order->get_shipping_address_1();
+        $street2    = $order->get_shipping_address_2();
+
+        if ( '' === $street_raw ) {
+            $street_raw = $order->get_billing_address_1();
+            $street2    = $order->get_billing_address_2();
+        }
+
+        $street = $this->sanitize_street_name( $street_raw );
 
         $phone = $order->get_shipping_phone();
         if ( '' === $phone ) {
@@ -167,11 +179,17 @@ class WC_Check_Shipit {
             $commune_name = $order->get_meta( '_billing_comuna' );
         }
 
-        $commune_name = (string) $commune_name;
+        $commune_name = trim( (string) $commune_name );
+
+        $normalized_commune = $commune_name;
+
+        if ( function_exists( 'remove_accents' ) ) {
+            $normalized_commune = remove_accents( $normalized_commune );
+        }
 
         error_log( 'WooCheck Shipit: Using commune ' . ( '' !== $commune_name ? $commune_name : '(empty)' ) . ' for order ' . $order->get_id() );
 
-        $commune_id   = $this->get_commune_id( $commune_name );
+        $commune_id = $this->get_commune_id( $normalized_commune );
 
         if ( ! $commune_id ) {
             error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
@@ -191,14 +209,14 @@ class WC_Check_Shipit {
                     'without_courier'  => false,
                 ],
                 'destiny'   => [
-                    'name'         => $full_name,
+                    'name'         => $receiver_name,
                     'email'        => $order->get_billing_email(),
                     'phone'        => $phone,
                     'street'       => $street,
-                    'number'       => $this->extract_street_number( $street ),
+                    'number'       => $this->extract_street_number( $street_raw ),
                     'complement'   => $street2,
                     'commune_id'   => $commune_id,
-                    'commune_name' => $commune_name,
+                    'commune_name' => $normalized_commune,
                     'country_id'   => 1,
                     'kind'         => 'home_delivery',
                 ],
@@ -297,5 +315,22 @@ class WC_Check_Shipit {
         }
 
         return '';
+    }
+
+    private function sanitize_street_name( $street ) {
+        $street = (string) $street;
+
+        if ( '' === $street ) {
+            return '';
+        }
+
+        if ( function_exists( 'remove_accents' ) ) {
+            $street = remove_accents( $street );
+        }
+
+        $street = preg_replace( '/\d+/', '', $street );
+        $street = preg_replace( '/\s+/', ' ', $street );
+
+        return trim( $street );
     }
 }
