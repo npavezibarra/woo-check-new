@@ -143,6 +143,44 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 
+.woo-check-comuna-suggestion {
+    display: none;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #d03801;
+}
+
+.woo-check-comuna-suggestion--visible {
+    display: block;
+}
+
+.woo-check-comuna-suggestion--has-option {
+    color: #333;
+}
+
+.woo-check-comuna-suggestion__button {
+    margin: 0 4px;
+    padding: 2px 8px;
+    font-size: 13px;
+    border: 1px solid #0073aa;
+    border-radius: 3px;
+    background: #f0f8ff;
+    color: #0073aa;
+    cursor: pointer;
+}
+
+.woo-check-comuna-suggestion__button:hover,
+.woo-check-comuna-suggestion__button:focus {
+    background: #0073aa;
+    color: #fff;
+}
+
+.woo-check-comuna-input--invalid {
+    border-color: #d03801 !important;
+    box-shadow: 0 0 0 1px rgba(208, 56, 1, 0.2);
+}
+
+
 p#forgot-aviso {
     color: white;
 }

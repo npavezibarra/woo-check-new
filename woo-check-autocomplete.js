@@ -47,6 +47,121 @@ jQuery(document).ready(function ($) {
     logRegionOptions('#billing_state');
     logRegionOptions('#shipping_state');
 
+    // Calcular la distancia de Levenshtein entre dos cadenas
+    function levenshteinDistance(a, b) {
+        const matrix = [];
+
+        for (let i = 0; i <= b.length; i++) {
+            matrix[i] = [i];
+        }
+
+        for (let j = 0; j <= a.length; j++) {
+            matrix[0][j] = j;
+        }
+
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+
+        return matrix[b.length][a.length];
+    }
+
+    // Buscar la comuna más parecida a un valor ingresado
+    function findClosestComuna(value) {
+        const normalizedValue = normalizeString(value);
+
+        if (!normalizedValue) {
+            return null;
+        }
+
+        let closestComuna = null;
+        let bestScore = 0;
+
+        comunaList.forEach(comuna => {
+            const normalizedComuna = normalizeString(comuna);
+            const distance = levenshteinDistance(normalizedValue, normalizedComuna);
+            const maxLength = Math.max(normalizedValue.length, normalizedComuna.length) || 1;
+            const similarity = 1 - (distance / maxLength);
+
+            if (similarity > bestScore) {
+                bestScore = similarity;
+                closestComuna = comuna;
+            }
+        });
+
+        return bestScore >= 0.6 ? closestComuna : null;
+    }
+
+    function getSuggestionContainer(comunaInput) {
+        let container = comunaInput.siblings('.woo-check-comuna-suggestion');
+
+        if (!container.length) {
+            container = $('<div>', {
+                class: 'woo-check-comuna-suggestion',
+            });
+            comunaInput.after(container);
+        }
+
+        return container;
+    }
+
+    function clearComunaSuggestion(comunaInput) {
+        comunaInput.removeClass('woo-check-comuna-input--invalid');
+        const container = comunaInput.siblings('.woo-check-comuna-suggestion');
+        if (container.length) {
+            container.empty().removeClass('woo-check-comuna-suggestion--visible');
+        }
+    }
+
+    function showComunaSuggestion(comunaInput, suggestion, regionSelect) {
+        const container = getSuggestionContainer(comunaInput);
+        container.empty();
+
+        if (!suggestion) {
+            comunaInput.addClass('woo-check-comuna-input--invalid');
+            container
+                .removeClass('woo-check-comuna-suggestion--has-option')
+                .addClass('woo-check-comuna-suggestion--visible')
+                .text('No encontramos una coincidencia para la comuna ingresada.');
+            return;
+        }
+
+        comunaInput.addClass('woo-check-comuna-input--invalid');
+        container
+            .addClass('woo-check-comuna-suggestion--visible woo-check-comuna-suggestion--has-option')
+            .append($('<span>').text('¿Quisiste decir '));
+
+        const suggestionButton = $('<button>', {
+            type: 'button',
+            class: 'woo-check-comuna-suggestion__button',
+            text: suggestion,
+        });
+
+        suggestionButton.on('click', function () {
+            comunaInput.val(suggestion);
+            clearComunaSuggestion(comunaInput);
+            syncRegionWithComuna(comunaInput, regionSelect);
+        });
+
+        container.append(suggestionButton).append($('<span>').text('?'));
+    }
+
+    function handleInvalidComuna(comunaInput, regionSelect) {
+        const suggestion = findClosestComuna(comunaInput.val());
+        showComunaSuggestion(comunaInput, suggestion, regionSelect);
+        $(regionSelect).val('').trigger('change');
+    }
+
     // Sincronizar la región con la comuna seleccionada
     function syncRegionWithComuna(comunaInput, regionSelect) {
         const selectedComunaNormalized = normalizeString($(comunaInput).val());
@@ -70,15 +185,13 @@ jQuery(document).ready(function ($) {
                 console.log("Region Value Found:", regionValue);
                 $(regionSelect).val(regionValue).trigger('change');
                 $('body').trigger('update_checkout');
+                clearComunaSuggestion(comunaInput);
             } else {
                 console.error("No se encontró una opción para la región:", associatedRegion);
-                alert("No se encontró la región correspondiente a la comuna seleccionada.");
+                showComunaSuggestion(comunaInput, null, regionSelect);
             }
         } else {
-            alert("Esta comuna no es válida. Por favor, selecciona una comuna de Chile.");
-            $(comunaInput).val('');
-            const regionSelectId = comunaInput.attr('id') === 'billing_comuna' ? '#billing_state' : '#shipping_state';
-            $(regionSelectId).val('').trigger('change');
+            handleInvalidComuna(comunaInput, regionSelect);
         }
     }
 
@@ -111,10 +224,7 @@ jQuery(document).ready(function ($) {
                 comunaInput.val(exactComuna);
                 syncRegionWithComuna(comunaInput, regionSelect);
             } else {
-                alert("Esta comuna no es válida. Por favor, selecciona una comuna de Chile.");
-                comunaInput.val('');
-                // Opcional: Limpiar la región asociada
-                $(regionSelect).val('').trigger('change');
+                handleInvalidComuna(comunaInput, regionSelect);
             }
         }
     });
