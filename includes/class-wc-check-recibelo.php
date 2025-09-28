@@ -37,10 +37,15 @@ class WC_Check_Recibelo {
             ]
         );
 
+        error_log( 'Recibelo Request: ' . wp_json_encode( $data ) );
+
         if ( is_wp_error( $response ) ) {
+            error_log( 'Recibelo Response: ' . $response->get_error_message() );
             error_log( 'Recíbelo error: ' . $response->get_error_message() );
             return;
         }
+
+        error_log( 'Recibelo Response: ' . wp_remote_retrieve_body( $response ) );
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
 

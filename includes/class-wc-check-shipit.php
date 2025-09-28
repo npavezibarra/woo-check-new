@@ -54,10 +54,15 @@ class WC_Check_Shipit {
             ]
         );
 
+        error_log( 'Shipit Request: ' . wp_json_encode( $data ) );
+
         if ( is_wp_error( $response ) ) {
+            error_log( 'Shipit Response: ' . $response->get_error_message() );
             error_log( 'Shipit error: ' . $response->get_error_message() );
             return;
         }
+
+        error_log( 'Shipit Response: ' . wp_remote_retrieve_body( $response ) );
 
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
 
