@@ -23,7 +23,8 @@ class WC_Check_Admin {
 
     public function register_settings() {
         register_setting( 'woo_check_settings', 'woo_check_recibelo_token' );
-        register_setting( 'woo_check_settings', 'woo_check_shipit_token' );
+        register_setting( 'woo_check_settings', 'wc_check_shipit_email' );
+        register_setting( 'woo_check_settings', 'wc_check_shipit_token' );
 
         add_settings_section(
             'woo_check_section',
@@ -41,7 +42,15 @@ class WC_Check_Admin {
         );
 
         add_settings_field(
-            'woo_check_shipit_token',
+            'wc_check_shipit_email',
+            'Shipit Email',
+            [ $this, 'shipit_email_field_html' ],
+            'woo-check-settings',
+            'woo_check_section'
+        );
+
+        add_settings_field(
+            'wc_check_shipit_token',
             'Shipit Token',
             [ $this, 'shipit_token_field_html' ],
             'woo-check-settings',
@@ -55,9 +64,14 @@ class WC_Check_Admin {
         echo "<input type='text' name='woo_check_recibelo_token' value='$value' class='regular-text' />";
     }
 
+    public function shipit_email_field_html() {
+        $value = esc_attr( get_option( 'wc_check_shipit_email', get_option( 'woo_check_shipit_email', '' ) ) );
+        echo "<input type='email' name='wc_check_shipit_email' value='$value' class='regular-text' />";
+    }
+
     public function shipit_token_field_html() {
-        $value = esc_attr( get_option( 'woo_check_shipit_token', '' ) );
-        echo "<input type='text' name='woo_check_shipit_token' value='$value' class='regular-text' />";
+        $value = esc_attr( get_option( 'wc_check_shipit_token', get_option( 'woo_check_shipit_token', '' ) ) );
+        echo "<input type='text' name='wc_check_shipit_token' value='$value' class='regular-text' />";
     }
 
     public function settings_page_html() {
