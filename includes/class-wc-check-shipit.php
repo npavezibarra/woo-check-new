@@ -161,7 +161,16 @@ class WC_Check_Shipit {
             $phone = $order->get_billing_phone();
         }
 
-        $commune_name = $order->get_shipping_city() ?: $order->get_billing_city();
+        $commune_name = $order->get_meta( '_shipping_comuna' );
+
+        if ( empty( $commune_name ) ) {
+            $commune_name = $order->get_meta( '_billing_comuna' );
+        }
+
+        $commune_name = (string) $commune_name;
+
+        error_log( 'WooCheck Shipit: Using commune ' . ( '' !== $commune_name ? $commune_name : '(empty)' ) . ' for order ' . $order->get_id() );
+
         $commune_id   = $this->get_commune_id( $commune_name );
 
         if ( ! $commune_id ) {
@@ -235,19 +244,19 @@ class WC_Check_Shipit {
             return null;
         }
 
-        $normalized = $this->normalize_string( $commune_name );
+        $commune_name_normalized = $this->normalize_string( $commune_name );
 
         foreach ( $communes as $commune ) {
             $normalized_json = $this->normalize_string( $commune['name'] );
 
-            if ( $normalized === $normalized_json ) {
+            if ( $commune_name_normalized === $normalized_json ) {
                 return $commune['id'];
             }
         }
 
         $similar = [];
         foreach ( $communes as $commune ) {
-            $lev = levenshtein( $normalized, $this->normalize_string( $commune['name'] ) );
+            $lev = levenshtein( $commune_name_normalized, $this->normalize_string( $commune['name'] ) );
             if ( $lev < 3 ) {
                 $similar[] = $commune['name'];
             }
@@ -262,14 +271,20 @@ class WC_Check_Shipit {
      * Normalize comuna names for consistent comparison.
      */
     private function normalize_string( $string ) {
-        $string = strtolower( (string) $string );
-        $normalized = iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
+        $string = (string) $string;
 
-        if ( false !== $normalized ) {
-            $string = $normalized;
+        if ( function_exists( 'remove_accents' ) ) {
+            $string = remove_accents( $string );
+        } elseif ( function_exists( 'iconv' ) ) {
+            $converted = iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
+            if ( false !== $converted ) {
+                $string = $converted;
+            }
         }
 
-        return preg_replace( '/[^a-z0-9 ]/', '', $string );
+        $string = strtoupper( $string );
+
+        return preg_replace( '/[^A-Z0-9 ]/', '', $string );
     }
 
     private function extract_street_number( $street ) {
