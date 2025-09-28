@@ -7,6 +7,11 @@
     border-radius: 8px;
 }
 
+form.checkout.woocommerce-checkout {
+    max-width: 820px;
+    margin: auto;
+}
+
 /* Example: Style for billing fields */
 .woocommerce-checkout #customer_details .col-1,
 .woocommerce-checkout #customer_details .col-2 {
@@ -140,6 +145,53 @@ table.shop_table.woocommerce-checkout-review-order-table {
 .addresses address {
     font-style: normal !important;
     font-size: 14px !important;
+}
+
+
+.woo-check-comuna-suggestion {
+    display: none;
+    margin-top: 4px;
+    font-size: 13px;
+    color: #d03801;
+}
+
+.woo-check-comuna-suggestion--visible {
+    display: block;
+}
+
+.wc-block-components-notice-banner.is-info {
+    background-color: #fffce6;
+    border-color: #ffe16e;
+}
+
+.wc-block-components-notice-banner.is-info>svg {
+    background-color: #ba7d00;
+}
+
+.woo-check-comuna-suggestion--has-option {
+    color: #333;
+}
+
+.woo-check-comuna-suggestion__button {
+    margin: 0 4px;
+    padding: 2px 8px;
+    font-size: 13px;
+    border: 1px solid #0073aa;
+    border-radius: 3px;
+    background: #f0f8ff;
+    color: #0073aa;
+    cursor: pointer;
+}
+
+.woo-check-comuna-suggestion__button:hover,
+.woo-check-comuna-suggestion__button:focus {
+    background: #0073aa;
+    color: #fff;
+}
+
+.woo-check-comuna-input--invalid {
+    border-color: #d03801 !important;
+    box-shadow: 0 0 0 1px rgba(208, 56, 1, 0.2);
 }
 
 
