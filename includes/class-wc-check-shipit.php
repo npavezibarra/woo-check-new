@@ -74,10 +74,16 @@ class WC_Check_Shipit {
         error_log( 'Shipit Request: ' . wp_json_encode( $data ) );
 
         if ( is_wp_error( $response ) ) {
+            error_log( 'Shipit HTTP: error ' . $response->get_error_code() );
             error_log( 'Shipit Response: ' . $response->get_error_message() );
             error_log( 'Shipit error: ' . $response->get_error_message() );
             return false;
         }
+
+        $response_code    = wp_remote_retrieve_response_code( $response );
+        $response_message = wp_remote_retrieve_response_message( $response );
+
+        error_log( 'Shipit HTTP: ' . $response_code . ' ' . $response_message );
 
         $response_body = wp_remote_retrieve_body( $response );
         error_log( 'Shipit Response: ' . $response_body );

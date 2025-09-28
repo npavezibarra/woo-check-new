@@ -60,10 +60,16 @@ class WC_Check_Recibelo {
         error_log( 'Recibelo Request: ' . wp_json_encode( $data ) );
 
         if ( is_wp_error( $response ) ) {
+            error_log( 'Recibelo HTTP: error ' . $response->get_error_code() );
             error_log( 'Recibelo Response: ' . $response->get_error_message() );
             error_log( 'Recíbelo error: ' . $response->get_error_message() );
             return false;
         }
+
+        $response_code    = wp_remote_retrieve_response_code( $response );
+        $response_message = wp_remote_retrieve_response_message( $response );
+
+        error_log( 'Recibelo HTTP: ' . $response_code . ' ' . $response_message );
 
         $response_body = wp_remote_retrieve_body( $response );
         error_log( 'Recibelo Response: ' . $response_body );
