@@ -10,7 +10,8 @@ jQuery(document).ready(function ($) {
             .replace(/[\u0300-\u036f]/g, '') // Elimina los acentos
             .replace(/[’']/g, '') // Elimina apóstrofes
             .replace(/[^a-zA-ZñÑ0-9\s]/g, '') // Retiene "ñ" y "Ñ"
-            .toLowerCase(); // Convierte a minúsculas
+            .toLowerCase() // Convierte a minúsculas
+            .replace(/\s+/g, ' '); // Normaliza los espacios intermedios
     }
 
     // Crear el mapa comuna -> región utilizando la normalización
@@ -24,8 +25,6 @@ jQuery(document).ready(function ($) {
         });
     });
 
-    console.log("Comuna to Region Map:", comunaToRegionMap);
-
     // Crear la lista de comunas originales para el autocompletado
     const comunaList = [];
     comunasChile.forEach(entry => {
@@ -33,19 +32,6 @@ jQuery(document).ready(function ($) {
             comunaList.push(comuna);
         });
     });
-
-    // Función para registrar todas las opciones de región
-    function logRegionOptions(regionSelect) {
-        const options = [];
-        $(`${regionSelect} option`).each(function () {
-            options.push($(this).text());
-        });
-        console.log(`Region options for ${regionSelect}:`, options);
-    }
-
-    // Llamar a la función para ambas regiones
-    logRegionOptions('#billing_state');
-    logRegionOptions('#shipping_state');
 
     // Calcular la distancia de Levenshtein entre dos cadenas
     function levenshteinDistance(a, b) {
@@ -167,7 +153,16 @@ jQuery(document).ready(function ($) {
     }
 
     function handleInvalidComuna(comunaInput, regionSelect) {
-        const suggestion = findClosestComuna(comunaInput.val());
+        const currentValue = comunaInput.val();
+        const normalizedCurrentValue = normalizeString(currentValue);
+
+        if (!normalizedCurrentValue) {
+            clearComunaSuggestion(comunaInput);
+            $(regionSelect).val('').trigger('change');
+            return;
+        }
+
+        const suggestion = findClosestComuna(currentValue);
         showComunaSuggestion(comunaInput, suggestion, regionSelect);
         $(regionSelect).val('').trigger('change');
     }
@@ -175,29 +170,22 @@ jQuery(document).ready(function ($) {
     // Sincronizar la región con la comuna seleccionada
     function syncRegionWithComuna(comunaInput, regionSelect) {
         const selectedComunaNormalized = normalizeString($(comunaInput).val());
-        console.log("Selected Comuna (normalized):", selectedComunaNormalized);
 
         const associatedRegion = comunaToRegionMap[selectedComunaNormalized];
-        console.log("Associated Region:", associatedRegion);
 
         if (associatedRegion) {
             const normalizedAssociatedRegion = normalizeString(associatedRegion);
-            console.log("Normalized Associated Region:", normalizedAssociatedRegion);
 
             const regionOption = $(`${regionSelect} option`).filter(function () {
                 return normalizeString($(this).text()) === normalizedAssociatedRegion;
             });
 
-            console.log("Matched Region Option:", regionOption);
-
             if (regionOption.length > 0) {
                 const regionValue = regionOption.val();
-                console.log("Region Value Found:", regionValue);
                 $(regionSelect).val(regionValue).trigger('change');
                 $('body').trigger('update_checkout');
                 clearComunaSuggestion(comunaInput);
             } else {
-                console.error("No se encontró una opción para la región:", associatedRegion);
                 showComunaSuggestion(comunaInput, null, regionSelect);
             }
         } else {
@@ -233,10 +221,27 @@ jQuery(document).ready(function ($) {
                 const exactComuna = comunaExactMap[inputValNormalized];
                 comunaInput.val(exactComuna);
                 syncRegionWithComuna(comunaInput, regionSelect);
-            } else {
-                handleInvalidComuna(comunaInput, regionSelect);
+                return;
             }
+
+            const closestComuna = findClosestComuna(comunaInput.val());
+            if (closestComuna) {
+                const closestNormalized = normalizeString(closestComuna);
+                const associatedRegion = comunaToRegionMap[closestNormalized];
+
+                if (associatedRegion && closestNormalized === inputValNormalized) {
+                    comunaInput.val(closestComuna);
+                    syncRegionWithComuna(comunaInput, regionSelect);
+                    return;
+                }
+            }
+
+            handleInvalidComuna(comunaInput, regionSelect);
         }
+    });
+
+    $('#billing_comuna, #shipping_comuna').on('input', function () {
+        clearComunaSuggestion($(this));
     });
 
     // Estilizar los campos de región para que no sean editables

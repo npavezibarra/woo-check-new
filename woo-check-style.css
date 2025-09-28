@@ -7,6 +7,11 @@
     border-radius: 8px;
 }
 
+form.checkout.woocommerce-checkout {
+    max-width: 820px;
+    margin: auto;
+}
+
 /* Example: Style for billing fields */
 .woocommerce-checkout #customer_details .col-1,
 .woocommerce-checkout #customer_details .col-2 {
