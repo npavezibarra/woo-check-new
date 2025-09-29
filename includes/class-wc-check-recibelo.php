@@ -1,238 +1,207 @@
 <?php
+/**
+ * WooCheck Recíbelo Integration
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
-    exit;
+    exit; // Exit if accessed directly
 }
 
 class WooCheck_Recibelo {
-    private $endpoint_pattern = 'https://app.recibelo.cl/webhook/%s/woocommerce';
-    private $token;
-
-    public function __construct() {
-        $this->token = trim( (string) get_option( 'woo_check_recibelo_token', '' ) );
-    }
 
     /**
-     * Send the WooCommerce order to Recíbelo.
+     * Send a WooCommerce order to Recíbelo.
      *
-     * @param WC_Order $order Order to send.
+     * @param int|WC_Order $order Order instance or ID.
      *
-     * @return WP_Error|array|WP_HTTP_Response|false
+     * @return WP_Error|array|WP_HTTP_Response
      */
     public static function send( $order ) {
-        $client = new self();
-
-        return $client->dispatch( $order );
-    }
-
-    private function dispatch( $order ) {
-        if ( ! $order instanceof WC_Order ) {
-            return new WP_Error( 'woocheck_recibelo_invalid_order', __( 'Invalid order instance provided.', 'woo-check' ) );
+        if ( is_numeric( $order ) ) {
+            $order = wc_get_order( $order );
         }
 
-        if ( '' === $this->token ) {
+        if ( ! $order instanceof WC_Order ) {
+            return new WP_Error( 'woocheck_recibelo_invalid_order', __( 'Invalid order provided.', 'woo-check' ) );
+        }
+
+        $token = self::get_token();
+
+        if ( '' === $token ) {
             return new WP_Error( 'woocheck_recibelo_missing_token', __( 'Recíbelo token is missing.', 'woo-check' ) );
         }
 
-        $payload = $this->build_payload( $order );
+        if ( ! self::is_metropolitana_destination( $order ) ) {
+            return new WP_Error( 'woocheck_recibelo_invalid_region', __( 'Order destination is outside Región Metropolitana.', 'woo-check' ) );
+        }
 
-        $this->log_message( sprintf( 'WooCheck Recibelo: Sending order %d', $order->get_id() ) );
-        $this->log_message( 'WooCheck Recibelo: Payload = ' . wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+        $payload = self::build_payload( $order );
 
-        $endpoint = apply_filters(
-            'woocheck_recibelo_endpoint',
-            sprintf( $this->endpoint_pattern, rawurlencode( $this->token ) ),
-            $order,
-            $payload
-        );
+        $url = sprintf( 'https://app.recibelo.cl/webhook/%s/woocommerce', rawurlencode( $token ) );
 
-        $response = wp_remote_post(
-            $endpoint,
-            [
-                'headers' => [
-                    'Content-Type' => 'application/json',
-                ],
-                'body'    => wp_json_encode( $payload ),
-                'timeout' => 30,
-            ]
-        );
+        $args = [
+            'headers' => [
+                'Content-Type' => 'application/json',
+            ],
+            'body'    => wp_json_encode( $payload ),
+            'timeout' => 30,
+        ];
+
+        error_log( sprintf( 'WooCheck Recibelo: Sending order %d', $order->get_id() ) );
+        error_log( 'WooCheck Recibelo: Payload = ' . wp_json_encode( $payload ) );
+
+        $response = wp_remote_post( $url, $args );
 
         if ( is_wp_error( $response ) ) {
-            $error_context = [
-                'code'    => $response->get_error_code(),
-                'message' => $response->get_error_message(),
-                'data'    => $response->get_error_data(),
-            ];
-
-            $this->log_message(
-                'WooCheck Recibelo: Response = ' . wp_json_encode( $error_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
-            );
-            $this->mark_sync_failed( $order );
+            error_log( sprintf( 'WooCheck Recibelo: Error sending order %d - %s', $order->get_id(), $response->get_error_message() ) );
 
             return $response;
         }
 
-        $body        = wp_remote_retrieve_body( $response );
-        $status_code = (int) wp_remote_retrieve_response_code( $response );
-        $decoded     = json_decode( $body, true );
-
-        $this->log_message(
-            'WooCheck Recibelo: Response = ' . wp_json_encode(
-                [
-                    'status_code' => $status_code,
-                    'body'        => null !== $decoded ? $decoded : $body,
-                ],
-                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            )
-        );
-
-        if ( $status_code >= 400 ) {
-            $this->mark_sync_failed( $order );
-
-            return new WP_Error(
-                'woocheck_recibelo_http_error',
-                __( 'Recíbelo request returned an error response.', 'woo-check' ),
-                [
-                    'status_code' => $status_code,
-                    'body'        => $body,
-                ]
-            );
-        }
-
-        $order->update_meta_data( '_recibelo_sync_status', 'synced' );
-        $order->delete_meta_data( '_recibelo_sync_failed' );
-        $order->save_meta_data();
+        $body = wp_remote_retrieve_body( $response );
+        error_log( sprintf( 'WooCheck Recibelo: Sent order %d. Response: %s', $order->get_id(), $body ) );
 
         return $response;
     }
 
-    private function build_payload( WC_Order $order ) {
-        return [
-            'id'                    => (int) $order->get_id(),
-            'status'                => $order->get_status(),
-            'currency'              => $order->get_currency(),
-            'total'                 => $this->format_amount( $order->get_total() ),
-            'billing'               => $this->format_address( $order, 'billing' ),
-            'shipping'              => $this->format_address( $order, 'shipping' ),
-            'line_items'            => $this->build_line_items( $order ),
-            'shipping_lines'        => $this->build_shipping_lines( $order ),
-            'payment_method'        => $order->get_payment_method(),
-            'payment_method_title'  => $order->get_payment_method_title(),
-        ];
+    /**
+     * Get Recíbelo API token from settings.
+     *
+     * @return string
+     */
+    protected static function get_token() {
+        $token = get_option( 'woocheck_recibelo_token', '' );
+
+        if ( '' === $token ) {
+            $token = get_option( 'woo_check_recibelo_token', '' );
+        }
+
+        return trim( (string) $token );
     }
 
-    private function build_line_items( WC_Order $order ) {
-        $items = [];
+    /**
+     * Determine if the order destination is Región Metropolitana.
+     *
+     * @param WC_Order $order Order instance.
+     *
+     * @return bool
+     */
+    protected static function is_metropolitana_destination( WC_Order $order ) {
+        $shipping_state = strtoupper( (string) $order->get_shipping_state() );
+        $billing_state  = strtoupper( (string) $order->get_billing_state() );
 
-        foreach ( $order->get_items() as $item ) {
+        return 'CL-RM' === $shipping_state || 'CL-RM' === $billing_state;
+    }
+
+    /**
+     * Build the payload expected by Recíbelo.
+     *
+     * @param WC_Order $order Order instance.
+     *
+     * @return array
+     */
+    protected static function build_payload( WC_Order $order ) {
+        $billing  = $order->get_address( 'billing' );
+        $shipping = self::prepare_shipping_address( $order );
+
+        $line_items = [];
+
+        foreach ( $order->get_items() as $item_id => $item ) {
             if ( ! $item instanceof WC_Order_Item_Product ) {
                 continue;
             }
 
-            $quantity   = max( 1, (int) $item->get_quantity() );
-            $line_total = (float) $item->get_total() + (float) $item->get_total_tax();
-            $unit_price = $quantity > 0 ? $line_total / $quantity : $line_total;
-
-            $items[] = [
-                'id'         => $item->get_id(),
+            $line_items[] = [
+                'id'         => $item_id,
                 'name'       => $item->get_name(),
                 'product_id' => $item->get_product_id(),
-                'quantity'   => $quantity,
-                'price'      => $this->format_amount( $unit_price ),
-                'total'      => $this->format_amount( $line_total ),
+                'quantity'   => $item->get_quantity(),
+                'price'      => (string) $item->get_total(),
             ];
         }
 
-        return $items;
-    }
+        $shipping_lines = [];
 
-    private function build_shipping_lines( WC_Order $order ) {
-        $lines = [];
-
-        foreach ( $order->get_shipping_methods() as $shipping_item ) {
-            $line_total = (float) $shipping_item->get_total() + (float) $shipping_item->get_total_tax();
-
-            $lines[] = [
-                'id'           => $shipping_item->get_id(),
-                'method_title' => $shipping_item->get_name(),
-                'method_id'    => $shipping_item->get_method_id(),
-                'total'        => $this->format_amount( $line_total ),
+        foreach ( $order->get_items( 'shipping' ) as $item_id => $item ) {
+            $shipping_lines[] = [
+                'id'           => $item_id,
+                'method_title' => $item->get_name(),
+                'method_id'    => $item->get_method_id(),
+                'total'        => (string) $item->get_total(),
             ];
         }
 
-        return $lines;
-    }
-
-    private function format_address( WC_Order $order, $type ) {
-        $first_name = $order->{ "get_{$type}_first_name" }();
-        $last_name  = $order->{ "get_{$type}_last_name" }();
-        $address_1  = $order->{ "get_{$type}_address_1" }();
-        $address_2  = $order->{ "get_{$type}_address_2" }();
-        $city       = $order->{ "get_{$type}_city" }();
-        $state      = $order->{ "get_{$type}_state" }();
-        $country    = $order->{ "get_{$type}_country" }();
-        $phone      = 'billing' === $type ? $order->get_billing_phone() : $order->get_shipping_phone();
-
-        if ( 'shipping' === $type && '' === trim( (string) $phone ) ) {
-            $phone = $order->get_billing_phone();
-        }
-
-        if ( '' === trim( (string) $state ) ) {
-            $state = 'shipping' === $type ? $order->get_billing_state() : $state;
-        }
-
-        $address = [
-            'first_name' => $first_name,
-            'last_name'  => $last_name,
-            'address_1'  => $address_1,
-            'address_2'  => $address_2,
-            'city'       => $city,
-            'state'      => $state,
-            'country'    => $country,
-            'phone'      => $phone,
+        return [
+            'id'                   => $order->get_id(),
+            'status'               => $order->get_status(),
+            'currency'             => $order->get_currency(),
+            'total'                => (string) $order->get_total(),
+            'billing'              => [
+                'first_name' => $billing['first_name'] ?? '',
+                'last_name'  => $billing['last_name'] ?? '',
+                'address_1'  => $billing['address_1'] ?? '',
+                'address_2'  => $billing['address_2'] ?? '',
+                'city'       => $billing['city'] ?? '',
+                'state'      => $billing['state'] ?? '',
+                'country'    => $billing['country'] ?? '',
+                'email'      => $billing['email'] ?? '',
+                'phone'      => $billing['phone'] ?? '',
+            ],
+            'shipping'             => $shipping,
+            'line_items'           => $line_items,
+            'shipping_lines'       => $shipping_lines,
+            'payment_method'       => $order->get_payment_method(),
+            'payment_method_title' => $order->get_payment_method_title(),
         ];
-
-        if ( 'billing' === $type ) {
-            $address['email'] = $order->get_billing_email();
-        }
-
-        if ( 'shipping' === $type && '' === trim( (string) $address['phone'] ) ) {
-            $address['phone'] = $order->get_billing_phone();
-        }
-
-        if ( 'shipping' === $type && '' === trim( (string) $address['country'] ) ) {
-            $address['country'] = $order->get_billing_country();
-        }
-
-        if ( 'shipping' === $type && '' === trim( (string) $address['state'] ) ) {
-            $address['state'] = $order->get_billing_state();
-        }
-
-        return $address;
     }
 
-    private function format_amount( $amount ) {
-        $decimals = wc_get_price_decimals();
+    /**
+     * Prepare the shipping address block.
+     *
+     * @param WC_Order $order Order instance.
+     *
+     * @return array
+     */
+    protected static function prepare_shipping_address( WC_Order $order ) {
+        $shipping = $order->get_address( 'shipping' );
 
-        return wc_format_decimal( $amount, $decimals > 0 ? $decimals : 0 );
-    }
-
-    private function log_message( $message ) {
-        error_log( $message );
-    }
-
-    private function mark_sync_failed( WC_Order $order ) {
-        $message = sprintf( __( 'WooCheck: Order #%d failed to sync with Recíbelo. See logs.', 'woo-check' ), $order->get_id() );
-
-        if ( 'failed' !== $order->get_meta( '_recibelo_sync_status' ) ) {
-            $order->add_order_note( $message );
+        if ( empty( $shipping['first_name'] ) ) {
+            $shipping['first_name'] = $order->get_billing_first_name();
         }
 
-        $order->update_meta_data( '_recibelo_sync_status', 'failed' );
-        $order->update_meta_data( '_recibelo_sync_failed', current_time( 'mysql' ) );
-        $order->save_meta_data();
-    }
-}
+        if ( empty( $shipping['last_name'] ) ) {
+            $shipping['last_name'] = $order->get_billing_last_name();
+        }
 
-if ( ! class_exists( 'WC_Check_Recibelo' ) ) {
-    class WC_Check_Recibelo extends WooCheck_Recibelo {}
+        if ( empty( $shipping['phone'] ) ) {
+            $shipping['phone'] = $order->get_billing_phone();
+        }
+
+        if ( empty( $shipping['state'] ) ) {
+            $shipping['state'] = $order->get_billing_state();
+        }
+
+        if ( empty( $shipping['country'] ) ) {
+            $shipping['country'] = $order->get_billing_country();
+        }
+
+        if ( empty( $shipping['address_1'] ) ) {
+            $shipping['address_1'] = $order->get_billing_address_1();
+        }
+
+        if ( empty( $shipping['city'] ) ) {
+            $shipping['city'] = $order->get_billing_city();
+        }
+
+        return [
+            'first_name' => $shipping['first_name'] ?? '',
+            'last_name'  => $shipping['last_name'] ?? '',
+            'address_1'  => $shipping['address_1'] ?? '',
+            'address_2'  => $shipping['address_2'] ?? '',
+            'city'       => $shipping['city'] ?? '',
+            'state'      => $shipping['state'] ?? '',
+            'country'    => $shipping['country'] ?? '',
+            'phone'      => $shipping['phone'] ?? '',
+        ];
+    }
 }
