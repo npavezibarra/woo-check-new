@@ -10,7 +10,22 @@ if (!defined('ABSPATH')) {
     <meta charset="<?php bloginfo('charset'); ?>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <?php wp_head(); ?>
+    <style>
+        /* Target header group inside your template-part */
+        header.wp-block-template-part .wp-block-group {
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1720px !important;
+            margin: auto;
+        }
+
+        /* Force mini-cart to be visible */
+        .wc-block-mini-cart.wp-block-woocommerce-mini-cart {
+            visibility: visible !important;
+        }
+    </style>
 </head>
+
 
 <body <?php body_class(); ?>>
 <?php
