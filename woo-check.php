@@ -351,11 +351,17 @@ function woo_check_override_checkout_template($template, $template_name, $templa
     if ($template_name === 'checkout/form-checkout.php') {
         $plugin_template = plugin_dir_path(__FILE__) . 'templates/checkout/form-checkout.php';
         if (file_exists($plugin_template)) {
+            error_log('WooCheck: usando template de plugin: ' . $plugin_template);
             return $plugin_template;
+        } else {
+            error_log('WooCheck: template no encontrado en ' . $plugin_template);
         }
+    } else {
+        error_log("WooCheck: plantilla cargada por defecto -> $template_name ($template)");
     }
     return $template;
 }
+
 
 // Override WooCommerce Lost Password Confirmation
 add_filter('woocommerce_locate_template', 'woo_check_override_lost_password_confirmation', 10, 3);
