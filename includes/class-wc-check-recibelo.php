@@ -134,16 +134,27 @@ class WooCheck_Recibelo {
             ];
         }
 
-        $commune_name = trim( (string) $order->get_meta( '_shipping_comuna', true ) );
+        $commune_meta  = trim( (string) $order->get_meta( '_shipping_comuna', true ) );
+        $shipping_city = trim( (string) ( $shipping['city'] ?? '' ) );
+        $lookup_value  = '' !== $commune_meta ? $commune_meta : $shipping_city;
 
-        if ( '' === $commune_name ) {
-            $commune_name = $shipping['city'] ?? '';
+        $commune_id = WooCheck_Recibelo_CommuneMapper::get_commune_id( $lookup_value );
+
+        if ( null === $commune_id && '' !== $shipping_city && $shipping_city !== $lookup_value ) {
+            $lookup_value = $shipping_city;
+            $commune_id   = WooCheck_Recibelo_CommuneMapper::get_commune_id( $lookup_value );
         }
 
-        $commune_id = WooCheck_Recibelo_CommuneMapper::get_commune_id( $commune_name );
+        $delivery_commune = $lookup_value;
 
-        if ( null === $commune_id ) {
-            error_log( sprintf( 'WooCheck Recibelo: Commune not mapped for order %d - input: %s', $order->get_id(), $commune_name ) );
+        if ( null !== $commune_id ) {
+            $canonical_name = WooCheck_Recibelo_CommuneMapper::get_commune_name( $commune_id );
+
+            if ( null !== $canonical_name ) {
+                $delivery_commune = $canonical_name;
+            }
+        } else {
+            error_log( sprintf( 'WooCheck Recibelo: Commune not mapped for order %d - input: %s', $order->get_id(), $lookup_value ) );
         }
 
         return [
@@ -168,7 +179,7 @@ class WooCheck_Recibelo {
             'payment_method'       => $order->get_payment_method(),
             'payment_method_title' => $order->get_payment_method_title(),
             'delivery_commune_id'  => null === $commune_id ? null : (int) $commune_id,
-            'delivery_commune'     => $commune_name,
+            'delivery_commune'     => $delivery_commune,
         ];
     }
 

@@ -15,56 +15,56 @@ class WooCheck_Recibelo_CommuneMapper {
      * @var array<int, string>
      */
     protected static $communes = [
-        84  => 'COLINA',
-        85  => 'LAMPA',
-        86  => 'TILTIL',
-        87  => 'SANTIAGO CENTRO',
-        88  => 'VITACURA',
-        89  => 'SAN RAMÓN',
-        90  => 'SAN MIGUEL',
-        91  => 'SAN JOAQUÍN',
-        92  => 'RENCA',
-        93  => 'RECOLETA',
-        94  => 'QUINTA NORMAL',
-        95  => 'QUILICURA',
-        96  => 'PUDAHUEL',
-        97  => 'PROVIDENCIA',
-        98  => 'PEÑALOLÉN',
-        99  => 'PEDRO AGUIRRE CERDA',
-        100 => 'ÑUÑOA',
-        101 => 'MAIPÚ',
-        102 => 'MACUL',
-        103 => 'LO PRADO',
-        104 => 'LO ESPEJO',
-        105 => 'LO BARNECHEA',
-        106 => 'LAS CONDES',
-        107 => 'LA REINA',
-        108 => 'LA PINTANA',
-        109 => 'LA GRANJA',
-        110 => 'LA FLORIDA',
-        111 => 'LA CISTERNA',
-        112 => 'INDEPENDENCIA',
-        113 => 'HUECHURABA',
-        114 => 'ESTACIÓN CENTRAL',
-        115 => 'EL BOSQUE',
-        116 => 'CONCHALÍ',
-        117 => 'CERRO NAVIA',
-        118 => 'CERRILLOS',
-        119 => 'PUENTE ALTO',
-        120 => 'SAN JOSÉ DE MAIPO',
-        121 => 'PIRQUE',
-        122 => 'SAN BERNARDO',
-        123 => 'BUIN',
-        124 => 'PAINE',
-        125 => 'CALERA DE TANGO',
-        126 => 'MELIPILLA',
-        128 => 'CURACAVÍ',
-        129 => 'MARÍA PINTO',
-        131 => 'ISLA DE MAIPO',
-        132 => 'EL MONTE',
-        133 => 'PADRE HURTADO',
-        134 => 'PEÑAFLOR',
-        135 => 'TALAGANTE',
+        84  => 'Colina',
+        85  => 'Lampa',
+        86  => 'Tiltil',
+        87  => 'Santiago centro',
+        88  => 'Vitacura',
+        89  => 'San Ramón',
+        90  => 'San Miguel',
+        91  => 'San Joaquín',
+        92  => 'Renca',
+        93  => 'Recoleta',
+        94  => 'Quinta Normal',
+        95  => 'Quilicura',
+        96  => 'Pudahuel',
+        97  => 'Providencia',
+        98  => 'Peñalolén',
+        99  => 'Pedro Aguirre Cerda',
+        100 => 'Ñuñoa',
+        101 => 'Maipú',
+        102 => 'Macul',
+        103 => 'Lo Prado',
+        104 => 'Lo Espejo',
+        105 => 'Lo Barnechea',
+        106 => 'Las Condes',
+        107 => 'La Reina',
+        108 => 'La Pintana',
+        109 => 'La Granja',
+        110 => 'La Florida',
+        111 => 'La Cisterna',
+        112 => 'Independencia',
+        113 => 'Huechuraba',
+        114 => 'Estación Central',
+        115 => 'El Bosque',
+        116 => 'Conchalí',
+        117 => 'Cerro Navia',
+        118 => 'Cerrillos',
+        119 => 'Puente Alto',
+        120 => 'San José de Maipo',
+        121 => 'Pirque',
+        122 => 'San Bernardo',
+        123 => 'Buin',
+        124 => 'Paine',
+        125 => 'Calera de Tango',
+        126 => 'Melipilla',
+        128 => 'Curacaví',
+        129 => 'María Pinto',
+        131 => 'Isla de Maipo',
+        132 => 'El Monte',
+        133 => 'Padre Hurtado',
+        134 => 'Peñaflor',
+        135 => 'Talagante',
     ];
 
     /**
@@ -79,21 +79,28 @@ class WooCheck_Recibelo_CommuneMapper {
             return null;
         }
 
-        $normalized = self::normalize( $name );
-        error_log( sprintf( "WooCheck Recibelo: Normalize input '%s' => '%s'", (string) $name, $normalized ) );
+        $normalized_input = self::normalize( $name );
 
         foreach ( self::$communes as $id => $commune_name ) {
-            $norm_ref = self::normalize( $commune_name );
-            error_log( sprintf( "WooCheck Recibelo: Compare '%s' with ref '%s' (ID %d)", $normalized, $norm_ref, (int) $id ) );
-
-            if ( $normalized === $norm_ref ) {
-                error_log( sprintf( 'WooCheck Recibelo: Matched %s to ID %d', (string) $name, (int) $id ) );
-
+            if ( self::normalize( $commune_name ) === $normalized_input ) {
                 return (int) $id;
             }
         }
 
-        error_log( sprintf( "WooCheck Recibelo: No match found for '%s'", (string) $name ) );
+        return null;
+    }
+
+    /**
+     * Retrieve the canonical commune name for a given ID.
+     *
+     * @param int $id Commune identifier.
+     *
+     * @return string|null
+     */
+    public static function get_commune_name( $id ) {
+        if ( isset( self::$communes[ $id ] ) ) {
+            return self::$communes[ $id ];
+        }
 
         return null;
     }
@@ -106,26 +113,18 @@ class WooCheck_Recibelo_CommuneMapper {
      * @return string
      */
     protected static function normalize( $string ) {
-        $string = (string) $string;
+        $string = trim( (string) $string );
 
-        if ( function_exists( 'mb_strtoupper' ) ) {
-            $string = mb_strtoupper( $string, 'UTF-8' );
+        if ( function_exists( 'mb_strtolower' ) ) {
+            $string = mb_strtolower( $string, 'UTF-8' );
         } else {
-            $string = strtoupper( $string );
+            $string = strtolower( $string );
         }
 
-        $string = str_replace( [ 'Ñ' ], 'N', $string );
-
-        if ( function_exists( 'iconv' ) ) {
-            $converted = @iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
-
-            if ( false !== $converted ) {
-                $string = $converted;
-            }
-        }
-
-        $string = preg_replace( '/[^A-Z0-9 ]/', '', $string );
-
-        return trim( (string) $string );
+        return str_replace(
+            [ 'ñ', 'á', 'é', 'í', 'ó', 'ú' ],
+            [ 'n', 'a', 'e', 'i', 'o', 'u' ],
+            $string
+        );
     }
 }
