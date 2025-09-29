@@ -139,6 +139,10 @@ class WooCheck_Recibelo {
 
         $commune_id = WooCheck_Recibelo_CommuneMapper::get_commune_id( $commune_name );
 
+        if ( null === $commune_id ) {
+            error_log( sprintf( 'WooCheck Recibelo: Commune not mapped for order %d - input: %s', $order->get_id(), $commune_name ) );
+        }
+
         return [
             'id'                   => $order->get_id(),
             'status'               => $order->get_status(),

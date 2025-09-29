@@ -98,7 +98,15 @@ class WooCheck_Recibelo_CommuneMapper {
      * @return string
      */
     protected static function normalize( $string ) {
-        $string = strtoupper( (string) $string );
+        $string = (string) $string;
+
+        if ( function_exists( 'mb_strtoupper' ) ) {
+            $string = mb_strtoupper( $string, 'UTF-8' );
+        } else {
+            $string = strtoupper( $string );
+        }
+
+        $string = str_replace( [ 'Ñ' ], 'N', $string );
 
         if ( function_exists( 'iconv' ) ) {
             $converted = @iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
@@ -108,6 +116,8 @@ class WooCheck_Recibelo_CommuneMapper {
             }
         }
 
-        return trim( $string );
+        $string = preg_replace( '/[^A-Z0-9 ]/', '', $string );
+
+        return trim( (string) $string );
     }
 }
