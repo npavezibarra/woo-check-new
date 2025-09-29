@@ -18,7 +18,7 @@ class WooCheck_Recibelo_CommuneMapper {
         84  => 'Colina',
         85  => 'Lampa',
         86  => 'Tiltil',
-        87  => 'Santiago centro',
+        87  => 'Santiago Centro',
         88  => 'Vitacura',
         89  => 'San Ramón',
         90  => 'San Miguel',

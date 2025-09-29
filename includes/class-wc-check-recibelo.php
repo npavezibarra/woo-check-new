@@ -145,23 +145,27 @@ class WooCheck_Recibelo {
             $commune_id   = WooCheck_Recibelo_CommuneMapper::get_commune_id( $lookup_value );
         }
 
-        $delivery_commune = $lookup_value;
+        $final_commune = $lookup_value;
 
         if ( null !== $commune_id ) {
             $canonical_name = WooCheck_Recibelo_CommuneMapper::get_name( $commune_id );
 
             if ( null !== $canonical_name ) {
-                $delivery_commune = $canonical_name;
+                $final_commune = $canonical_name;
             }
         } else {
             error_log( sprintf( 'WooCheck Recibelo: Commune not mapped for order %d - input: %s', $order->get_id(), $lookup_value ) );
         }
 
-        $delivery_commune = (string) $delivery_commune;
-        $shipping['city'] = $delivery_commune;
-        $billing['city']  = $delivery_commune;
+        $final_commune = (string) $final_commune;
 
-        error_log( sprintf( 'WooCheck Recibelo: Final commune for order #%d = %s', $order->get_id(), $delivery_commune ) );
+        // ⚠️ Important:
+        // Recíbelo expects comuna as string in "city".
+        // Shipit expects comuna as numeric "commune_id".
+        $shipping['city'] = $final_commune;
+        $billing['city']  = $final_commune;
+
+        error_log( sprintf( 'WooCheck Recibelo: Final commune for order #%d = %s', $order->get_id(), $final_commune ) );
 
         return [
             'id'                   => $order->get_id(),
