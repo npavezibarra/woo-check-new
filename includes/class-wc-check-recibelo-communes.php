@@ -80,12 +80,20 @@ class WooCheck_Recibelo_CommuneMapper {
         }
 
         $normalized = self::normalize( $name );
+        error_log( sprintf( "WooCheck Recibelo: Normalize input '%s' => '%s'", (string) $name, $normalized ) );
 
         foreach ( self::$communes as $id => $commune_name ) {
-            if ( $normalized === self::normalize( $commune_name ) ) {
+            $norm_ref = self::normalize( $commune_name );
+            error_log( sprintf( "WooCheck Recibelo: Compare '%s' with ref '%s' (ID %d)", $normalized, $norm_ref, (int) $id ) );
+
+            if ( $normalized === $norm_ref ) {
+                error_log( sprintf( 'WooCheck Recibelo: Matched %s to ID %d', (string) $name, (int) $id ) );
+
                 return (int) $id;
             }
         }
+
+        error_log( sprintf( "WooCheck Recibelo: No match found for '%s'", (string) $name ) );
 
         return null;
     }

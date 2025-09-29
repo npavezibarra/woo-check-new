@@ -35,6 +35,9 @@ class WooCheck_Recibelo {
             return new WP_Error( 'woocheck_recibelo_invalid_region', __( 'Order destination is outside Región Metropolitana.', 'woo-check' ) );
         }
 
+        $commune_name = $order->get_meta( '_shipping_comuna', true );
+        error_log( sprintf( "WooCheck Recibelo [Order %d] Raw Woo comuna = '%s'", $order->get_id(), (string) $commune_name ) );
+
         $payload = self::build_payload( $order );
 
         $url = sprintf( 'https://app.recibelo.cl/webhook/%s/woocommerce', rawurlencode( $token ) );
