@@ -106,6 +106,17 @@ class WooCheck_Recibelo_CommuneMapper {
     }
 
     /**
+     * Alias for get_commune_name to match helper naming conventions.
+     *
+     * @param int $id Commune identifier.
+     *
+     * @return string|null
+     */
+    public static function get_name( $id ) {
+        return self::get_commune_name( $id );
+    }
+
+    /**
      * Normalize a string for comparison.
      *
      * @param string $string Raw string.
