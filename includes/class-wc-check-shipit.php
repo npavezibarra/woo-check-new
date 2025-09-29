@@ -140,50 +140,53 @@ class WC_Check_Shipit {
             }
         }
 
-        $first_name = $order->get_shipping_first_name();
-        $last_name  = $order->get_shipping_last_name();
+        $billing_first = $order->get_billing_first_name();
+        $billing_last  = $order->get_billing_last_name();
 
-        if ( '' === $first_name ) {
-            $first_name = $order->get_billing_first_name();
+        if ( '' === trim( (string) $billing_first ) ) {
+            $billing_first = $order->get_shipping_first_name();
         }
 
-        if ( '' === $last_name ) {
-            $last_name = $order->get_billing_last_name();
+        if ( '' === trim( (string) $billing_last ) ) {
+            $billing_last = $order->get_shipping_last_name();
         }
 
-        list( $first_name, $last_name ) = WooCheck_Shipit_Validator::normalize_name( $first_name, $last_name );
+        list( $first_name, $last_name ) = WooCheck_Shipit_Validator::normalize_name( $billing_first, $billing_last );
+        $full_name = trim( $first_name . ' ' . $last_name );
 
         if ( function_exists( 'remove_accents' ) ) {
             $first_name = remove_accents( $first_name );
             $last_name  = remove_accents( $last_name );
+            $full_name  = remove_accents( $full_name );
         }
 
-        $phone_source = $order->get_shipping_phone();
-        if ( '' === $phone_source ) {
-            $phone_source = $order->get_billing_phone();
+        $phone = WooCheck_Shipit_Validator::normalize_phone( $order->get_billing_phone() );
+        if ( '' === trim( (string) $phone ) ) {
+            $phone = WooCheck_Shipit_Validator::normalize_phone( $order->get_shipping_phone() );
+        }
+        if ( '' === trim( (string) $phone ) ) {
+            $phone = '+56900000000';
         }
 
-        $phone = WooCheck_Shipit_Validator::normalize_phone( $phone_source );
+        list( $street, $number, $complement ) = WooCheck_Shipit_Validator::normalize_address(
+            $order->get_billing_address_1(),
+            $order->get_billing_address_2()
+        );
 
-        $street_raw  = $order->get_shipping_address_1();
-        $street2_raw = $order->get_shipping_address_2();
-
-        if ( '' === trim( (string) $street_raw ) ) {
-            $street_raw  = $order->get_billing_address_1();
-            $street2_raw = $order->get_billing_address_2();
+        if ( 'Direccion' === $street ) {
+            list( $street, $number, $complement ) = WooCheck_Shipit_Validator::normalize_address(
+                $order->get_shipping_address_1(),
+                $order->get_shipping_address_2()
+            );
         }
-
-        list( $street, $number, $complement ) = WooCheck_Shipit_Validator::normalize_address( $street_raw, $street2_raw );
 
         $commune_raw = $order->get_meta( '_shipping_comuna', true );
         if ( '' === trim( (string) $commune_raw ) ) {
             $commune_raw = $order->get_meta( '_billing_comuna', true );
         }
-
         if ( '' === trim( (string) $commune_raw ) ) {
             $commune_raw = $order->get_shipping_city();
         }
-
         if ( '' === trim( (string) $commune_raw ) ) {
             $commune_raw = $order->get_billing_city();
         }
@@ -195,9 +198,9 @@ class WC_Check_Shipit {
         $commune_id = $this->map_commune_to_id( $commune_name );
 
         if ( ! $commune_id ) {
-            error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
-
-            return null;
+            error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}. Defaulting to Santiago." );
+            $commune_id   = 308;
+            $commune_name = 'SANTIAGO';
         }
 
         $email = $order->get_billing_email();
@@ -209,7 +212,7 @@ class WC_Check_Shipit {
             'shipment' => [
                 'platform'  => 2,
                 'reference' => $order->get_id() . 'N',
-                'items'     => max( 1, $item_count ),
+                'items'     => 1,
                 'sizes'     => $dimensions,
                 'courier'   => [
                     'id'              => 1,
@@ -217,6 +220,7 @@ class WC_Check_Shipit {
                     'without_courier' => false,
                 ],
                 'destiny'   => [
+                    'name'         => $full_name,
                     'first_name'   => $first_name,
                     'last_name'    => $last_name,
                     'email'        => $email,
