@@ -115,13 +115,8 @@ class WC_Check_Shipit {
                 }
             }
 
-            $sku = $product instanceof WC_Product ? $product->get_sku() : '';
-            if ( '' === $sku ) {
-                $sku = (string) $item->get_product_id();
-            }
-
             $products[] = [
-                'sku_id'       => $sku,
+                'sku_id'       => $item->get_product_id(),
                 'amount'       => $quantity,
                 'warehouse_id' => (int) apply_filters( 'wc_check_shipit_product_warehouse_id', $default_warehouse, $item, $order ),
             ];
@@ -212,7 +207,7 @@ class WC_Check_Shipit {
             'shipment' => [
                 'platform'  => 2,
                 'reference' => $order->get_id() . 'N',
-                'items'     => 1,
+                'items'     => max( 1, $item_count ),
                 'sizes'     => $dimensions,
                 'courier'   => [
                     'id'              => 1,
@@ -220,22 +215,30 @@ class WC_Check_Shipit {
                     'without_courier' => false,
                 ],
                 'destiny'   => [
-                    'name'         => $full_name,
-                    'first_name'   => $first_name,
-                    'last_name'    => $last_name,
-                    'email'        => $email,
-                    'phone'        => $phone,
-                    'street'       => $street,
-                    'number'       => $number,
-                    'complement'   => $complement,
-                    'commune_id'   => $commune_id,
-                    'commune_name' => $commune_name,
-                    'country_id'   => 1,
-                    'kind'         => 'home_delivery',
+                    'street'                   => $street,
+                    'number'                   => $number,
+                    'complement'               => $complement,
+                    'commune_id'               => $commune_id,
+                    'commune_name'             => $commune_name,
+                    'full_name'                => $full_name, // REQUIRED
+                    'email'                    => $email,
+                    'phone'                    => $phone,
+                    'kind'                     => 'home_delivery',
+                    'courier_destiny_id'       => null,
+                    'courier_branch_office_id' => null,
                 ],
                 'products'  => $products,
             ],
         ];
+
+        if ( apply_filters( 'wc_check_shipit_include_insurance', false, $order ) ) {
+            $payload['shipment']['insurance'] = [
+                'ticket_amount' => (int) $order->get_total(),
+                'ticket_number' => (int) $order->get_id(),
+                'detail'        => 'Pedido WooCommerce',
+                'extra'         => false,
+            ];
+        }
 
         return $payload;
     }
