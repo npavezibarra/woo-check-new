@@ -141,54 +141,68 @@ class WC_Check_Shipit {
         }
 
         $first_name = $order->get_shipping_first_name();
+        $last_name  = $order->get_shipping_last_name();
+
         if ( '' === $first_name ) {
             $first_name = $order->get_billing_first_name();
         }
 
-        $last_name = $order->get_shipping_last_name();
         if ( '' === $last_name ) {
             $last_name = $order->get_billing_last_name();
         }
 
-        $receiver_name = trim( $first_name . ' ' . $last_name );
+        list( $first_name, $last_name ) = WooCheck_Shipit_Validator::normalize_name( $first_name, $last_name );
 
         if ( function_exists( 'remove_accents' ) ) {
-            $receiver_name = remove_accents( $receiver_name );
+            $first_name = remove_accents( $first_name );
+            $last_name  = remove_accents( $last_name );
         }
 
-        $street_raw = $order->get_shipping_address_1();
-        $street2    = $order->get_shipping_address_2();
-
-        if ( '' === $street_raw ) {
-            $street_raw = $order->get_billing_address_1();
-            $street2    = $order->get_billing_address_2();
+        $phone_source = $order->get_shipping_phone();
+        if ( '' === $phone_source ) {
+            $phone_source = $order->get_billing_phone();
         }
 
-        $street = $this->sanitize_street_name( $street_raw );
-        $number = $this->extract_street_number( $street_raw );
-        $complement = $street2;
+        $phone = WooCheck_Shipit_Validator::normalize_phone( $phone_source );
 
-        $phone = $order->get_shipping_phone();
-        if ( '' === $phone ) {
-            $phone = $order->get_billing_phone();
+        $street_raw  = $order->get_shipping_address_1();
+        $street2_raw = $order->get_shipping_address_2();
+
+        if ( '' === trim( (string) $street_raw ) ) {
+            $street_raw  = $order->get_billing_address_1();
+            $street2_raw = $order->get_billing_address_2();
         }
 
-        $commune_name = $order->get_meta( '_shipping_comuna' );
+        list( $street, $number, $complement ) = WooCheck_Shipit_Validator::normalize_address( $street_raw, $street2_raw );
 
-        if ( empty( $commune_name ) ) {
-            $commune_name = $order->get_meta( '_billing_comuna' );
+        $commune_raw = $order->get_meta( '_shipping_comuna', true );
+        if ( '' === trim( (string) $commune_raw ) ) {
+            $commune_raw = $order->get_meta( '_billing_comuna', true );
         }
 
-        $commune_name = trim( (string) $commune_name );
+        if ( '' === trim( (string) $commune_raw ) ) {
+            $commune_raw = $order->get_shipping_city();
+        }
+
+        if ( '' === trim( (string) $commune_raw ) ) {
+            $commune_raw = $order->get_billing_city();
+        }
+
+        $commune_name = WooCheck_Shipit_Validator::normalize_commune( $commune_raw );
 
         error_log( 'WooCheck Shipit: Using commune ' . ( '' !== $commune_name ? $commune_name : '(empty)' ) . ' for order ' . $order->get_id() );
 
-        $commune_id = $this->get_commune_id( $commune_name );
+        $commune_id = $this->map_commune_to_id( $commune_name );
 
         if ( ! $commune_id ) {
             error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
 
             return null;
+        }
+
+        $email = $order->get_billing_email();
+        if ( '' === trim( (string) $email ) ) {
+            $email = 'no-reply@yourdomain.cl';
         }
 
         $payload = [
@@ -198,13 +212,14 @@ class WC_Check_Shipit {
                 'items'     => max( 1, $item_count ),
                 'sizes'     => $dimensions,
                 'courier'   => [
-                    'id'               => 1,
-                    'algorithm'        => 1,
-                    'without_courier'  => false,
+                    'id'              => 1,
+                    'algorithm'       => 1,
+                    'without_courier' => false,
                 ],
                 'destiny'   => [
-                    'name'         => $receiver_name,
-                    'email'        => $order->get_billing_email(),
+                    'first_name'   => $first_name,
+                    'last_name'    => $last_name,
+                    'email'        => $email,
                     'phone'        => $phone,
                     'street'       => $street,
                     'number'       => $number,
@@ -239,9 +254,9 @@ class WC_Check_Shipit {
     }
 
     /**
-     * Find commune ID from Shipit communes.json
+     * Map a normalized commune name to Shipit communes.json.
      */
-    private function get_commune_id( $commune_name ) {
+    private function map_commune_to_id( $commune_name ) {
         $file = __DIR__ . '/communes.json';
 
         if ( ! file_exists( $file ) ) {
@@ -251,80 +266,43 @@ class WC_Check_Shipit {
 
         $communes = json_decode( file_get_contents( $file ), true );
 
-        if ( empty( $commune_name ) ) {
-            error_log( 'WooCheck Shipit: Commune is empty' );
+        if ( ! is_array( $communes ) ) {
+            error_log( 'WooCheck Shipit: Unable to decode communes.json.' );
             return null;
         }
 
-        $commune_name_normalized = $this->normalize_string( $commune_name );
+        $normalized_target = WooCheck_Shipit_Validator::normalize_commune( $commune_name );
 
         foreach ( $communes as $commune ) {
-            $normalized_json = $this->normalize_string( $commune['name'] );
+            if ( ! isset( $commune['name'], $commune['id'] ) ) {
+                continue;
+            }
 
-            if ( $commune_name_normalized === $normalized_json ) {
+            $normalized_json = WooCheck_Shipit_Validator::normalize_commune( $commune['name'] );
+
+            if ( $normalized_target === $normalized_json ) {
                 return $commune['id'];
             }
         }
 
         $similar = [];
+
         foreach ( $communes as $commune ) {
-            $lev = levenshtein( $commune_name_normalized, $this->normalize_string( $commune['name'] ) );
-            if ( $lev < 3 ) {
+            if ( ! isset( $commune['name'] ) ) {
+                continue;
+            }
+
+            $normalized_json = WooCheck_Shipit_Validator::normalize_commune( $commune['name'] );
+            $distance        = levenshtein( $normalized_target, $normalized_json );
+
+            if ( $distance < 3 ) {
                 $similar[] = $commune['name'];
             }
         }
 
-        error_log( "WooCheck Shipit: Commune '{$commune_name}' not found. Did you mean: " . implode( ', ', $similar ) );
+        $suggestion = empty( $similar ) ? 'none' : implode( ', ', $similar );
+        error_log( "WooCheck Shipit: Commune '{$commune_name}' not found. Did you mean: {$suggestion}" );
 
         return null;
-    }
-
-    /**
-     * Normalize comuna names for consistent comparison.
-     */
-    private function normalize_string( $string ) {
-        $string = (string) $string;
-
-        if ( function_exists( 'remove_accents' ) ) {
-            $string = remove_accents( $string );
-        } elseif ( function_exists( 'iconv' ) ) {
-            $converted = iconv( 'UTF-8', 'ASCII//TRANSLIT', $string );
-            if ( false !== $converted ) {
-                $string = $converted;
-            }
-        }
-
-        $string = strtoupper( $string );
-
-        return preg_replace( '/[^A-Z0-9 ]/', '', $string );
-    }
-
-    private function extract_street_number( $street ) {
-        if ( empty( $street ) ) {
-            return '';
-        }
-
-        if ( preg_match( '/(\d+)/', $street, $matches ) ) {
-            return $matches[1];
-        }
-
-        return '';
-    }
-
-    private function sanitize_street_name( $street ) {
-        $street = (string) $street;
-
-        if ( '' === $street ) {
-            return '';
-        }
-
-        if ( function_exists( 'remove_accents' ) ) {
-            $street = remove_accents( $street );
-        }
-
-        $street = preg_replace( '/\d+/', '', $street );
-        $street = preg_replace( '/\s+/', ' ', $street );
-
-        return trim( $street );
     }
 }
