@@ -74,7 +74,8 @@ function wc_check_region_id_from_state_code( $state_code ) {
     }
 
     $direct_map = [
-        'RM' => 7,
+        'RM'   => 7,
+        'CL-RM' => 7,
     ];
 
     if ( isset( $direct_map[ $state_code ] ) ) {
@@ -219,6 +220,21 @@ function wc_check_determine_commune_region_data( WC_Order $order ) {
     ];
 }
 
+function wc_check_order_targets_recibelo( WC_Order $order ) {
+    $shipping_state = strtoupper( trim( (string) $order->get_shipping_state() ) );
+    $billing_state  = strtoupper( trim( (string) $order->get_billing_state() ) );
+
+    if ( 'CL-RM' === $shipping_state || ( '' === $shipping_state && 'CL-RM' === $billing_state ) ) {
+        return true;
+    }
+
+    $location   = wc_check_determine_commune_region_data( $order );
+    $commune_id = $location['commune_id'];
+    $region_id  = $location['region_id'];
+
+    return 'recibelo' === WooCheck_Courier_Router::decide( $commune_id, $region_id );
+}
+
 function wc_check_handle_processing_order( $order_id ) {
     $order = wc_get_order( $order_id );
 
@@ -226,16 +242,14 @@ function wc_check_handle_processing_order( $order_id ) {
         return;
     }
 
-    $location   = wc_check_determine_commune_region_data( $order );
-    $commune_id = $location['commune_id'];
-    $region_id  = $location['region_id'];
+    $location = wc_check_determine_commune_region_data( $order );
 
     $force_shipit = '1' === get_option( 'woocheck_force_shipit', '0' );
 
     if ( $force_shipit ) {
         $courier = 'shipit';
     } else {
-        $courier = WooCheck_Courier_Router::decide( $commune_id, $region_id );
+        $courier = wc_check_order_targets_recibelo( $order ) ? 'recibelo' : 'shipit';
     }
 
     /**
@@ -255,11 +269,78 @@ function wc_check_handle_processing_order( $order_id ) {
         return;
     }
 
-    if ( $order->get_meta( '_recibelo_tracking', true ) ) {
+    if ( 'synced' === $order->get_meta( '_recibelo_sync_status', true ) ) {
         return;
     }
 
-    WooCheck_Recibelo::send( $order );
+    $response = WooCheck_Recibelo::send( $order );
+
+    if ( is_wp_error( $response ) ) {
+        error_log(
+            sprintf(
+                'WooCheck: Recibelo sync failed for order #%d - %s',
+                $order->get_id(),
+                $response->get_error_message()
+            )
+        );
+    }
+}
+
+add_filter( 'woocommerce_order_actions', 'wc_check_add_recibelo_order_action', 10, 2 );
+function wc_check_add_recibelo_order_action( $actions, $order ) {
+    if ( ! $order instanceof WC_Order ) {
+        return $actions;
+    }
+
+    if ( ! wc_check_order_targets_recibelo( $order ) ) {
+        return $actions;
+    }
+
+    $actions['wc_check_resend_recibelo'] = __( 'Resend to Recíbelo', 'woo-check' );
+
+    return $actions;
+}
+
+add_action( 'woocommerce_order_action_wc_check_resend_recibelo', 'wc_check_resend_order_to_recibelo' );
+function wc_check_resend_order_to_recibelo( $order ) {
+    if ( is_numeric( $order ) ) {
+        $order = wc_get_order( $order );
+    }
+
+    if ( ! $order instanceof WC_Order ) {
+        return;
+    }
+
+    $response = WooCheck_Recibelo::send( $order );
+
+    if ( is_wp_error( $response ) ) {
+        $order->add_order_note(
+            sprintf(
+                __( 'Recíbelo resend failed: %s', 'woo-check' ),
+                $response->get_error_message()
+            )
+        );
+
+        return;
+    }
+
+    $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+    if ( $status_code >= 400 ) {
+        $order->add_order_note(
+            sprintf(
+                __( 'Recíbelo resend returned HTTP %d. Please review logs.', 'woo-check' ),
+                $status_code
+            )
+        );
+
+        return;
+    }
+
+    $order->add_order_note( __( 'WooCheck: Order resent to Recíbelo.', 'woo-check' ) );
+    $order->update_meta_data( '_recibelo_sync_status', 'synced' );
+    $order->delete_meta_data( '_recibelo_sync_failed' );
+    $order->save_meta_data();
 }
 
 
