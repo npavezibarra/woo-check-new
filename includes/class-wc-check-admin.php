@@ -25,10 +25,26 @@ class WC_Check_Admin {
         register_setting( 'woo_check_settings', 'woo_check_recibelo_token' );
         register_setting( 'woo_check_settings', 'wc_check_shipit_email' );
         register_setting( 'woo_check_settings', 'wc_check_shipit_token' );
+        register_setting(
+            'woo_check_settings',
+            'woocheck_force_shipit',
+            [
+                'type'              => 'string',
+                'sanitize_callback' => [ $this, 'sanitize_force_shipit' ],
+                'default'           => '0',
+            ]
+        );
 
         add_settings_section(
             'woo_check_section',
             'API Tokens',
+            null,
+            'woo-check-settings'
+        );
+
+        add_settings_section(
+            'woo_check_routing_section',
+            'Courier Routing',
             null,
             'woo-check-settings'
         );
@@ -57,6 +73,18 @@ class WC_Check_Admin {
             'woo_check_section'
         );
 
+        add_settings_field(
+            'woocheck_force_shipit',
+            'Force send all orders to Shipit',
+            [ $this, 'force_shipit_field_html' ],
+            'woo-check-settings',
+            'woo_check_routing_section'
+        );
+
+    }
+
+    public function sanitize_force_shipit( $value ) {
+        return $value ? '1' : '0';
     }
 
     public function recibelo_token_field_html() {
@@ -72,6 +100,16 @@ class WC_Check_Admin {
     public function shipit_token_field_html() {
         $value = esc_attr( get_option( 'wc_check_shipit_token', get_option( 'woo_check_shipit_token', '' ) ) );
         echo "<input type='text' name='wc_check_shipit_token' value='$value' class='regular-text' />";
+    }
+
+    public function force_shipit_field_html() {
+        $value = get_option( 'woocheck_force_shipit', '0' );
+        ?>
+        <label>
+            <input type="checkbox" name="woocheck_force_shipit" value="1" <?php checked( '1', $value ); ?> />
+            <?php esc_html_e( 'Force send all orders to Shipit', 'woo-check' ); ?>
+        </label>
+        <?php
     }
 
     public function settings_page_html() {
