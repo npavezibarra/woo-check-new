@@ -150,9 +150,10 @@ class WC_Check_Shipit {
             $last_name = $order->get_billing_last_name();
         }
 
+        $receiver_name = trim( $first_name . ' ' . $last_name );
+
         if ( function_exists( 'remove_accents' ) ) {
-            $first_name = remove_accents( $first_name );
-            $last_name  = remove_accents( $last_name );
+            $receiver_name = remove_accents( $receiver_name );
         }
 
         $street_raw = $order->get_shipping_address_1();
@@ -202,8 +203,7 @@ class WC_Check_Shipit {
                     'without_courier'  => false,
                 ],
                 'destiny'   => [
-                    'first_name'   => $first_name,
-                    'last_name'    => $last_name,
+                    'name'         => $receiver_name,
                     'email'        => $order->get_billing_email(),
                     'phone'        => $phone,
                     'street'       => $street,
