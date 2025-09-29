@@ -140,22 +140,19 @@ class WC_Check_Shipit {
             }
         }
 
-        $shipping_first_name = $order->get_shipping_first_name();
-        $shipping_last_name  = $order->get_shipping_last_name();
-
-        if ( '' === trim( $shipping_first_name . $shipping_last_name ) ) {
-            $shipping_first_name = $order->get_billing_first_name();
-            $shipping_last_name  = $order->get_billing_last_name();
+        $first_name = $order->get_shipping_first_name();
+        if ( '' === $first_name ) {
+            $first_name = $order->get_billing_first_name();
         }
 
-        $receiver_name = trim( $shipping_first_name . ' ' . $shipping_last_name );
-
-        if ( '' === $receiver_name ) {
-            $receiver_name = $order->get_formatted_billing_full_name();
+        $last_name = $order->get_shipping_last_name();
+        if ( '' === $last_name ) {
+            $last_name = $order->get_billing_last_name();
         }
 
         if ( function_exists( 'remove_accents' ) ) {
-            $receiver_name = remove_accents( $receiver_name );
+            $first_name = remove_accents( $first_name );
+            $last_name  = remove_accents( $last_name );
         }
 
         $street_raw = $order->get_shipping_address_1();
@@ -167,6 +164,8 @@ class WC_Check_Shipit {
         }
 
         $street = $this->sanitize_street_name( $street_raw );
+        $number = $this->extract_street_number( $street_raw );
+        $complement = $street2;
 
         $phone = $order->get_shipping_phone();
         if ( '' === $phone ) {
@@ -181,15 +180,9 @@ class WC_Check_Shipit {
 
         $commune_name = trim( (string) $commune_name );
 
-        $normalized_commune = $commune_name;
-
-        if ( function_exists( 'remove_accents' ) ) {
-            $normalized_commune = remove_accents( $normalized_commune );
-        }
-
         error_log( 'WooCheck Shipit: Using commune ' . ( '' !== $commune_name ? $commune_name : '(empty)' ) . ' for order ' . $order->get_id() );
 
-        $commune_id = $this->get_commune_id( $normalized_commune );
+        $commune_id = $this->get_commune_id( $commune_name );
 
         if ( ! $commune_id ) {
             error_log( "WooCheck Shipit: Commune not found for '{$commune_name}' in order {$order->get_id()}." );
@@ -209,14 +202,15 @@ class WC_Check_Shipit {
                     'without_courier'  => false,
                 ],
                 'destiny'   => [
-                    'name'         => $receiver_name,
+                    'first_name'   => $first_name,
+                    'last_name'    => $last_name,
                     'email'        => $order->get_billing_email(),
                     'phone'        => $phone,
                     'street'       => $street,
-                    'number'       => $this->extract_street_number( $street_raw ),
-                    'complement'   => $street2,
+                    'number'       => $number,
+                    'complement'   => $complement,
                     'commune_id'   => $commune_id,
-                    'commune_name' => $normalized_commune,
+                    'commune_name' => $commune_name,
                     'country_id'   => 1,
                     'kind'         => 'home_delivery',
                 ],
