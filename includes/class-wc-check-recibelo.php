@@ -131,6 +131,14 @@ class WooCheck_Recibelo {
             ];
         }
 
+        $commune_name = trim( (string) $order->get_meta( '_shipping_comuna', true ) );
+
+        if ( '' === $commune_name ) {
+            $commune_name = $shipping['city'] ?? '';
+        }
+
+        $commune_id = WooCheck_Recibelo_CommuneMapper::get_commune_id( $commune_name );
+
         return [
             'id'                   => $order->get_id(),
             'status'               => $order->get_status(),
@@ -152,6 +160,8 @@ class WooCheck_Recibelo {
             'shipping_lines'       => $shipping_lines,
             'payment_method'       => $order->get_payment_method(),
             'payment_method_title' => $order->get_payment_method_title(),
+            'delivery_commune_id'  => null === $commune_id ? null : (int) $commune_id,
+            'delivery_commune'     => $commune_name,
         ];
     }
 
