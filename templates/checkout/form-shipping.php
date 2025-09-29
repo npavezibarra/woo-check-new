@@ -27,23 +27,34 @@ defined( 'ABSPATH' ) || exit;
 			</label>
 		</h3>
 
-		<div class="shipping_address">
+                <div class="shipping_address shipping-modal-overlay" id="shipping-modal-overlay" aria-hidden="true">
 
-			<?php do_action( 'woocommerce_before_checkout_shipping_form', $checkout ); ?>
+                        <div class="shipping-modal" role="dialog" aria-modal="true" aria-labelledby="shipping-modal-title">
+                                <div class="shipping-modal__header">
+                                        <button type="button" class="shipping-modal__close" id="shipping-modal-close" aria-label="<?php esc_attr_e( 'Cerrar formulario de dirección de envío', 'woo-check' ); ?>">
+                                                &times;
+                                        </button>
+                                        <h3 class="shipping-modal__title" id="shipping-modal-title"><?php esc_html_e( 'Dirección de envío', 'woo-check' ); ?></h3>
+                                </div>
 
-			<div class="woocommerce-shipping-fields__field-wrapper">
-				<?php
-				$fields = $checkout->get_checkout_fields( 'shipping' );
+                                <div class="shipping-modal__content">
+                                        <?php do_action( 'woocommerce_before_checkout_shipping_form', $checkout ); ?>
 
-				foreach ( $fields as $key => $field ) {
-					woocommerce_form_field( $key, $field, $checkout->get_value( $key ) );
-				}
-				?>
-			</div>
+                                        <div class="woocommerce-shipping-fields__field-wrapper">
+                                                <?php
+                                                $fields = $checkout->get_checkout_fields( 'shipping' );
 
-			<?php do_action( 'woocommerce_after_checkout_shipping_form', $checkout ); ?>
+                                                foreach ( $fields as $key => $field ) {
+                                                        woocommerce_form_field( $key, $field, $checkout->get_value( $key ) );
+                                                }
+                                                ?>
+                                        </div>
 
-		</div>
+                                        <?php do_action( 'woocommerce_after_checkout_shipping_form', $checkout ); ?>
+                                </div>
+                        </div>
+
+                </div>
 
 	<?php endif; ?>
 </div>
