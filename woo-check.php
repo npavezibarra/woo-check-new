@@ -18,11 +18,206 @@ require_once plugin_dir_path(__FILE__) . 'functions.php';
 // Load WooCheck logistics dependencies
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-admin.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-recibelo.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-check-courier-router.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-check-shipit-validator.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit-webhook.php';
 
 add_action( 'woocommerce_order_status_processing', 'wc_check_handle_processing_order', 10, 1 );
+
+function wc_check_get_commune_catalog() {
+    static $catalog = null;
+
+    if ( null !== $catalog ) {
+        return $catalog;
+    }
+
+    $catalog = [
+        'by_id'   => [],
+        'by_name' => [],
+    ];
+
+    $file = plugin_dir_path( __FILE__ ) . 'includes/communes.json';
+
+    if ( ! file_exists( $file ) ) {
+        return $catalog;
+    }
+
+    $data = json_decode( file_get_contents( $file ), true );
+
+    if ( ! is_array( $data ) ) {
+        return $catalog;
+    }
+
+    foreach ( $data as $entry ) {
+        if ( empty( $entry['id'] ) ) {
+            continue;
+        }
+
+        $id = (int) $entry['id'];
+        $catalog['by_id'][ $id ] = $entry;
+
+        if ( ! empty( $entry['name'] ) ) {
+            $normalized = WooCheck_Shipit_Validator::normalize_commune( $entry['name'] );
+            $catalog['by_name'][ $normalized ] = $entry;
+        }
+    }
+
+    return $catalog;
+}
+
+function wc_check_region_id_from_state_code( $state_code ) {
+    $state_code = strtoupper( trim( (string) $state_code ) );
+
+    if ( '' === $state_code ) {
+        return null;
+    }
+
+    $direct_map = [
+        'RM' => 7,
+    ];
+
+    if ( isset( $direct_map[ $state_code ] ) ) {
+        return $direct_map[ $state_code ];
+    }
+
+    static $region_lookup = null;
+
+    if ( null === $region_lookup ) {
+        $region_lookup = [];
+        $catalog       = wc_check_get_commune_catalog();
+
+        foreach ( $catalog['by_id'] as $entry ) {
+            if ( empty( $entry['region_name'] ) || empty( $entry['region_id'] ) ) {
+                continue;
+            }
+
+            $normalized = WooCheck_Shipit_Validator::normalize_commune( $entry['region_name'] );
+            $region_lookup[ $normalized ] = (int) $entry['region_id'];
+        }
+    }
+
+    $normalized_state = WooCheck_Shipit_Validator::normalize_commune( $state_code );
+
+    return $region_lookup[ $normalized_state ] ?? null;
+}
+
+function wc_check_determine_commune_region_data( WC_Order $order ) {
+    $catalog = wc_check_get_commune_catalog();
+
+    $commune_id_keys = [
+        '_shipping_commune_id',
+        '_billing_commune_id',
+        'shipping_commune_id',
+        'billing_commune_id',
+        '_shipping_comuna_id',
+        '_billing_comuna_id',
+    ];
+
+    $commune_id = null;
+
+    foreach ( $commune_id_keys as $key ) {
+        $value = $order->get_meta( $key, true );
+
+        if ( '' !== $value ) {
+            $commune_id = (int) $value;
+
+            if ( $commune_id > 0 ) {
+                break;
+            }
+        }
+    }
+
+    $commune_name_candidates = [
+        $order->get_meta( '_shipping_comuna', true ),
+        $order->get_meta( 'shipping_comuna', true ),
+        $order->get_meta( '_billing_comuna', true ),
+        $order->get_meta( 'billing_comuna', true ),
+        $order->get_shipping_city(),
+        $order->get_billing_city(),
+    ];
+
+    $commune_name = '';
+
+    foreach ( $commune_name_candidates as $candidate ) {
+        if ( '' !== trim( (string) $candidate ) ) {
+            $commune_name = $candidate;
+            break;
+        }
+    }
+
+    $commune_entry = null;
+
+    if ( $commune_id && isset( $catalog['by_id'][ $commune_id ] ) ) {
+        $commune_entry = $catalog['by_id'][ $commune_id ];
+    } elseif ( '' !== $commune_name ) {
+        $normalized = WooCheck_Shipit_Validator::normalize_commune( $commune_name );
+
+        if ( isset( $catalog['by_name'][ $normalized ] ) ) {
+            $commune_entry = $catalog['by_name'][ $normalized ];
+        }
+    }
+
+    if ( $commune_entry ) {
+        $commune_id   = (int) $commune_entry['id'];
+        $commune_name = $commune_entry['name'];
+        $region_id    = isset( $commune_entry['region_id'] ) ? (int) $commune_entry['region_id'] : null;
+        $region_name  = $commune_entry['region_name'] ?? '';
+    } else {
+        $region_id   = null;
+        $region_name = '';
+    }
+
+    $region_id_meta_keys = [
+        '_shipping_region_id',
+        '_billing_region_id',
+        'shipping_region_id',
+        'billing_region_id',
+    ];
+
+    if ( ! $region_id ) {
+        foreach ( $region_id_meta_keys as $key ) {
+            $value = $order->get_meta( $key, true );
+
+            if ( '' !== $value ) {
+                $region_id = (int) $value;
+
+                if ( $region_id > 0 ) {
+                    break;
+                }
+            }
+        }
+    }
+
+    if ( ! $region_name ) {
+        $region_name_candidates = [
+            $order->get_shipping_state(),
+            $order->get_billing_state(),
+        ];
+
+        foreach ( $region_name_candidates as $candidate ) {
+            if ( '' !== trim( (string) $candidate ) ) {
+                $region_name = $candidate;
+                break;
+            }
+        }
+    }
+
+    if ( ! $region_id ) {
+        $region_id = wc_check_region_id_from_state_code( $order->get_shipping_state() );
+
+        if ( ! $region_id ) {
+            $region_id = wc_check_region_id_from_state_code( $order->get_billing_state() );
+        }
+    }
+
+    return [
+        'commune_id'   => $commune_id ? (int) $commune_id : null,
+        'commune_name' => $commune_name,
+        'region_id'    => $region_id ? (int) $region_id : null,
+        'region_name'  => $region_name,
+    ];
+}
 
 function wc_check_handle_processing_order( $order_id ) {
     $order = wc_get_order( $order_id );
@@ -31,25 +226,40 @@ function wc_check_handle_processing_order( $order_id ) {
         return;
     }
 
-    $shipping_state = strtoupper( (string) $order->get_shipping_state() );
+    $location   = wc_check_determine_commune_region_data( $order );
+    $commune_id = $location['commune_id'];
+    $region_id  = $location['region_id'];
 
-    if ( 'RM' === $shipping_state ) {
-        // Avoid duplicate submissions if tracking is already stored.
-        if ( $order->get_meta( '_recibelo_tracking', true ) ) {
+    $force_shipit = '1' === get_option( 'woocheck_force_shipit', '0' );
+
+    if ( $force_shipit ) {
+        $courier = 'shipit';
+    } else {
+        $courier = WooCheck_Courier_Router::decide( $commune_id, $region_id );
+    }
+
+    /**
+     * Filter the courier selected for the order.
+     */
+    $courier = apply_filters( 'woocheck_courier_selection', $courier, $order, $location );
+
+    $courier_label = 'shipit' === $courier ? 'Shipit' : 'Recíbelo';
+    error_log( sprintf( 'WooCheck: Routing order #%d to %s', $order->get_id(), $courier_label ) );
+
+    if ( 'shipit' === $courier ) {
+        if ( $order->get_meta( '_shipit_tracking', true ) ) {
             return;
         }
 
-        $recibelo = new WC_Check_Recibelo();
-        $recibelo->create_shipment( $order );
+        WooCheck_Shipit::send( $order );
         return;
     }
 
-    if ( $order->get_meta( '_shipit_tracking', true ) ) {
+    if ( $order->get_meta( '_recibelo_tracking', true ) ) {
         return;
     }
 
-    $shipit = new WC_Check_Shipit();
-    $shipit->create_shipment( $order );
+    WooCheck_Recibelo::send( $order );
 }
 
 
