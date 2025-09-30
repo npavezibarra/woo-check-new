@@ -16,10 +16,27 @@ jQuery(document).ready(function($) {
             action: 'woocheck_shipit_status',
             order_id: orderId
         }, function(response) {
-            if (response.success && response.data.message) {
-                $container.find('.tracking-message').text(response.data.message);
+            var defaultMessage = "Estamos consultando el estado de este envío...";
+
+            if (!response || !response.success || !response.data) {
+                $container.find('.tracking-message').text(defaultMessage);
+                return;
+            }
+
+            var data = response.data;
+
+            if (data.tracking_number) {
+                $container.find('.tracking-number').text(data.tracking_number);
+            }
+
+            if (data.courier) {
+                $container.find('.tracking-courier').text(data.courier);
+            }
+
+            if (data.message) {
+                $container.find('.tracking-message').text(data.message);
             } else {
-                $container.find('.tracking-message').text("Estamos consultando el estado de este envío...");
+                $container.find('.tracking-message').text(defaultMessage);
             }
         });
     }

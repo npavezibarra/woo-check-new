@@ -284,7 +284,10 @@ $order = wc_get_order($order_id);
                         <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
                             <p>
                                 <strong>Tracking:</strong>
-                                <?php echo esc_html($tracking_number); ?> (Shipit)
+                                <span class="tracking-number"><?php echo esc_html($tracking_number); ?></span>
+                                (
+                                <span class="tracking-courier"><?php esc_html_e('Shipit', 'woo-check'); ?></span>
+                                )
                             </p>
                             <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
                         </div>

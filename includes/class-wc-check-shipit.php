@@ -385,9 +385,11 @@ class WC_Check_Shipit {
     public static function get_tracking_status_by_order( $order_id ) {
         $default_message = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
         $result          = [
-            'status'  => '',
-            'eta'     => '',
-            'message' => $default_message,
+            'status'          => '',
+            'eta'             => '',
+            'message'         => $default_message,
+            'tracking_number' => '',
+            'courier'         => '',
         ];
 
         $order_id = absint( $order_id );
@@ -411,6 +413,14 @@ class WC_Check_Shipit {
         if ( '' === $tracking_reference ) {
             return $result;
         }
+
+        $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
+
+        if ( '' !== $stored_courier ) {
+            $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
+        }
+
+        $result['tracking_number'] = sanitize_text_field( $tracking_reference );
 
         $client = new self();
 
@@ -473,13 +483,58 @@ class WC_Check_Shipit {
             [ 'tracking', 'estimated_delivery' ],
         ];
 
-        $status = '';
+        $status          = '';
+        $tracking_number = '';
+        $courier         = '';
 
         foreach ( $status_candidates as $path ) {
             $value = self::extract_value( $data, $path );
 
             if ( is_string( $value ) && '' !== trim( $value ) ) {
                 $status = self::format_status_label( $value );
+                break;
+            }
+        }
+
+        $tracking_candidates = [
+            [ 'shipment', 'tracking_code' ],
+            [ 'shipment', 'tracking_number' ],
+            [ 'shipment', 'tracking', 'number' ],
+            [ 'data', 'tracking_code' ],
+            [ 'data', 'tracking_number' ],
+            [ 'tracking', 'number' ],
+            [ 'tracking', 'code' ],
+            [ 'tracking', 'tracking_number' ],
+            [ 'tracking', 'tracking_code' ],
+        ];
+
+        foreach ( $tracking_candidates as $path ) {
+            $value = self::extract_value( $data, $path );
+
+            if ( is_string( $value ) && '' !== trim( $value ) ) {
+                $tracking_number = trim( $value );
+                break;
+            }
+        }
+
+        $courier_candidates = [
+            [ 'shipment', 'courier', 'name' ],
+            [ 'shipment', 'courier_name' ],
+            [ 'shipment', 'provider', 'name' ],
+            [ 'shipment', 'courier' ],
+            [ 'data', 'courier', 'name' ],
+            [ 'data', 'courier_name' ],
+            [ 'tracking', 'courier', 'name' ],
+            [ 'tracking', 'courier_name' ],
+            [ 'courier', 'name' ],
+            [ 'courier_name' ],
+        ];
+
+        foreach ( $courier_candidates as $path ) {
+            $value = self::extract_value( $data, $path );
+
+            if ( is_string( $value ) && '' !== trim( $value ) ) {
+                $courier = self::format_courier_label( $value );
                 break;
             }
         }
@@ -513,6 +568,14 @@ class WC_Check_Shipit {
                 $eta = self::format_eta( $value );
                 break;
             }
+        }
+
+        if ( '' !== $tracking_number ) {
+            $result['tracking_number'] = sanitize_text_field( $tracking_number );
+        }
+
+        if ( '' !== $courier ) {
+            $result['courier'] = sanitize_text_field( $courier );
         }
 
         if ( '' !== $status ) {
@@ -700,6 +763,29 @@ class WC_Check_Shipit {
         }
 
         return $data;
+    }
+
+    /**
+     * Format a courier label for presentation.
+     *
+     * @param string $courier Raw courier value.
+     *
+     * @return string
+     */
+    private static function format_courier_label( $courier ) {
+        $courier = trim( (string) $courier );
+
+        if ( '' === $courier ) {
+            return '';
+        }
+
+        $courier = preg_replace( '/[_\-]+/', ' ', $courier );
+
+        if ( function_exists( 'mb_convert_case' ) ) {
+            return mb_convert_case( $courier, MB_CASE_TITLE, 'UTF-8' );
+        }
+
+        return ucwords( strtolower( $courier ) );
     }
 }
 
