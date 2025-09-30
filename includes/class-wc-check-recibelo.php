@@ -82,8 +82,11 @@ class WooCheck_Recibelo {
         $tracking     = self::extract_tracking_from_response( $decoded_body );
 
         if ( ! empty( $tracking ) ) {
-            update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking['number'] ) );
+            $internal_id = sanitize_text_field( $tracking['number'] );
+
+            update_post_meta( $order_id, '_tracking_number', $internal_id );
             update_post_meta( $order_id, '_tracking_provider', $tracking['provider'] );
+            update_post_meta( $order_id, '_recibelo_internal_id', $internal_id );
         }
 
         return $response;
@@ -330,5 +333,223 @@ class WooCheck_Recibelo {
             'country'    => $shipping['country'] ?? '',
             'phone'      => $shipping['phone'] ?? '',
         ];
+    }
+}
+
+if ( ! class_exists( 'WC_Check_Recibelo' ) ) {
+
+    /**
+     * Lightweight helper utilities for Recíbelo tracking lookups.
+     */
+    class WC_Check_Recibelo {
+
+        /**
+         * Query Recíbelo API for tracking status.
+         *
+         * @param int|string $internal_id   Recíbelo shipment identifier.
+         * @param string     $customer_name Billing customer full name.
+         *
+         * @return string Friendly tracking status or default fallback message.
+         */
+        public static function get_tracking_status( $internal_id, $customer_name ) {
+            $default_message = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
+
+            $internal_id   = trim( (string) $internal_id );
+            $customer_name = trim( (string) $customer_name );
+
+            if ( '' === $internal_id || '' === $customer_name ) {
+                return $default_message;
+            }
+
+            $url = add_query_arg(
+                [ 'internal_ids[]' => $internal_id ],
+                'https://app.recibelo.cl/api/check-package-internal-id'
+            );
+
+            $response = wp_remote_get(
+                $url,
+                [
+                    'headers' => [
+                        'Accept' => 'application/json',
+                    ],
+                    'timeout' => 15,
+                ]
+            );
+
+            if ( is_wp_error( $response ) ) {
+                return $default_message;
+            }
+
+            $body = wp_remote_retrieve_body( $response );
+            $data = json_decode( $body, true );
+
+            if ( ! is_array( $data ) ) {
+                return $default_message;
+            }
+
+            $packages = self::extract_packages( $data );
+
+            if ( empty( $packages ) ) {
+                return $default_message;
+            }
+
+            $normalized_target = self::normalize_name( $customer_name );
+
+            foreach ( $packages as $package ) {
+                if ( ! is_array( $package ) ) {
+                    continue;
+                }
+
+                $package_name = '';
+
+                foreach ( [ 'contact_full_name', 'contactFullName', 'customer_name', 'customerName' ] as $name_key ) {
+                    if ( isset( $package[ $name_key ] ) && '' !== trim( (string) $package[ $name_key ] ) ) {
+                        $package_name = (string) $package[ $name_key ];
+                        break;
+                    }
+                }
+
+                if ( '' === $package_name ) {
+                    continue;
+                }
+
+                if ( $normalized_target !== self::normalize_name( $package_name ) ) {
+                    continue;
+                }
+
+                $status = '';
+
+                foreach ( [ 'current_status', 'currentStatus' ] as $status_key ) {
+                    if ( isset( $package[ $status_key ] ) && '' !== trim( (string) $package[ $status_key ] ) ) {
+                        $status = (string) $package[ $status_key ];
+                        break;
+                    }
+                }
+
+                if ( '' === $status ) {
+                    return $default_message;
+                }
+
+                if ( function_exists( 'woocheck_recibelo_status_label' ) ) {
+                    $label = woocheck_recibelo_status_label( $status );
+                } else {
+                    $label = self::map_status( $status );
+                }
+
+                return '' !== $label ? $label : $status;
+            }
+
+            return $default_message;
+        }
+
+        /**
+         * Extract Recíbelo packages from an API payload.
+         *
+         * @param array $payload API response payload.
+         *
+         * @return array<int, array<string, mixed>>
+         */
+        protected static function extract_packages( array $payload ) {
+            if ( function_exists( 'woocheck_recibelo_extract_packages' ) ) {
+                return woocheck_recibelo_extract_packages( $payload );
+            }
+
+            if ( isset( $payload[0] ) ) {
+                return array_values( $payload );
+            }
+
+            $paths = [
+                [ 'data', 'packages' ],
+                [ 'data', 'items' ],
+                [ 'data', 'results' ],
+                [ 'data' ],
+                [ 'packages' ],
+                [ 'results' ],
+                [ 'items' ],
+            ];
+
+            foreach ( $paths as $path ) {
+                $value = self::dig_value( $payload, $path );
+
+                if ( is_array( $value ) ) {
+                    return array_values( $value );
+                }
+            }
+
+            return [];
+        }
+
+        /**
+         * Retrieve a nested value using the provided key path.
+         *
+         * @param array $data Source data.
+         * @param array $path Keys leading to the desired value.
+         *
+         * @return mixed|null
+         */
+        protected static function dig_value( array $data, array $path ) {
+            $current = $data;
+
+            foreach ( $path as $segment ) {
+                if ( ! is_array( $current ) || ! array_key_exists( $segment, $current ) ) {
+                    return null;
+                }
+
+                $current = $current[ $segment ];
+            }
+
+            return $current;
+        }
+
+        /**
+         * Normalize a full name to improve comparisons.
+         *
+         * @param string $value Raw name value.
+         *
+         * @return string
+         */
+        protected static function normalize_name( $value ) {
+            $value = strtolower( trim( (string) $value ) );
+
+            if ( '' === $value ) {
+                return '';
+            }
+
+            if ( function_exists( 'remove_accents' ) ) {
+                $value = remove_accents( $value );
+            }
+
+            $normalized = preg_replace( '/\s+/u', ' ', $value );
+
+            return is_string( $normalized ) ? $normalized : '';
+        }
+
+        /**
+         * Map a Recíbelo raw status to a friendly label.
+         *
+         * @param string $status Raw status.
+         *
+         * @return string
+         */
+        protected static function map_status( $status ) {
+            $normalized = strtolower( trim( (string) $status ) );
+
+            if ( '' === $normalized ) {
+                return '';
+            }
+
+            $map = [
+                'creado'           => __( 'Preparando envío', 'woo-check' ),
+                'etiqueta impresa' => __( 'Preparando envío', 'woo-check' ),
+                'preparado'        => __( 'Preparando envío', 'woo-check' ),
+                'en deposito'      => __( 'En tránsito', 'woo-check' ),
+                'retirado'         => __( 'En tránsito', 'woo-check' ),
+                'en ruta'          => __( 'En tránsito', 'woo-check' ),
+                'completado'       => __( 'Finalizado', 'woo-check' ),
+                'no aceptado'      => __( 'Error/Rechazo', 'woo-check' ),
+            ];
+
+            return $map[ $normalized ] ?? $status;
+        }
     }
 }

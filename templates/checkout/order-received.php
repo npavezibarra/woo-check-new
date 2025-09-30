@@ -23,6 +23,19 @@ if (!defined('ABSPATH')) {
         .wc-block-mini-cart.wp-block-woocommerce-mini-cart {
             visibility: visible !important;
         }
+
+        .recibelo-tracking-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #ffffff;
+            border-radius: 3px;
+            padding: 3px 6px;
+        }
+
+        .recibelo-tracking-status::before {
+            content: "\1F4E6";
+        }
     </style>
 </head>
 
@@ -65,9 +78,35 @@ $order = wc_get_order($order_id);
 
             if ($has_tracking) :
             ?>
-                <p id="tracking-info" data-has-tracking="1"><strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?><?php if (!empty($tracking_provider)) : ?> (<?php echo esc_html(ucfirst($tracking_provider)); ?>)<?php endif; ?></p>
+                <p id="tracking-info" data-has-tracking="1">
+                    <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
+                    <?php if (!empty($tracking_provider)) : ?>
+                        (
+                        <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                            <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
+                        <?php else : ?>
+                            <?php echo esc_html(ucfirst($tracking_provider)); ?>
+                        <?php endif; ?>
+                        )
+                    <?php endif; ?>
+                </p>
             <?php else : ?>
                 <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
+            <?php endif; ?>
+            <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                <?php
+                $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
+
+                if (empty($internal_id)) {
+                    $internal_id = $tracking_number;
+                }
+
+                $billing_full_name = $order->get_formatted_billing_full_name();
+                $tracking_status = class_exists('WC_Check_Recibelo')
+                    ? WC_Check_Recibelo::get_tracking_status($internal_id, $billing_full_name)
+                    : __('Estamos consultando el estado de este envío...', 'woo-check');
+                ?>
+                <p class="recibelo-tracking-status"><?php echo esc_html($tracking_status); ?></p>
             <?php endif; ?>
             <?php if (!empty($order_datetime_display)) : ?>
                 <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
