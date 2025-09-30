@@ -137,17 +137,121 @@ function calcular_dias_entrega($regionCode, $horaCompra, $metodoPago, $order_id)
 
     // Si el método de pago es transferencia bancaria (bacs), muestra el mensaje de espera con datos bancarios
     if ($metodoPago === 'bacs') {
-        return "
-            <strong>Datos para realizar la transferencia:</strong><br>
-           
-                <p><strong>Nombre:</strong> Villegas y Compañía SpA</p>
-                <p><strong>RUT:</strong> 77593240-6</p>
-                <p><strong>Banco:</strong> Banco Itaú</p>
-                <p><strong>Cuenta Corriente:</strong> 0224532529</p>
-                <p><strong>Correo:</strong> <a href='mailto:villeguistas@gmail.com'>villeguistas@gmail.com</a></p>
-            <p><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
-            <p>Indique el número de orden (<strong>$order_id</strong>) y su nombre en el mensaje de la transferencia.</p>
-        ";
+        return <<<HTML
+            <div class="bank-transfer-info">
+                <button class="bank-transfer-toggle" type="button" aria-expanded="false">
+                    <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                    <span class="bank-transfer-icon" aria-hidden="true">+</span>
+                </button>
+                <div class="bank-transfer-content" hidden>
+                    <ul class="bank-transfer-list">
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Nombre:</span>
+                            <span class="bank-transfer-value">Villegas y Compañía SpA</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="Villegas y Compañía SpA" aria-label="Copiar nombre">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">RUT:</span>
+                            <span class="bank-transfer-value">77593240-6</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="77593240-6" aria-label="Copiar RUT">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Banco:</span>
+                            <span class="bank-transfer-value">Banco Itaú</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="Banco Itaú" aria-label="Copiar banco">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Cuenta Corriente:</span>
+                            <span class="bank-transfer-value">0224532529</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="0224532529" aria-label="Copiar cuenta corriente">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Correo:</span>
+                            <span class="bank-transfer-value"><a href="mailto:villeguistas@gmail.com">villeguistas@gmail.com</a></span>
+                            <button class="bank-transfer-copy" type="button" data-copy="villeguistas@gmail.com" aria-label="Copiar correo">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <p class="bank-transfer-important"><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
+                    <p class="bank-transfer-reminder">Indique el número de orden (<strong>{$order_id}</strong>) y su nombre en el mensaje de la transferencia.</p>
+                </div>
+            </div>
+            <script>
+                (function () {
+                    if (window.bankTransferInfoInitialized) {
+                        return;
+                    }
+                    window.bankTransferInfoInitialized = true;
+
+                    const initBankTransferInfo = function () {
+                        const toggles = document.querySelectorAll('.bank-transfer-toggle');
+                        toggles.forEach(function (toggle) {
+                            toggle.addEventListener('click', function () {
+                                const content = this.nextElementSibling;
+                                const icon = this.querySelector('.bank-transfer-icon');
+                                const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                                if (isExpanded) {
+                                    this.setAttribute('aria-expanded', 'false');
+                                    content.setAttribute('hidden', '');
+                                    if (icon) {
+                                        icon.textContent = '+';
+                                    }
+                                } else {
+                                    this.setAttribute('aria-expanded', 'true');
+                                    content.removeAttribute('hidden');
+                                    if (icon) {
+                                        icon.textContent = '−';
+                                    }
+                                }
+                            });
+                        });
+
+                        const copyButtons = document.querySelectorAll('.bank-transfer-copy');
+                        copyButtons.forEach(function (button) {
+                            button.addEventListener('click', function () {
+                                const self = this;
+                                const valueToCopy = self.getAttribute('data-copy');
+                                const icon = self.querySelector('.bank-transfer-copy-icon');
+                                const originalIcon = icon ? icon.textContent : '';
+
+                                navigator.clipboard.writeText(valueToCopy)
+                                    .then(function () {
+                                        if (icon) {
+                                            icon.textContent = '✓';
+                                        }
+                                        self.classList.add('bank-transfer-copy--success');
+                                        setTimeout(function () {
+                                            if (icon) {
+                                                icon.textContent = originalIcon || '📋';
+                                            }
+                                            button.classList.remove('bank-transfer-copy--success');
+                                        }, 2000);
+                                    })
+                                    .catch(function (error) {
+                                        console.error('No se pudo copiar el texto:', error);
+                                    });
+                            });
+                        });
+                    };
+
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initBankTransferInfo);
+                    } else {
+                        initBankTransferInfo();
+                    }
+                })();
+            </script>
+        HTML;
     }
 
     // Obtén los días base para la región

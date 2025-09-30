@@ -95,6 +95,110 @@ div#order-information {
     border-radius: 6px;
 }
 
+.bank-transfer-info {
+    max-width: 1000px;
+    margin: 20px auto;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    background-color: #ffffff;
+    overflow: hidden;
+}
+
+.bank-transfer-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background-color: #f0f0f0;
+    color: #000000;
+    font-weight: 600;
+    font-size: 16px;
+    padding: 16px 20px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.bank-transfer-toggle:hover,
+.bank-transfer-toggle:focus {
+    background-color: #e2e2e2;
+}
+
+.bank-transfer-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.bank-transfer-content {
+    padding: 16px 20px 20px;
+    text-align: left;
+}
+
+.bank-transfer-list {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.bank-transfer-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.bank-transfer-label {
+    font-weight: 600;
+    color: #000000;
+}
+
+.bank-transfer-value a {
+    color: inherit;
+    text-decoration: none;
+}
+
+.bank-transfer-value a:hover,
+.bank-transfer-value a:focus {
+    text-decoration: underline;
+}
+
+.bank-transfer-copy {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.bank-transfer-copy:hover,
+.bank-transfer-copy:focus {
+    background-color: #f0f0f0;
+    color: #000000;
+}
+
+.bank-transfer-copy--success {
+    color: #2e7d32;
+}
+
+.bank-transfer-important {
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.bank-transfer-reminder {
+    margin: 0;
+    font-weight: 500;
+}
+
 .order-header {
     max-width: 1000px;
     margin: 0 auto 20px;
@@ -145,6 +249,14 @@ p.titulo-seccion {
     div#order-information {
         max-width: 90%;
 
+    }
+    .bank-transfer-item {
+        grid-template-columns: 1fr;
+        justify-items: flex-start;
+    }
+
+    .bank-transfer-copy {
+        padding-left: 0;
     }
     .woocommerce-customer-details {
         max-width: 90%;
