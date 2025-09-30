@@ -654,7 +654,11 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
         return;
     }
 
-    $order_id = $order->get_id();
+    $order_id         = $order->get_id();
+    $default_message  = esc_html__( 'Estamos consultando el estado de este envío...', 'woo-check' );
+    $status_message   = $default_message;
+    $raw_status_label = '';
+    $history_statuses = [];
 
     $internal_id = $order->get_meta( '_recibelo_internal_id', true );
 
@@ -662,24 +666,11 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
         $internal_id = $order->get_meta( '_tracking_number', true );
     }
 
-    if ( empty( $internal_id ) ) {
-        return;
-    }
+    $customer_name     = trim( $order->get_formatted_billing_full_name() );
+    $shipping_customer = method_exists( $order, 'get_formatted_shipping_full_name' ) ? trim( (string) $order->get_formatted_shipping_full_name() ) : '';
+    $normalized_names  = [];
 
-    $customer_name         = trim( $order->get_formatted_billing_full_name() );
-    $shipping_customer     = method_exists( $order, 'get_formatted_shipping_full_name' ) ? trim( (string) $order->get_formatted_shipping_full_name() ) : '';
-    $normalized_names      = [];
-    $name_candidates       = array_filter(
-        [
-            $customer_name,
-            $shipping_customer,
-        ],
-        static function ( $value ) {
-            return '' !== trim( (string) $value );
-        }
-    );
-
-    foreach ( $name_candidates as $candidate ) {
+    foreach ( [ $customer_name, $shipping_customer ] as $candidate ) {
         $normalized = woocheck_recibelo_normalize_string( $candidate );
 
         if ( '' !== $normalized ) {
@@ -687,156 +678,135 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
         }
     }
 
-    if ( empty( $normalized_names ) ) {
-        return;
+    if ( ! empty( $internal_id ) ) {
+        $url      = add_query_arg( [ 'internal_ids[]' => $internal_id ], 'https://app.recibelo.cl/api/check-package-internal-id' );
+        $response = wp_remote_get(
+            $url,
+            [
+                'headers' => [ 'Accept' => 'application/json' ],
+                'timeout' => 20,
+            ]
+        );
+
+        if ( ! is_wp_error( $response ) ) {
+            $body     = json_decode( wp_remote_retrieve_body( $response ), true );
+            $packages = woocheck_recibelo_extract_packages( $body );
+
+            if ( ! empty( $packages ) ) {
+                $normalized_internal_id = strtolower( trim( (string) $internal_id ) );
+                $package                = null;
+                $fallback_package       = null;
+
+                foreach ( $packages as $item ) {
+                    if ( ! is_array( $item ) ) {
+                        continue;
+                    }
+
+                    $internal_candidates = [
+                        $item['internal_id']    ?? null,
+                        $item['internalId']     ?? null,
+                        $item['internalID']     ?? null,
+                        $item['id']             ?? null,
+                        $item['tracking_id']    ?? null,
+                        $item['trackingId']     ?? null,
+                    ];
+
+                    $package_internal_id = '';
+
+                    foreach ( $internal_candidates as $candidate ) {
+                        $candidate = trim( (string) $candidate );
+
+                        if ( '' !== $candidate ) {
+                            $package_internal_id = $candidate;
+                            break;
+                        }
+                    }
+
+                    $normalized_package_internal = strtolower( $package_internal_id );
+
+                    if ( '' !== $normalized_internal_id && '' !== $normalized_package_internal && $normalized_package_internal === $normalized_internal_id ) {
+                        $fallback_package = $fallback_package ?? $item;
+                    }
+
+                    $name_candidates = [
+                        $item['contact_full_name'] ?? null,
+                        $item['contactFullName']   ?? null,
+                        $item['contact_name']      ?? null,
+                        $item['contactName']       ?? null,
+                        $item['customer_name']     ?? null,
+                        $item['customerName']      ?? null,
+                    ];
+
+                    $matched = empty( $normalized_names );
+
+                    if ( ! $matched ) {
+                        foreach ( $name_candidates as $name_candidate ) {
+                            $normalized_name = woocheck_recibelo_normalize_string( $name_candidate );
+
+                            if ( '' === $normalized_name ) {
+                                continue;
+                            }
+
+                            if ( isset( $normalized_names[ $normalized_name ] ) ) {
+                                $matched = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if ( ! $matched ) {
+                        continue;
+                    }
+
+                    $package = $item;
+                    break;
+                }
+
+                if ( ! $package && $fallback_package ) {
+                    $package = $fallback_package;
+                }
+
+                if ( $package ) {
+                    $current_status_candidates = [
+                        $package['current_status'] ?? null,
+                        $package['currentStatus']  ?? null,
+                    ];
+
+                    foreach ( $current_status_candidates as $candidate ) {
+                        $candidate = trim( (string) $candidate );
+
+                        if ( '' !== $candidate ) {
+                            $raw_status_label = $candidate;
+                            break;
+                        }
+                    }
+
+                    if ( '' !== $raw_status_label ) {
+                        $friendly_label = woocheck_recibelo_status_label( $raw_status_label );
+                        $status_message = $friendly_label;
+
+                        foreach ( [ 'history_statuses', 'historyStatuses', 'history' ] as $history_key ) {
+                            if ( isset( $package[ $history_key ] ) && is_array( $package[ $history_key ] ) ) {
+                                $history_statuses = $package[ $history_key ];
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    $url       = add_query_arg( [ 'internal_ids[]' => $internal_id ], 'https://app.recibelo.cl/api/check-package-internal-id' );
-    $response  = wp_remote_get(
-        $url,
-        [
-            'headers' => [ 'Accept' => 'application/json' ],
-            'timeout' => 20,
-        ]
-    );
     $widget_id = 'woocheck-recibelo-tracking-' . absint( $order_id );
 
     echo '<div id="' . esc_attr( $widget_id ) . '" class="woocheck-recibelo-tracking-widget">';
-    echo '<h4>' . esc_html__( 'Seguimiento Recíbelo', 'woo-check' ) . '</h4>';
+    echo '<p class="woocheck-recibelo-current-status">' . esc_html( $status_message );
 
-    if ( is_wp_error( $response ) ) {
-        echo '<p>' . esc_html__( 'No fue posible obtener la información de seguimiento en este momento.', 'woo-check' ) . '</p>';
-        echo '</div>';
-
-        return;
+    if ( '' !== $raw_status_label && $status_message !== $raw_status_label ) {
+        echo ' <small>(' . esc_html( $raw_status_label ) . ')</small>';
     }
 
-    $body     = json_decode( wp_remote_retrieve_body( $response ), true );
-    $packages = woocheck_recibelo_extract_packages( $body );
-
-    if ( empty( $packages ) ) {
-        echo '<p>' . esc_html__( 'No se encontraron datos de seguimiento para este envío.', 'woo-check' ) . '</p>';
-        echo '</div>';
-
-        return;
-    }
-
-    $normalized_internal_id = strtolower( trim( (string) $internal_id ) );
-    $package                = null;
-    $fallback_package       = null;
-
-    foreach ( $packages as $item ) {
-        if ( ! is_array( $item ) ) {
-            continue;
-        }
-
-        $internal_candidates = [
-            $item['internal_id']    ?? null,
-            $item['internalId']     ?? null,
-            $item['internalID']     ?? null,
-            $item['id']             ?? null,
-            $item['tracking_id']    ?? null,
-            $item['trackingId']     ?? null,
-        ];
-
-        $package_internal_id = '';
-
-        foreach ( $internal_candidates as $candidate ) {
-            $candidate = trim( (string) $candidate );
-
-            if ( '' !== $candidate ) {
-                $package_internal_id = $candidate;
-                break;
-            }
-        }
-
-        $normalized_package_internal = strtolower( $package_internal_id );
-
-        if ( '' !== $normalized_internal_id && '' !== $normalized_package_internal && $normalized_package_internal === $normalized_internal_id ) {
-            $fallback_package = $fallback_package ?? $item;
-        }
-
-        $name_candidates = [
-            $item['contact_full_name'] ?? null,
-            $item['contactFullName']   ?? null,
-            $item['contact_name']      ?? null,
-            $item['contactName']       ?? null,
-            $item['customer_name']     ?? null,
-            $item['customerName']      ?? null,
-        ];
-
-        $matched = false;
-
-        foreach ( $name_candidates as $name_candidate ) {
-            $normalized_name = woocheck_recibelo_normalize_string( $name_candidate );
-
-            if ( '' === $normalized_name ) {
-                continue;
-            }
-
-            if ( isset( $normalized_names[ $normalized_name ] ) ) {
-                $matched = true;
-                break;
-            }
-        }
-
-        if ( ! $matched ) {
-            continue;
-        }
-
-        $package = $item;
-        break;
-    }
-
-    if ( ! $package && $fallback_package ) {
-        $package = $fallback_package;
-    }
-
-    if ( ! $package ) {
-        echo '<p>' . esc_html__( 'No se encontró un envío que coincida con el destinatario.', 'woo-check' ) . '</p>';
-        echo '</div>';
-
-        return;
-    }
-
-    $current_status_candidates = [
-        $package['current_status'] ?? null,
-        $package['currentStatus']  ?? null,
-    ];
-
-    $current_status = '';
-
-    foreach ( $current_status_candidates as $candidate ) {
-        $candidate = trim( (string) $candidate );
-
-        if ( '' !== $candidate ) {
-            $current_status = $candidate;
-            break;
-        }
-    }
-
-    if ( '' === $current_status ) {
-        echo '<p class="woocheck-recibelo-current-status">' . esc_html__( 'Estado actual no disponible.', 'woo-check' ) . '</p>';
-    } else {
-        $friendly = woocheck_recibelo_status_label( $current_status );
-
-        echo '<p class="woocheck-recibelo-current-status"><strong>' . esc_html__( 'Estado actual:', 'woo-check' ) . '</strong> ' . esc_html( $friendly );
-
-        if ( $friendly !== $current_status ) {
-            echo ' <small>(' . esc_html( $current_status ) . ')</small>';
-        }
-
-        echo '</p>';
-    }
-
-    $history_statuses = [];
-
-    foreach ( [ 'history_statuses', 'historyStatuses', 'history' ] as $history_key ) {
-        if ( isset( $package[ $history_key ] ) && is_array( $package[ $history_key ] ) ) {
-            $history_statuses = $package[ $history_key ];
-            break;
-        }
-    }
+    echo '</p>';
 
     if ( ! empty( $history_statuses ) ) {
         echo '<ul class="woocheck-recibelo-history">';
