@@ -142,7 +142,7 @@ div#order-information {
 
 .order-address-flip-card .flip-card-back {
     background-color: #dcdcdc;
-    color: #ffffff;
+    color: #3d3d3d;
     transform: rotateY(180deg);
 }
 
