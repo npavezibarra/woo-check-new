@@ -1,11 +1,11 @@
 .order-products {
     list-style: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
 }
 
 .order-product-item {
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 .product-flex-container {
@@ -39,10 +39,8 @@
 }
 
 ul.order-products {
-    margin: auto;
-    margin-top: 20px;
-    padding: 20px;
-    border-radius: 6px;
+    margin-top: 0px;
+    padding: 0px;
 }
 
 div#order-information {
@@ -55,7 +53,7 @@ div#order-information {
 
 .order-summary-bank-wrapper {
     display: flex;
-    /* flex-wrap: wrap; */
+    flex-wrap: wrap;
     align-items: flex-start;
     gap: 20px;
     max-width: 1000px;
@@ -64,18 +62,25 @@ div#order-information {
 
 .order-summary-bank-wrapper > .order-summary-primary,
 .order-summary-bank-wrapper > .bank-transfer-info {
-    flex: 1 1 50%;
-    min-width: 300px;
+    flex: 1 1 calc(50% - 10px);
+    max-width: calc(50% - 10px);
+    min-width: 0;
 }
 
 .order-summary-bank-wrapper--single > .order-summary-primary {
     flex-basis: 100%;
+    max-width: 100%;
 }
 
 .order-summary-primary {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    min-width: 0;
+}
+
+.order-summary-primary > * {
+    width: 100%;
 }
 
 .order-received-page {
@@ -83,8 +88,7 @@ div#order-information {
 }
 
 .order-address-flip-card {
-    display: flex;
-    justify-content: center;
+    width: 100%;
     padding: 0;
 }
 
@@ -109,7 +113,7 @@ div#order-information {
     text-align: center;
     transition: transform 0.6s ease;
     transform-style: preserve-3d;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border-radius: 8px;
 }
 
@@ -304,6 +308,8 @@ p.titulo-seccion {
 
     .order-summary-bank-wrapper > .order-summary-primary,
     .order-summary-bank-wrapper > .bank-transfer-info {
+        flex: 1 1 100%;
+        max-width: 100%;
         min-width: 100%;
     }
     .order-address-flip-card {
