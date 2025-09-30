@@ -23,88 +23,14 @@ class WC_Check_Shipit {
      * }
      */
     public static function get_tracking_status( $order_id ) {
-        $order_id = absint( $order_id );
-
-        $reference        = $order_id ? $order_id . 'N' : '';
-        $default_message  = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
-        $default_response = [
-            'status'          => 'unknown',
-            'message'         => $default_message,
-            'courier'         => 'Shipit',
-            'tracking_number' => $reference,
-            'tracking_url'    => null,
-        ];
-
-        if ( ! $order_id ) {
-            return $default_response;
-        }
-
-        $options = get_option( 'woocheck_settings' );
-        $email   = isset( $options['shipit_email'] ) ? trim( (string) $options['shipit_email'] ) : '';
-        $token   = isset( $options['shipit_token'] ) ? trim( (string) $options['shipit_token'] ) : '';
-
-        if ( '' === $email || '' === $token ) {
-            return $default_response;
-        }
-
-        $url      = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $reference );
-        $response = wp_remote_get(
-            $url,
-            [
-                'headers' => [
-                    'Accept'                => 'application/json',
-                    'Content-Type'          => 'application/json',
-                    'X-Shipit-Email'        => $email,
-                    'X-Shipit-Access-Token' => $token,
-                ],
-                'timeout' => 20,
-            ]
-        );
-
-        if ( is_wp_error( $response ) ) {
-            return [
-                'status'          => 'error',
-                'message'         => __( 'Error consultando Shipit', 'woo-check' ),
-                'courier'         => 'Shipit',
-                'tracking_number' => $reference,
-                'tracking_url'    => null,
-            ];
-        }
-
-        $status_code = (int) wp_remote_retrieve_response_code( $response );
-
-        if ( $status_code < 200 || $status_code >= 300 ) {
-            return $default_response;
-        }
-
-        $body = wp_remote_retrieve_body( $response );
-        $data = json_decode( $body, true );
-
-        if ( ! is_array( $data ) ) {
-            return $default_response;
-        }
-
-        if ( empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
-            return $default_response;
-        }
-
-        $package         = $data['packages'][0];
-        $status          = isset( $package['status'] ) ? sanitize_text_field( $package['status'] ) : 'unknown';
-        $courier_status  = isset( $package['courier_status'] ) ? sanitize_text_field( $package['courier_status'] ) : ucfirst( $status );
-        $tracking_number = isset( $package['tracking_number'] ) ? sanitize_text_field( $package['tracking_number'] ) : $reference;
-        $courier         = isset( $package['courier_for_client'] ) ? sanitize_text_field( $package['courier_for_client'] ) : 'Shipit';
-        $tracking_url    = isset( $package['tracking_url'] ) ? esc_url_raw( $package['tracking_url'] ) : null;
-
-        if ( '' === $courier_status ) {
-            $courier_status = ucfirst( $status );
-        }
+        $data = self::get_tracking_status_by_order( $order_id );
 
         return [
-            'status'          => $status,
-            'message'         => $courier_status ? $courier_status . ( $tracking_number ? ' — Tracking #: ' . $tracking_number : '' ) : $default_message,
-            'courier'         => $courier ?: 'Shipit',
-            'tracking_number' => $tracking_number,
-            'tracking_url'    => $tracking_url,
+            'status'          => isset( $data['status'] ) ? $data['status'] : 'unknown',
+            'message'         => isset( $data['message'] ) ? $data['message'] : __( 'Estamos consultando el estado de este envío...', 'woo-check' ),
+            'courier'         => isset( $data['courier'] ) && '' !== $data['courier'] ? $data['courier'] : 'Shipit',
+            'tracking_number' => isset( $data['tracking_number'] ) ? $data['tracking_number'] : ( $order_id ? $order_id . 'N' : '' ),
+            'tracking_url'    => isset( $data['tracking_url'] ) ? $data['tracking_url'] : '',
         ];
     }
 
@@ -483,15 +409,17 @@ class WC_Check_Shipit {
      */
     public static function get_tracking_status_by_order( $order_id ) {
         $default_message = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
-        $result          = [
-            'status'          => '',
-            'eta'             => '',
-            'message'         => $default_message,
-            'tracking_number' => '',
-            'courier'         => '',
-        ];
 
         $order_id = absint( $order_id );
+
+        $result = [
+            'status'          => 'unknown',
+            'eta'             => '',
+            'message'         => $default_message,
+            'tracking_number' => $order_id ? $order_id . 'N' : '',
+            'courier'         => 'Shipit',
+            'tracking_url'    => '',
+        ];
 
         if ( ! $order_id ) {
             return $result;
@@ -510,8 +438,10 @@ class WC_Check_Shipit {
         }
 
         if ( '' === $tracking_reference ) {
-            return $result;
+            $tracking_reference = $order_id . 'N';
         }
+
+        $result['tracking_number'] = sanitize_text_field( $tracking_reference );
 
         $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
 
@@ -519,24 +449,22 @@ class WC_Check_Shipit {
             $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
         }
 
-        $result['tracking_number'] = sanitize_text_field( $tracking_reference );
+        $credentials = self::get_api_credentials();
 
-        $client = new self();
-
-        if ( empty( $client->email ) || empty( $client->token ) ) {
+        if ( '' === $credentials['email'] || '' === $credentials['token'] ) {
             return $result;
         }
 
-        $endpoint = trailingslashit( $client->endpoint ) . rawurlencode( $tracking_reference );
+        $endpoint = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $tracking_reference );
 
         $response = wp_remote_get(
             $endpoint,
             [
                 'headers' => [
-                    'Accept'                => 'application/vnd.shipit.v4',
+                    'Accept'                => 'application/json',
                     'Content-Type'          => 'application/json',
-                    'X-Shipit-Email'        => $client->email,
-                    'X-Shipit-Access-Token' => $client->token,
+                    'X-Shipit-Email'        => $credentials['email'],
+                    'X-Shipit-Access-Token' => $credentials['token'],
                 ],
                 'timeout' => 20,
             ]
@@ -555,144 +483,84 @@ class WC_Check_Shipit {
         $body = wp_remote_retrieve_body( $response );
         $data = json_decode( $body, true );
 
-        if ( ! is_array( $data ) ) {
+        if ( ! is_array( $data ) || empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
             return $result;
         }
 
-        $status_candidates = [
-            [ 'shipment', 'status_display' ],
-            [ 'shipment', 'status' ],
-            [ 'shipment', 'tracking_status' ],
-            [ 'shipment', 'state' ],
-            [ 'data', 'status_display' ],
-            [ 'data', 'status' ],
-            [ 'tracking', 'status' ],
-            [ 'tracking', 'current_status', 'name' ],
-            [ 'tracking', 'current_status', 'status' ],
-            [ 'status' ],
+        $package = $data['packages'][0];
+
+        if ( isset( $package['courier_status'] ) && '' !== trim( (string) $package['courier_status'] ) ) {
+            $status = self::format_status_label( $package['courier_status'] );
+        } elseif ( isset( $package['status'] ) ) {
+            $status = self::format_status_label( $package['status'] );
+        } else {
+            $status = 'unknown';
+        }
+
+        if ( isset( $package['tracking_number'] ) && '' !== trim( (string) $package['tracking_number'] ) ) {
+            $result['tracking_number'] = sanitize_text_field( $package['tracking_number'] );
+        }
+
+        if ( isset( $package['courier_for_client'] ) && '' !== trim( (string) $package['courier_for_client'] ) ) {
+            $result['courier'] = sanitize_text_field( self::format_courier_label( $package['courier_for_client'] ) );
+        }
+
+        if ( isset( $package['tracking_url'] ) && '' !== trim( (string) $package['tracking_url'] ) ) {
+            $result['tracking_url'] = esc_url_raw( $package['tracking_url'] );
+        } elseif ( isset( $package['courier_url'] ) && '' !== trim( (string) $package['courier_url'] ) ) {
+            $result['tracking_url'] = esc_url_raw( $package['courier_url'] );
+        }
+
+        $eta_fields = [
+            'estimated_delivery_at',
+            'estimated_delivery_date',
+            'eta',
         ];
 
-        $eta_candidates = [
-            [ 'shipment', 'estimated_delivery_at' ],
-            [ 'shipment', 'estimated_delivery_date' ],
-            [ 'data', 'estimated_delivery_at' ],
-            [ 'data', 'estimated_delivery_date' ],
-            [ 'tracking', 'estimated_delivery_at' ],
-            [ 'tracking', 'estimated_delivery_date' ],
-            [ 'tracking', 'estimated_delivery' ],
-        ];
+        $eta_value = '';
 
-        $status          = '';
-        $tracking_number = '';
-        $courier         = '';
-
-        foreach ( $status_candidates as $path ) {
-            $value = self::extract_value( $data, $path );
-
-            if ( is_string( $value ) && '' !== trim( $value ) ) {
-                $status = self::format_status_label( $value );
+        foreach ( $eta_fields as $field ) {
+            if ( isset( $package[ $field ] ) && '' !== trim( (string) $package[ $field ] ) ) {
+                $eta_value = $package[ $field ];
                 break;
             }
         }
 
-        $tracking_candidates = [
-            [ 'shipment', 'tracking_code' ],
-            [ 'shipment', 'tracking_number' ],
-            [ 'shipment', 'tracking', 'number' ],
-            [ 'data', 'tracking_code' ],
-            [ 'data', 'tracking_number' ],
-            [ 'tracking', 'number' ],
-            [ 'tracking', 'code' ],
-            [ 'tracking', 'tracking_number' ],
-            [ 'tracking', 'tracking_code' ],
-        ];
-
-        foreach ( $tracking_candidates as $path ) {
-            $value = self::extract_value( $data, $path );
-
-            if ( is_string( $value ) && '' !== trim( $value ) ) {
-                $tracking_number = trim( $value );
-                break;
-            }
+        if ( '' !== $eta_value ) {
+            $result['eta'] = self::format_eta( $eta_value );
         }
 
-        $courier_candidates = [
-            [ 'shipment', 'courier', 'name' ],
-            [ 'shipment', 'courier_name' ],
-            [ 'shipment', 'provider', 'name' ],
-            [ 'shipment', 'courier' ],
-            [ 'data', 'courier', 'name' ],
-            [ 'data', 'courier_name' ],
-            [ 'tracking', 'courier', 'name' ],
-            [ 'tracking', 'courier_name' ],
-            [ 'courier', 'name' ],
-            [ 'courier_name' ],
-        ];
-
-        foreach ( $courier_candidates as $path ) {
-            $value = self::extract_value( $data, $path );
-
-            if ( is_string( $value ) && '' !== trim( $value ) ) {
-                $courier = self::format_courier_label( $value );
-                break;
-            }
-        }
-
-        if ( '' === $status && isset( $data['tracking']['events'] ) && is_array( $data['tracking']['events'] ) ) {
-            $events = array_filter(
-                $data['tracking']['events'],
-                static function ( $event ) {
-                    return is_array( $event );
-                }
-            );
-
-            if ( ! empty( $events ) ) {
-                $last_event = end( $events );
-
-                foreach ( [ 'status', 'description', 'name' ] as $event_key ) {
-                    if ( isset( $last_event[ $event_key ] ) && '' !== trim( (string) $last_event[ $event_key ] ) ) {
-                        $status = self::format_status_label( $last_event[ $event_key ] );
-                        break;
-                    }
-                }
-            }
-        }
-
-        $eta = '';
-
-        foreach ( $eta_candidates as $path ) {
-            $value = self::extract_value( $data, $path );
-
-            if ( is_string( $value ) && '' !== trim( $value ) ) {
-                $eta = self::format_eta( $value );
-                break;
-            }
-        }
-
-        if ( '' !== $tracking_number ) {
-            $result['tracking_number'] = sanitize_text_field( $tracking_number );
-        }
-
-        if ( '' !== $courier ) {
-            $result['courier'] = sanitize_text_field( $courier );
-        }
-
-        if ( '' !== $status ) {
-            $result['status'] = $status;
+        if ( '' !== $status && 'unknown' !== $status ) {
+            $result['status']  = $status;
             $result['message'] = $status;
 
-            if ( '' !== $eta ) {
-                $result['eta']     = $eta;
+            if ( '' !== $result['eta'] ) {
                 $result['message'] = sprintf(
                     /* translators: 1: Tracking status label. 2: Estimated delivery date. */
                     __( '%1$s (Entrega estimada: %2$s)', 'woo-check' ),
                     $status,
-                    $eta
+                    $result['eta']
                 );
             }
         }
 
         return $result;
+    }
+
+    public static function ajax_get_tracking_status() {
+        if ( ! isset( $_POST['order_id'] ) ) {
+            wp_send_json_error( [ 'message' => __( 'Missing order_id', 'woo-check' ) ] );
+        }
+
+        $order_id = absint( wp_unslash( $_POST['order_id'] ) );
+
+        if ( ! $order_id ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid order_id', 'woo-check' ) ] );
+        }
+
+        $status_data = self::get_tracking_status_by_order( $order_id );
+
+        wp_send_json_success( $status_data );
     }
 
     /**
@@ -719,6 +587,16 @@ class WC_Check_Shipit {
         }
 
         return $cursor;
+    }
+
+    private static function get_api_credentials() {
+        $email = get_option( 'wc_check_shipit_email', get_option( 'woo_check_shipit_email', '' ) );
+        $token = get_option( 'wc_check_shipit_token', get_option( 'woo_check_shipit_token', '' ) );
+
+        return [
+            'email' => is_string( $email ) ? trim( $email ) : '',
+            'token' => is_string( $token ) ? trim( $token ) : '',
+        ];
     }
 
     /**

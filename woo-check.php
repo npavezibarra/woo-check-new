@@ -23,9 +23,11 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-check-courier-rou
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-check-shipit-validator.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit.php';
 require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit-webhook.php';
-require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-ajax.php';
 
 add_action( 'woocommerce_order_status_processing', 'wc_check_handle_processing_order', 10, 1 );
+
+add_action( 'wp_ajax_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
+add_action( 'wp_ajax_nopriv_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
 
 function wc_check_get_commune_catalog() {
     static $catalog = null;
@@ -986,7 +988,7 @@ add_action( 'wp_enqueue_scripts', function() {
     if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
         wp_enqueue_script(
             'woocheck-tracking',
-            plugins_url( 'assets/js/tracking-status.js', __FILE__ ),
+            plugins_url( 'assets/js/woocheck-tracking.js', __FILE__ ),
             [ 'jquery' ],
             '1.0',
             true
@@ -994,9 +996,10 @@ add_action( 'wp_enqueue_scripts', function() {
 
         wp_localize_script(
             'woocheck-tracking',
-            'woocheck_ajax',
+            'WooCheckAjax',
             [
-                'ajax_url' => admin_url( 'admin-ajax.php' ),
+                'ajax_url'         => admin_url( 'admin-ajax.php' ),
+                'fallback_message' => __( 'Estamos consultando el estado de este envío...', 'woo-check' ),
             ]
         );
     }
