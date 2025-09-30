@@ -70,58 +70,120 @@ $order = wc_get_order($order_id);
     <div id="order-information">
         <?php
         $metodoPago = $order ? $order->get_payment_method() : '';
+        $order_products_markup = '';
+
+        if ($order) {
+            ob_start();
+            ?>
+            <ul class="order-products">
+                <?php foreach ($order->get_items() as $item_id => $item) : ?>
+                    <?php
+                    $product = $item->get_product();
+                    $product_name = $item->get_name();
+                    $product_quantity = $item->get_quantity();
+                    $product_subtotal = $order->get_formatted_line_subtotal($item);
+                    $product_image = $product ? $product->get_image('thumbnail') : '<div class="placeholder-image"></div>';
+
+                    // Check if the product is linked to a LearnDash course
+                    $course_meta = $product ? get_post_meta($product->get_id(), '_related_course', true) : '';
+
+                    // Handle serialized course_meta
+                    if (is_serialized($course_meta)) {
+                        $course_meta = unserialize($course_meta);
+                    }
+
+                    // Extract the course ID
+                    $course_id = is_array($course_meta) && isset($course_meta[0]) ? $course_meta[0] : $course_meta;
+
+                    // Generate course URL if a valid course ID exists
+                    $course_url = !empty($course_id) && is_numeric($course_id) ? get_permalink($course_id) : null;
+                    ?>
+                    <li class="order-product-item">
+                        <div class="product-flex-container">
+                            <div class="product-image"><?php echo $product_image; ?></div>
+                            <div class="product-details">
+                                <?php if ($course_url) : ?>
+                                    <!-- Show only the product name without quantity for courses -->
+                                    <span><?php echo esc_html($product_name); ?></span>
+                                    <br><a href="<?php echo esc_url($course_url); ?>" class="button" style="display: inline-block; margin-top: 10px; padding: 5px 10px; background-color: black; color: #fff; text-decoration: none; border-radius: 3px; font-size: 12px;">Ir al Curso</a>
+                                <?php else : ?>
+                                    <!-- Show product name with quantity for non-courses -->
+                                    <span><?php echo esc_html($product_quantity); ?> - <?php echo esc_html($product_name); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="product-total"><?php echo wp_kses_post($product_subtotal); ?></div>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <?php
+            $order_products_markup = ob_get_clean();
+        }
+
         $bank_transfer_info = '';
 
         if ($metodoPago === 'bacs') {
-            $bank_transfer_info = <<<HTML
-                <div class="bank-transfer-info">
+            ob_start();
+            ?>
+            <div class="bank-transfer-info">
+                <button class="bank-transfer-toggle" type="button" aria-expanded="false">
+                    <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                    <span class="bank-transfer-icon" aria-hidden="true">+</span>
+                </button>
+                <div class="bank-transfer-content" hidden>
+                    <ul class="bank-transfer-list">
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Nombre:</span>
+                            <span class="bank-transfer-value">Villegas y Compañía SpA</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="Villegas y Compañía SpA" aria-label="Copiar nombre">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">RUT:</span>
+                            <span class="bank-transfer-value">77593240-6</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="77593240-6" aria-label="Copiar RUT">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Banco:</span>
+                            <span class="bank-transfer-value">Banco Itaú</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="Banco Itaú" aria-label="Copiar banco">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Cuenta Corriente:</span>
+                            <span class="bank-transfer-value">0224532529</span>
+                            <button class="bank-transfer-copy" type="button" data-copy="0224532529" aria-label="Copiar cuenta corriente">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                        <li class="bank-transfer-item">
+                            <span class="bank-transfer-label">Correo:</span>
+                            <span class="bank-transfer-value"><a href="mailto:villeguistas@gmail.com">villeguistas@gmail.com</a></span>
+                            <button class="bank-transfer-copy" type="button" data-copy="villeguistas@gmail.com" aria-label="Copiar correo">
+                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                            </button>
+                        </li>
+                    </ul>
+                    <p class="bank-transfer-important"><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
+                    <p class="bank-transfer-reminder">Indique el número de orden (<strong><?php echo esc_html($order_id); ?></strong>) y su nombre en el mensaje de la transferencia.</p>
+                </div>
+
+                <?php if (!empty($order_products_markup)) : ?>
                     <button class="bank-transfer-toggle" type="button" aria-expanded="false">
-                        <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                        <span class="bank-transfer-title">Tu compra</span>
                         <span class="bank-transfer-icon" aria-hidden="true">+</span>
                     </button>
                     <div class="bank-transfer-content" hidden>
-                        <ul class="bank-transfer-list">
-                            <li class="bank-transfer-item">
-                                <span class="bank-transfer-label">Nombre:</span>
-                                <span class="bank-transfer-value">Villegas y Compañía SpA</span>
-                                <button class="bank-transfer-copy" type="button" data-copy="Villegas y Compañía SpA" aria-label="Copiar nombre">
-                                    <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                                </button>
-                            </li>
-                            <li class="bank-transfer-item">
-                                <span class="bank-transfer-label">RUT:</span>
-                                <span class="bank-transfer-value">77593240-6</span>
-                                <button class="bank-transfer-copy" type="button" data-copy="77593240-6" aria-label="Copiar RUT">
-                                    <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                                </button>
-                            </li>
-                            <li class="bank-transfer-item">
-                                <span class="bank-transfer-label">Banco:</span>
-                                <span class="bank-transfer-value">Banco Itaú</span>
-                                <button class="bank-transfer-copy" type="button" data-copy="Banco Itaú" aria-label="Copiar banco">
-                                    <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                                </button>
-                            </li>
-                            <li class="bank-transfer-item">
-                                <span class="bank-transfer-label">Cuenta Corriente:</span>
-                                <span class="bank-transfer-value">0224532529</span>
-                                <button class="bank-transfer-copy" type="button" data-copy="0224532529" aria-label="Copiar cuenta corriente">
-                                    <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                                </button>
-                            </li>
-                            <li class="bank-transfer-item">
-                                <span class="bank-transfer-label">Correo:</span>
-                                <span class="bank-transfer-value"><a href="mailto:villeguistas@gmail.com">villeguistas@gmail.com</a></span>
-                                <button class="bank-transfer-copy" type="button" data-copy="villeguistas@gmail.com" aria-label="Copiar correo">
-                                    <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                                </button>
-                            </li>
-                        </ul>
-                        <p class="bank-transfer-important"><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
-                        <p class="bank-transfer-reminder">Indique el número de orden (<strong>{$order_id}</strong>) y su nombre en el mensaje de la transferencia.</p>
+                        <?php echo $order_products_markup; ?>
                     </div>
-                </div>
-            HTML;
+                <?php endif; ?>
+            </div>
+            <?php
+            $bank_transfer_info = ob_get_clean();
         }
         $order_summary_classes = 'order-summary-bank-wrapper';
 
@@ -245,48 +307,10 @@ $order = wc_get_order($order_id);
             </script>
         <?php endif; ?>
 
-<h3>Detalles de la orden</h3>
-        <ul class="order-products">
-            <?php foreach ($order->get_items() as $item_id => $item) : ?>
-                <?php
-                $product = $item->get_product();
-                $product_name = $item->get_name();
-                $product_quantity = $item->get_quantity();
-                $product_subtotal = $order->get_formatted_line_subtotal($item);
-                $product_image = $product ? $product->get_image('thumbnail') : '<div class="placeholder-image"></div>';
-
-                // Check if the product is linked to a LearnDash course
-                $course_meta = get_post_meta($product->get_id(), '_related_course', true);
-
-                // Handle serialized course_meta
-                if (is_serialized($course_meta)) {
-                    $course_meta = unserialize($course_meta);
-                }
-
-                // Extract the course ID
-                $course_id = is_array($course_meta) && isset($course_meta[0]) ? $course_meta[0] : $course_meta;
-
-                // Generate course URL if a valid course ID exists
-                $course_url = !empty($course_id) && is_numeric($course_id) ? get_permalink($course_id) : null;
-                ?>
-                <li class="order-product-item">
-                    <div class="product-flex-container">
-                        <div class="product-image"><?php echo $product_image; ?></div>
-                        <div class="product-details">
-                            <?php if ($course_url) : ?>
-                                <!-- Show only the product name without quantity for courses -->
-                                <span><?php echo esc_html($product_name); ?></span>
-                                <br><a href="<?php echo esc_url($course_url); ?>" class="button" style="display: inline-block; margin-top: 10px; padding: 5px 10px; background-color: black; color: #fff; text-decoration: none; border-radius: 3px; font-size: 12px;">Ir al Curso</a>
-                            <?php else : ?>
-                                <!-- Show product name with quantity for non-courses -->
-                                <span><?php echo esc_html($product_quantity); ?> - <?php echo esc_html($product_name); ?></span>
-                            <?php endif; ?>
-                        </div>
-                        <div class="product-total"><?php echo wp_kses_post($product_subtotal); ?></div>
-                    </div>
-                </li>
-            <?php endforeach; ?>
-        </ul>
+        <?php if ($metodoPago !== 'bacs' && !empty($order_products_markup)) : ?>
+            <h3>Detalles de la orden</h3>
+            <?php echo $order_products_markup; ?>
+        <?php endif; ?>
         <div id="info-extra-envio">
             <?php if ($order) : ?>
                 <?php
