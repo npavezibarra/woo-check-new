@@ -465,6 +465,32 @@ function wc_check_resend_order_to_recibelo( $order ) {
     $order->save_meta_data();
 }
 
+add_action( 'wp_ajax_get_tracking_info', 'woocheck_get_tracking_info' );
+add_action( 'wp_ajax_nopriv_get_tracking_info', 'woocheck_get_tracking_info' );
+
+function woocheck_get_tracking_info() {
+    $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
+
+    if ( ! $order_id ) {
+        wp_send_json(
+            [
+                'tracking_number' => '',
+                'provider'        => '',
+            ]
+        );
+    }
+
+    $tracking_number = get_post_meta( $order_id, '_tracking_number', true );
+    $provider        = get_post_meta( $order_id, '_tracking_provider', true );
+
+    wp_send_json(
+        [
+            'tracking_number' => $tracking_number,
+            'provider'        => $provider,
+        ]
+    );
+}
+
 
 // Override WooCommerce checkout template if needed
 add_filter('woocommerce_locate_template', 'woo_check_override_checkout_template', 10, 3);
