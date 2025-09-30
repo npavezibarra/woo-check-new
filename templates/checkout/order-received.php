@@ -248,9 +248,9 @@ $order = wc_get_order($order_id);
                         $subtotal = $total - $shipping_total; // Subtotal sin envío
                         $iva = $subtotal * 0.19; // IVA es el 19% del subtotal
                         ?>
-                        <p><strong>Envío:</strong> <?php echo wc_price($shipping_total); ?></p>
-                        <p><strong>IVA (19%):</strong> <?php echo wc_price($iva); ?></p>
-                        <p><strong>Total Orden:</strong> <?php echo wc_price($total); ?></p>
+                        <p><strong>🚚 Envío:</strong> <?php echo wc_price($shipping_total); ?></p>
+                        <p><strong>🦹 IVA (19%):</strong> <?php echo wc_price($iva); ?></p>
+                        <p><strong>💵 Total Orden:</strong> <?php echo wc_price($total); ?></p>
                     <?php else : ?>
                         <p>No se encontraron detalles del pedido.</p>
                     <?php endif; ?>
