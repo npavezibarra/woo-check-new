@@ -84,6 +84,7 @@ ul.order-products {
     margin-top: 20px;
     border: 1px solid black;
     padding: 20px;
+    border-radius: 6px;
 }
 
 div#order-information {
@@ -241,6 +242,7 @@ div#info-entrega {
     padding: 20px;
     text-align: center;
     margin-bottom: 40px;
+    border-radius: 6px;
 }
 
 div#info-entrega > p {
@@ -266,6 +268,7 @@ section#info-clientes {
 div#info-extra-envio {
     border: 1px solid black;
     margin-top: 14px;
+    border-radius: 6px;
 }
 
 #info-extra-envio > p {
