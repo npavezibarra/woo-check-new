@@ -78,6 +78,10 @@ div#order-information {
     gap: 20px;
 }
 
+.order-received-page {
+    text-align: center;
+}
+
 .order-address-flip-card {
     display: flex;
     justify-content: center;
@@ -86,7 +90,7 @@ div#order-information {
 .order-address-flip-card .flip-card {
     background-color: transparent;
     width: 100%;
-    max-width: 320px;
+    /* max-width: 320px; */
     min-height: 240px;
     perspective: 1000px;
     cursor: pointer;
@@ -126,12 +130,13 @@ div#order-information {
 }
 
 .order-address-flip-card .flip-card-front {
-    background-color: #f5f5f5;
+    background-color: #ffffff;
+    border: 1px solid #d9d9d9;
     color: #000000;
 }
 
 .order-address-flip-card .flip-card-back {
-    background-color: #1a73e8;
+    background-color: #dcdcdc;
     color: #ffffff;
     transform: rotateY(180deg);
 }
