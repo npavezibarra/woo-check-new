@@ -1,44 +1,3 @@
-.order-received-page {
-    text-align: center;
-}
-
-#info-clientes > h3 {
-    text-align: center;
-}
-
-.woocommerce-order-received .woocommerce-column--billing-address {
-    text-align: center;
-}
-
-.woocommerce-customer-details {
-    max-width: 800px;
-    margin: auto;
-    border-radius: 4px;
-}
-
-.woocommerce-order-received section > div > div > address {
-    margin: auto;
-}
-
-.woocommerce-order-received .woocommerce-column--shipping-address {
-    text-align: center;
-    border-radius: 6px;
-}
-
-.woocommerce-column--shipping-address > h4 {
-    font-size: 20px;
-    margin-bottom: 0px;
-    margin-top: 30px;
-    color: black;
-}
-
-.woocommerce-column--billing-address > h4 {
-    font-size: 20px;
-    margin-bottom: 0px;
-    margin-top: 30px;
-    color: black;
-}
-
 .order-products {
     list-style: none;
     padding: 0;
@@ -117,6 +76,85 @@ div#order-information {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.order-address-flip-card {
+    display: flex;
+    justify-content: center;
+}
+
+.order-address-flip-card .flip-card {
+    background-color: transparent;
+    width: 100%;
+    max-width: 320px;
+    min-height: 240px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.order-address-flip-card .flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 240px;
+    text-align: center;
+    transition: transform 0.6s ease;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+}
+
+.order-address-flip-card .flip-card:hover .flip-card-inner,
+.order-address-flip-card .flip-card:focus .flip-card-inner,
+.order-address-flip-card .flip-card:focus-within .flip-card-inner,
+.order-address-flip-card .flip-card.is-flipped .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+.order-address-flip-card .flip-card-face {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 24px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    border-radius: 8px;
+}
+
+.order-address-flip-card .flip-card-front {
+    background-color: #f5f5f5;
+    color: #000000;
+}
+
+.order-address-flip-card .flip-card-back {
+    background-color: #1a73e8;
+    color: #ffffff;
+    transform: rotateY(180deg);
+}
+
+.order-address-flip-card h4 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.order-address-flip-card address {
+    font-style: normal;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.order-address-flip-card .flip-card a {
+    color: inherit;
+}
+
+.order-address-flip-card .flip-card:focus {
+    outline: 2px solid #1a73e8;
+    outline-offset: 4px;
 }
 
 .bank-transfer-info {
@@ -245,28 +283,6 @@ p.titulo-seccion {
     color: inherit;
 }
 
-.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1.only-billing {
-    width: 100%;
-    border-radius: 6px;
-}
-
-.woocommerce-order-received {
-    background: #f9f9f9;
-}
-
-#info-clientes > h3 {
-    color: rgb(0, 0, 0);
-}
-
-.order-received-page > h3 {
-    color: black;
-    margin-bottom: 0px;
-}
-
-.order-received-page {
-    margin-bottom: 50px;
-}
-
 @media (max-width: 767px) {
     div#order-information {
         max-width: 90%;
@@ -280,6 +296,14 @@ p.titulo-seccion {
     .order-summary-bank-wrapper > .bank-transfer-info {
         min-width: 100%;
     }
+    .order-address-flip-card {
+        padding: 0 20px;
+    }
+    .order-address-flip-card .flip-card,
+    .order-address-flip-card .flip-card-inner {
+        max-width: none;
+        min-height: 200px;
+    }
     .bank-transfer-item {
         grid-template-columns: 1fr;
         justify-items: flex-start;
@@ -287,53 +311,6 @@ p.titulo-seccion {
 
     .bank-transfer-copy {
         padding-left: 0;
-    }
-    .woocommerce-customer-details {
-        max-width: 90%;
-        border-radius: 4px;
-    }
-
-    .woocommerce-column--billing-address > h4 {
-        font-size: 20px;
-        margin-bottom: 0px;
-        margin-top: 0px;
-        padding-top: 30px;
-        color: black;
-    }
-}
-
-.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
-    border-radius: 6px;
-}
-
-/* MY ACCOUNT > ORDERS > ORDER */
-
-.woocommerce-order-received .woocommerce-columns {
-    display: flex;
-}
-
-.woocommerce-order-received .woocommerce-columns .woocommerce-column {
-    flex: 1; /* Ensures both columns take equal width */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1rem; /* Padding inside the columns for better visuals */
-    box-sizing: border-box;
-}
-
-/* Add margin only between the two columns */
-.woocommerce-order-received .woocommerce-columns .woocommerce-column:not(:last-child) {
-    margin-right: 1rem; /* Space between the two columns */
-}
-
-/* Optional: For better responsiveness */
-@media (max-width: 768px) {
-    .woocommerce-order-received .woocommerce-columns {
-        flex-direction: column;
-    }
-    .woocommerce-order-received .woocommerce-columns .woocommerce-column {
-        margin-right: 0; /* Remove margin on mobile */
-        margin-bottom: 1rem; /* Add space between stacked columns */
     }
 }
 
@@ -355,39 +332,11 @@ p.titulo-seccion {
     position: relative; /* To position the dividing line */
 }
 
-.woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
-    border-right: 1px solid black;
-    border-radius: 0px;
-    margin-right: 0px !important;
-}
-
-.woocommerce-columns.woocommerce-columns--2.woocommerce-columns--addresses.col2-set.addresses {
-    border: 1px solid black;
-}
-
-/* Mobile Styles (Screen Width < 768px) */
-@media (max-width: 767px) {
-    .woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1 {
-        border-right: 0px solid black; /* Removes right border */
-        border-bottom: 1px solid black; /* Adds bottom border */
-        border-radius: 0px;
-        margin-right: 0px !important;
-    }
-
-    .woocommerce-columns.woocommerce-columns--2.woocommerce-columns--addresses.col2-set.addresses {
-        border: 1px solid black; /* Remains the same */
-    }
-}
-
 p.fecha-hora-orden {
     color: #ffffff;
     margin-top: 0px;
     margin-bottom: 0px;
     font-size: 12px;
-}
-
-section#info-clientes {
-    margin-bottom: 50px !important;
 }
 
 div#info-extra-envio {

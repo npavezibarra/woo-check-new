@@ -66,6 +66,82 @@ $order = wc_get_order($order_id);
         if ($order->get_date_created()) {
             $order_datetime_display = $order->get_date_created()->date_i18n('d-m-Y H:i:s');
         }
+
+        $format_address_block = function ($type) use ($order) {
+            $lines = [];
+
+            if ($type === 'billing') {
+                $first_name = $order->get_billing_first_name();
+                $last_name  = $order->get_billing_last_name();
+                $address_1  = $order->get_billing_address_1();
+                $address_2  = $order->get_billing_address_2();
+                $comuna     = get_post_meta($order->get_id(), 'billing_comuna', true);
+                $state      = $order->get_billing_state();
+                $phone      = $order->get_billing_phone();
+                $email      = $order->get_billing_email();
+            } else {
+                $first_name = $order->get_shipping_first_name();
+                $last_name  = $order->get_shipping_last_name();
+                $address_1  = $order->get_shipping_address_1();
+                $address_2  = $order->get_shipping_address_2();
+                $comuna     = get_post_meta($order->get_id(), 'shipping_comuna', true);
+                $state      = $order->get_shipping_state();
+                $phone      = $order->get_shipping_phone();
+                $email      = '';
+            }
+
+            $full_name = trim(trim((string) $first_name) . ' ' . trim((string) $last_name));
+            if (!empty($full_name)) {
+                $lines[] = esc_html($full_name);
+            }
+
+            $address_line = trim((string) $address_1);
+            if (!empty($address_2)) {
+                $address_line .= ', ' . trim((string) $address_2);
+            }
+            if (!empty($address_line)) {
+                $lines[] = esc_html($address_line);
+            }
+
+            if (!empty($comuna)) {
+                $lines[] = esc_html((string) $comuna);
+            }
+
+            if (!empty($state)) {
+                $lines[] = esc_html((string) $state);
+            }
+
+            if (!empty($phone)) {
+                $lines[] = wc_make_phone_clickable($phone);
+            }
+
+            if (!empty($email)) {
+                $lines[] = sprintf(
+                    '<a href="mailto:%1$s">%2$s</a>',
+                    esc_attr($email),
+                    esc_html($email)
+                );
+            }
+
+            $lines = array_filter($lines, static function ($line) {
+                return $line !== '' && $line !== null;
+            });
+
+            return implode('<br>', $lines);
+        };
+
+        $billing_address_content  = $format_address_block('billing');
+        $shipping_address_content = $format_address_block('shipping');
+
+        if (empty($billing_address_content) && !empty($shipping_address_content)) {
+            $billing_address_content = $shipping_address_content;
+        }
+
+        if (empty($shipping_address_content) && !empty($billing_address_content)) {
+            $shipping_address_content = $billing_address_content;
+        }
+
+        $has_address_information = !empty($billing_address_content) || !empty($shipping_address_content);
     ?>
     <div id="order-information">
         <?php
@@ -237,6 +313,22 @@ $order = wc_get_order($order_id);
                     <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
                 <?php endif; ?>
                 </div>
+                <?php if ($has_address_information) : ?>
+                    <div class="order-address-flip-card">
+                        <div class="flip-card" tabindex="0" role="button" aria-label="<?php esc_attr_e('Ver direcciones de facturación y envío', 'woocommerce'); ?>" aria-pressed="false">
+                            <div class="flip-card-inner">
+                                <div class="flip-card-face flip-card-front">
+                                    <h4><?php esc_html_e('Dirección de Facturación', 'woocommerce'); ?></h4>
+                                    <address><?php echo wp_kses_post($billing_address_content); ?></address>
+                                </div>
+                                <div class="flip-card-face flip-card-back">
+                                    <h4><?php esc_html_e('Dirección de Envío', 'woocommerce'); ?></h4>
+                                    <address><?php echo wp_kses_post($shipping_address_content); ?></address>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <div id="info-extra-envio">
                     <?php if ($order) : ?>
                         <?php
@@ -339,85 +431,37 @@ $order = wc_get_order($order_id);
 </div>
 
 <?php if ($order): ?>
-<?php
-// Verificar si hay productos físicos en el pedido
-$has_physical_products = false;
-foreach ($order->get_items() as $item_id => $item) {
-    $product = $item->get_product();
-    if ($product && !$product->is_virtual()) {
-        $has_physical_products = true;
-        break;
-    }
-}
-
-// Determinar clase adicional para el contenedor de Billing
-$billing_class = $has_physical_products ? '' : ' only-billing';
-?>
-
-<section class="woocommerce-customer-details" id="info-clientes">
-    <h3>Detalles del cliente</h3>
-    <div class="woocommerce-columns woocommerce-columns--2 woocommerce-columns--addresses col2-set addresses">
-        <!-- Billing Address -->
-        <div class="woocommerce-column woocommerce-column--1 woocommerce-column--billing-address col-1<?php echo esc_attr($billing_class); ?>">
-            <h4><?php esc_html_e('Dirección de Facturación', 'woocommerce'); ?></h4>
-            <address>
-                <?php if ($order->get_billing_first_name() || $order->get_billing_last_name()) : ?>
-                    <?php echo esc_html($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_billing_address_1()) : ?>
-                    <?php echo esc_html($order->get_billing_address_1()); ?>
-                    <?php if ($order->get_billing_address_2()) : ?>
-                        , <?php echo esc_html($order->get_billing_address_2()); ?>
-                    <?php endif; ?><br>
-                <?php endif; ?>
-                <?php 
-                $billing_comuna = get_post_meta($order->get_id(), 'billing_comuna', true);
-                if (!empty($billing_comuna)) : ?>
-                    <?php echo esc_html($billing_comuna); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_billing_state()) : ?>
-                    <?php echo esc_html($order->get_billing_state()); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_billing_phone()) : ?>
-                    <?php echo wc_make_phone_clickable($order->get_billing_phone()); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_billing_email()) : ?>
-                    <?php echo esc_html($order->get_billing_email()); ?>
-                <?php endif; ?>
-            </address>
-        </div>
-
-        <!-- Shipping Address -->
-        <?php if ($has_physical_products): ?>
-        <div class="woocommerce-column woocommerce-column--2 woocommerce-column--shipping-address col-2">
-            <h4><?php esc_html_e('Dirección de Envío', 'woocommerce'); ?></h4>
-            <address>
-                <?php if ($order->get_shipping_first_name() || $order->get_shipping_last_name()) : ?>
-                    <?php echo esc_html($order->get_shipping_first_name() . ' ' . $order->get_shipping_last_name()); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_shipping_address_1()) : ?>
-                    <?php echo esc_html($order->get_shipping_address_1()); ?>
-                    <?php if ($order->get_shipping_address_2()) : ?>
-                        , <?php echo esc_html($order->get_shipping_address_2()); ?>
-                    <?php endif; ?><br>
-                <?php endif; ?>
-                <?php 
-                $shipping_comuna = get_post_meta($order->get_id(), 'shipping_comuna', true);
-                if (!empty($shipping_comuna)) : ?>
-                    <?php echo esc_html($shipping_comuna); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_shipping_state()) : ?>
-                    <?php echo esc_html($order->get_shipping_state()); ?><br>
-                <?php endif; ?>
-                <?php if ($order->get_shipping_phone()) : ?>
-                    <?php echo wc_make_phone_clickable($order->get_shipping_phone()); ?><br>
-                <?php endif; ?>
-            </address>
-        </div>
-        <?php endif; ?>
-    </div>
     <script>
     document.addEventListener("DOMContentLoaded", function() {
+        const flipCard = document.querySelector('.order-address-flip-card .flip-card');
+        if (flipCard) {
+            const supportsHover = window.matchMedia('(hover: hover)').matches;
+            const updatePressedState = function () {
+                flipCard.setAttribute('aria-pressed', flipCard.classList.contains('is-flipped') ? 'true' : 'false');
+            };
+
+            updatePressedState();
+
+            if (!supportsHover) {
+                flipCard.addEventListener('click', function(event) {
+                    if (event.target.closest('a')) {
+                        return;
+                    }
+                    event.preventDefault();
+                    flipCard.classList.toggle('is-flipped');
+                    updatePressedState();
+                });
+            }
+
+            flipCard.addEventListener('keydown', function(event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    flipCard.classList.toggle('is-flipped');
+                    updatePressedState();
+                }
+            });
+        }
+
         const trackingEl = document.getElementById("tracking-info");
 
         if (!trackingEl || trackingEl.dataset.hasTracking === "1") {
@@ -461,10 +505,6 @@ $billing_class = $has_physical_products ? '' : ' only-billing';
         const pollInterval = setInterval(fetchTracking, 15000);
     });
     </script>
-</section>
-
-
-
 <?php endif; ?>
 
 <?php
