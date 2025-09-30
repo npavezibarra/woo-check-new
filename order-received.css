@@ -158,8 +158,11 @@ div#order-information {
 
 .order-address-flip-card h4 {
     margin: 0;
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
+    font-style: normal;
+    text-transform: uppercase;
+    font-family: sans-serif;
 }
 
 .order-address-flip-card address {
