@@ -391,10 +391,15 @@ section#info-clientes {
 }
 
 div#info-extra-envio {
-    border: 1px solid black;
+    background: #ffffff;
+    border: 1px solid #d9d9d9;
     border-radius: 6px;
 }
 
 #info-extra-envio > p {
     font-size: 12px;
+}
+
+p.recibelo-tracking-status {
+    margin: 10px;
 }
