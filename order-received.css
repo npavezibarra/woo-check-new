@@ -64,18 +64,24 @@ div#order-information {
 
 .order-summary-bank-wrapper > .order-summary-primary,
 .order-summary-bank-wrapper > .bank-transfer-info {
-    flex: 1 1 50%;
+    flex: 0 0 calc(50% - 10px);
+    max-width: calc(50% - 10px);
     min-width: 300px;
 }
 
 .order-summary-bank-wrapper--single > .order-summary-primary {
     flex-basis: 100%;
+    max-width: 100%;
 }
 
 .order-summary-primary {
     display: flex;
     flex-direction: column;
     gap: 20px;
+}
+
+.order-summary-primary > * {
+    width: 100%;
 }
 
 .order-received-page {
@@ -303,6 +309,8 @@ p.titulo-seccion {
 
     .order-summary-bank-wrapper > .order-summary-primary,
     .order-summary-bank-wrapper > .bank-transfer-info {
+        flex: 1 1 100%;
+        max-width: 100%;
         min-width: 100%;
     }
     .order-address-flip-card {
