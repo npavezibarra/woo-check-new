@@ -70,7 +70,19 @@ $order = wc_get_order($order_id);
                 <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
             <?php endif; ?>
             <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
-                <?php woocheck_render_recibelo_tracking_widget($order); ?>
+                <?php
+                $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
+
+                if (empty($internal_id)) {
+                    $internal_id = $tracking_number;
+                }
+
+                $billing_full_name = $order->get_formatted_billing_full_name();
+                $tracking_status = class_exists('WC_Check_Recibelo')
+                    ? WC_Check_Recibelo::get_tracking_status($internal_id, $billing_full_name)
+                    : __('Estamos consultando el estado de este envío...', 'woo-check');
+                ?>
+                <p class="recibelo-tracking-status"><?php echo esc_html($tracking_status); ?></p>
             <?php endif; ?>
             <?php if (!empty($order_datetime_display)) : ?>
                 <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
