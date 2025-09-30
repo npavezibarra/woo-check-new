@@ -48,7 +48,7 @@ ul.order-products {
 div#order-information {
     max-width: 1000px;
     margin: auto;
-    background: #f9f9f9;
+    /* background: #f9f9f9; */
     padding: 20px 0px;
     border-radius: 6px;
 }
@@ -80,6 +80,16 @@ div#order-information {
 
 .order-received-page {
     text-align: center;
+    background: url(https://elvillegas.cl/wp-content/uploads/2024/05/Nunork4.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    height: 100vh;
+}
+
+#order-thank-you-heading {
+    color: #ffffff;
+    margin-top: 0;
+    padding-top: 30px;
 }
 
 .order-address-flip-card {
@@ -290,6 +300,12 @@ div#order-information {
     color: #fff;
     padding: 20px;
     border-radius: 6px;
+}
+
+.order-received > h3 {
+    margin: 0;
+    padding-top: 30px;
+    color: white;
 }
 
 .order-header p {
