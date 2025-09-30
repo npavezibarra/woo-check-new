@@ -203,7 +203,7 @@ $order = wc_get_order($order_id);
             ?>
             <div class="bank-transfer-info">
                 <button class="bank-transfer-toggle" type="button" aria-expanded="false">
-                    <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                    <span class="bank-transfer-title">🏦 Datos Transferencia Bancaria</span>
                     <span class="bank-transfer-icon" aria-hidden="true">+</span>
                 </button>
                 <div class="bank-transfer-content" hidden>
@@ -250,7 +250,7 @@ $order = wc_get_order($order_id);
 
                 <?php if (!empty($order_products_markup)) : ?>
                     <button class="bank-transfer-toggle" type="button" aria-expanded="true">
-                        <span class="bank-transfer-title">Tu compra</span>
+                        <span class="bank-transfer-title">🛍️ Tu compra</span>
                         <span class="bank-transfer-icon" aria-hidden="true">−</span>
                     </button>
                     <div class="bank-transfer-content">
