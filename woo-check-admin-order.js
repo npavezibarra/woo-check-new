@@ -231,9 +231,13 @@
 
         $input.data('wooCheckAdminComunaInit', true);
 
+        const $appendTarget = $input.closest('p, .form-field, .address-field');
+
         $input.autocomplete({
             source: buildAutocompleteSource,
             minLength: 0,
+            delay: 0,
+            appendTo: $appendTarget.length ? $appendTarget : undefined,
             select: function (event, ui) {
                 setValidComuna($input, $regionSelect, ui.item.value);
                 return false;
@@ -242,6 +246,10 @@
                 event.preventDefault();
                 $input.val(ui.item.value);
             },
+        });
+
+        $input.on('input', function () {
+            $input.autocomplete('search', $.trim($input.val() || ''));
         });
 
         $input.on('focus', function () {
