@@ -554,6 +554,45 @@ $fields['shipping']['shipping_state']['label'] = 'Regiones';
     return $fields;
 }
 
+// Ensure Comuna is visible and editable in the admin order edit screen.
+add_filter('woocommerce_admin_billing_fields', function ($fields) {
+    return woo_check_register_admin_comuna_field($fields, 'billing');
+});
+
+add_filter('woocommerce_admin_shipping_fields', function ($fields) {
+    return woo_check_register_admin_comuna_field($fields, 'shipping');
+});
+
+function woo_check_register_admin_comuna_field($fields, $type) {
+    $key           = sprintf('%s_comuna', $type);
+    $state_key     = sprintf('%s_state', $type);
+    $field_args    = array(
+        'label' => __('Comuna', 'woocommerce'),
+        'show'  => true,
+    );
+
+    if (isset($fields[$state_key])) {
+        $state_field = $fields[$state_key];
+        unset($fields[$state_key]);
+        $fields[$key]     = $field_args;
+        $fields[$state_key] = $state_field;
+    } else {
+        $fields[$key] = $field_args;
+    }
+
+    return $fields;
+}
+
+add_action('woocommerce_process_shop_order_meta', function ($order_id) {
+    if (isset($_POST['billing_comuna'])) {
+        update_post_meta($order_id, 'billing_comuna', wc_clean(wp_unslash($_POST['billing_comuna'])));
+    }
+
+    if (isset($_POST['shipping_comuna'])) {
+        update_post_meta($order_id, 'shipping_comuna', wc_clean(wp_unslash($_POST['shipping_comuna'])));
+    }
+});
+
 // 9 - Save Billing and Shipping Comuna Fields to Order Meta
 add_action('woocommerce_checkout_update_order_meta', 'save_comuna_order_meta');
 function save_comuna_order_meta($order_id) {
