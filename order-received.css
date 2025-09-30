@@ -5,14 +5,14 @@
 }
 
 .order-product-item {
-    margin-bottom: 10px;
+    margin-bottom: 0;
 }
 
 .product-flex-container {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 0;
+    padding: 0;
 }
 
 .product-image img {
@@ -40,7 +40,7 @@
 
 ul.order-products {
     margin: auto;
-    margin-top: 20px;
+    margin-top: 0;
     padding: 20px;
     border-radius: 6px;
 }
@@ -98,7 +98,7 @@ div#order-information {
 }
 
 .flip-card-inner {
-    padding: 10px;
+    padding: 0;
 }
 
 .order-address-flip-card .flip-card-inner {
@@ -109,7 +109,7 @@ div#order-information {
     text-align: center;
     transition: transform 0.6s ease;
     transform-style: preserve-3d;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     border-radius: 8px;
 }
 
@@ -142,7 +142,7 @@ div#order-information {
 
 .order-address-flip-card .flip-card-back {
     background-color: #dcdcdc;
-    color: #ffffff;
+    color: #3d3d3d;
     transform: rotateY(180deg);
 }
 
@@ -191,9 +191,19 @@ div#order-information {
     transition: background-color 0.2s ease-in-out;
 }
 
+.bank-transfer-toggle[aria-expanded="true"] {
+    background-color: #000000;
+    color: #ffffff;
+}
+
 .bank-transfer-toggle:hover,
 .bank-transfer-toggle:focus {
     background-color: #e2e2e2;
+}
+
+.bank-transfer-toggle[aria-expanded="true"]:hover,
+.bank-transfer-toggle[aria-expanded="true"]:focus {
+    background-color: #111111;
 }
 
 .bank-transfer-icon {
@@ -261,6 +271,10 @@ div#order-information {
 }
 
 .bank-transfer-important {
+    background: #ef7272;
+    padding: 10px;
+    font-size: 12px;
+    color: white;
     margin-bottom: 8px;
     font-weight: 500;
 }
@@ -272,7 +286,7 @@ div#order-information {
 
 .order-header {
     margin: 0;
-    background-color: #000;
+    background-image: linear-gradient(to right, #434343 0%, black 100%);
     color: #fff;
     padding: 20px;
     border-radius: 6px;
@@ -285,12 +299,6 @@ div#order-information {
 .order-header .fecha-hora-orden {
     margin-top: 10px;
     font-size: 12px;
-}
-
-p.titulo-seccion {
-    max-width: 1000px;
-    margin: 0 auto;
-    color: inherit;
 }
 
 @media (max-width: 767px) {
@@ -327,7 +335,7 @@ p.titulo-seccion {
 p.titulo-seccion {
     text-transform: uppercase;
     color: white;
-    background: black;
+    /* background: black; */
     font-weight: 600;
     font-size: 20px;
     max-width: 1000px;

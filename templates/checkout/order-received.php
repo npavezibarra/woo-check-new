@@ -203,7 +203,7 @@ $order = wc_get_order($order_id);
             ?>
             <div class="bank-transfer-info">
                 <button class="bank-transfer-toggle" type="button" aria-expanded="false">
-                    <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                    <span class="bank-transfer-title">🏦 Datos Transferencia Bancaria</span>
                     <span class="bank-transfer-icon" aria-hidden="true">+</span>
                 </button>
                 <div class="bank-transfer-content" hidden>
@@ -250,7 +250,7 @@ $order = wc_get_order($order_id);
 
                 <?php if (!empty($order_products_markup)) : ?>
                     <button class="bank-transfer-toggle" type="button" aria-expanded="true">
-                        <span class="bank-transfer-title">Tu compra</span>
+                        <span class="bank-transfer-title">🛍️ Tu compra</span>
                         <span class="bank-transfer-icon" aria-hidden="true">−</span>
                     </button>
                     <div class="bank-transfer-content">
@@ -382,29 +382,89 @@ $order = wc_get_order($order_id);
                             });
                         });
 
+                        const fallbackCopyText = function (text) {
+                            return new Promise(function (resolve, reject) {
+                                const textArea = document.createElement('textarea');
+                                textArea.value = text;
+                                textArea.setAttribute('readonly', '');
+                                textArea.style.position = 'absolute';
+                                textArea.style.left = '-9999px';
+                                document.body.appendChild(textArea);
+
+                                const selection = document.getSelection();
+                                const selectedRange = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+
+                                textArea.select();
+
+                                let copySuccessful = false;
+                                let execCommandError = null;
+                                try {
+                                    copySuccessful = document.execCommand('copy');
+                                } catch (error) {
+                                    execCommandError = error;
+                                }
+
+                                document.body.removeChild(textArea);
+
+                                if (selectedRange && selection) {
+                                    selection.removeAllRanges();
+                                    selection.addRange(selectedRange);
+                                }
+
+                                if (copySuccessful) {
+                                    resolve();
+                                } else if (execCommandError) {
+                                    reject(execCommandError);
+                                } else {
+                                    reject(new Error('execCommand failed'));
+                                }
+                            });
+                        };
+
                         const copyButtons = document.querySelectorAll('.bank-transfer-copy');
                         copyButtons.forEach(function (button) {
-                            button.addEventListener('click', function () {
+                            button.addEventListener('click', function (event) {
+                                event.preventDefault();
                                 const self = this;
                                 const valueToCopy = self.getAttribute('data-copy');
                                 const icon = self.querySelector('.bank-transfer-copy-icon');
                                 const originalIcon = icon ? icon.textContent : '';
 
-                                navigator.clipboard.writeText(valueToCopy)
-                                    .then(function () {
+                                const handleSuccess = function () {
+                                    if (icon) {
+                                        icon.textContent = '✓';
+                                    }
+                                    self.classList.add('bank-transfer-copy--success');
+                                    setTimeout(function () {
                                         if (icon) {
-                                            icon.textContent = '✓';
+                                            icon.textContent = originalIcon || '📋';
                                         }
-                                        self.classList.add('bank-transfer-copy--success');
-                                        setTimeout(function () {
-                                            if (icon) {
-                                                icon.textContent = originalIcon || '📋';
-                                            }
-                                            button.classList.remove('bank-transfer-copy--success');
-                                        }, 2000);
-                                    })
+                                        button.classList.remove('bank-transfer-copy--success');
+                                    }, 2000);
+                                };
+
+                                const handleFailure = function (error) {
+                                    console.error('No se pudo copiar el texto:', error);
+                                };
+
+                                const canUseNavigatorClipboard = !!(navigator.clipboard && window.isSecureContext);
+
+                                const attemptCopy = canUseNavigatorClipboard
+                                    ? navigator.clipboard.writeText(valueToCopy)
+                                    : fallbackCopyText(valueToCopy);
+
+                                attemptCopy
+                                    .then(handleSuccess)
                                     .catch(function (error) {
-                                        console.error('No se pudo copiar el texto:', error);
+                                        if (canUseNavigatorClipboard) {
+                                            fallbackCopyText(valueToCopy)
+                                                .then(handleSuccess)
+                                                .catch(function (fallbackError) {
+                                                    handleFailure(fallbackError || error);
+                                                });
+                                        } else {
+                                            handleFailure(error);
+                                        }
                                     });
                             });
                         });
