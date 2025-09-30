@@ -386,3 +386,12 @@ div#info-extra-envio {
 p.recibelo-tracking-status {
     margin: 10px;
 }
+
+p.tracking-link a {
+    color: #ffffff;
+}
+
+p.tracking-link a:focus,
+p.tracking-link a:hover {
+    color: #ffffff;
+}
