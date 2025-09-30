@@ -94,6 +94,29 @@ div#order-information {
     border-radius: 6px;
 }
 
+.order-header {
+    max-width: 1000px;
+    margin: 0 auto 20px;
+    background-color: #000;
+    color: #fff;
+    padding: 20px;
+    border-radius: 6px;
+}
+
+.order-header p {
+    margin: 0;
+}
+
+.order-header .fecha-hora-orden {
+    margin-top: 10px;
+}
+
+p.titulo-seccion {
+    max-width: 1000px;
+    margin: 0 auto;
+    color: inherit;
+}
+
 .woocommerce-column.woocommerce-column--1.woocommerce-column--billing-address.col-1.only-billing {
     width: 100%;
     border-radius: 6px;
