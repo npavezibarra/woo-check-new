@@ -126,11 +126,11 @@ $order = wc_get_order($order_id);
             ob_start();
             ?>
             <div class="bank-transfer-info">
-                <button class="bank-transfer-toggle" type="button" aria-expanded="true">
+                <button class="bank-transfer-toggle" type="button" aria-expanded="false">
                     <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
-                    <span class="bank-transfer-icon" aria-hidden="true">−</span>
+                    <span class="bank-transfer-icon" aria-hidden="true">+</span>
                 </button>
-                <div class="bank-transfer-content">
+                <div class="bank-transfer-content" hidden>
                     <ul class="bank-transfer-list">
                         <li class="bank-transfer-item">
                             <span class="bank-transfer-label">Nombre:</span>
