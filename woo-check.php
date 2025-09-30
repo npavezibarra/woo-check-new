@@ -26,6 +26,9 @@ require_once plugin_dir_path( __FILE__ ) . 'includes/class-wc-check-shipit-webho
 
 add_action( 'woocommerce_order_status_processing', 'wc_check_handle_processing_order', 10, 1 );
 
+add_action( 'wp_ajax_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
+add_action( 'wp_ajax_nopriv_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
+
 function wc_check_get_commune_catalog() {
     static $catalog = null;
 
@@ -463,32 +466,6 @@ function wc_check_resend_order_to_recibelo( $order ) {
     $order->update_meta_data( '_recibelo_sync_status', 'synced' );
     $order->delete_meta_data( '_recibelo_sync_failed' );
     $order->save_meta_data();
-}
-
-add_action( 'wp_ajax_get_tracking_info', 'woocheck_get_tracking_info' );
-add_action( 'wp_ajax_nopriv_get_tracking_info', 'woocheck_get_tracking_info' );
-
-function woocheck_get_tracking_info() {
-    $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-
-    if ( ! $order_id ) {
-        wp_send_json(
-            [
-                'tracking_number' => '',
-                'provider'        => '',
-            ]
-        );
-    }
-
-    $tracking_number = get_post_meta( $order_id, '_tracking_number', true );
-    $provider        = get_post_meta( $order_id, '_tracking_provider', true );
-
-    wp_send_json(
-        [
-            'tracking_number' => $tracking_number,
-            'provider'        => $provider,
-        ]
-    );
 }
 
 /**
@@ -1006,6 +983,27 @@ function woo_check_enqueue_assets() {
         );
     }
 }
+
+add_action( 'wp_enqueue_scripts', function() {
+    if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+        wp_enqueue_script(
+            'woocheck-tracking',
+            plugins_url( 'assets/js/woocheck-tracking.js', __FILE__ ),
+            [ 'jquery' ],
+            '1.0',
+            true
+        );
+
+        wp_localize_script(
+            'woocheck-tracking',
+            'WooCheckAjax',
+            [
+                'ajax_url'         => admin_url( 'admin-ajax.php' ),
+                'fallback_message' => __( 'Estamos consultando el estado de este envío...', 'woo-check' ),
+            ]
+        );
+    }
+} );
 
 add_action('admin_enqueue_scripts', 'woo_check_enqueue_admin_order_assets');
 function woo_check_enqueue_admin_order_assets($hook) {

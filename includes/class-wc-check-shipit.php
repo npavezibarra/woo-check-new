@@ -9,6 +9,31 @@ class WC_Check_Shipit {
     private $token;
     private $log_file;
 
+    /**
+     * Retrieve the tracking status for an order using Shipit reference lookup.
+     *
+     * @param int $order_id WooCommerce order identifier.
+     *
+     * @return array{
+     *     status:string,
+     *     message:string,
+     *     courier:string,
+     *     tracking_number:string,
+     *     tracking_url:string|null
+     * }
+     */
+    public static function get_tracking_status( $order_id ) {
+        $data = self::get_tracking_status_by_order( $order_id );
+
+        return [
+            'status'          => isset( $data['status'] ) ? $data['status'] : 'unknown',
+            'message'         => isset( $data['message'] ) ? $data['message'] : __( 'Estamos consultando el estado de este envío...', 'woo-check' ),
+            'courier'         => isset( $data['courier'] ) && '' !== $data['courier'] ? $data['courier'] : 'Shipit',
+            'tracking_number' => isset( $data['tracking_number'] ) ? $data['tracking_number'] : ( $order_id ? $order_id . 'N' : '' ),
+            'tracking_url'    => isset( $data['tracking_url'] ) ? $data['tracking_url'] : '',
+        ];
+    }
+
     public function __construct() {
         $this->email = get_option( 'wc_check_shipit_email' );
         if ( empty( $this->email ) ) {
@@ -371,6 +396,272 @@ class WC_Check_Shipit {
         return null;
     }
 
+    /**
+     * Retrieve a human friendly tracking status for a Shipit order.
+     *
+     * @param int $order_id WooCommerce order identifier.
+     *
+     * @return array{
+     *     status:string,
+     *     eta:string,
+     *     message:string,
+     * }
+     */
+    public static function get_tracking_status_by_order( $order_id ) {
+        $default_message = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
+
+        $order_id = absint( $order_id );
+
+        $result = [
+            'status'          => 'unknown',
+            'eta'             => '',
+            'message'         => $default_message,
+            'tracking_number' => $order_id ? $order_id . 'N' : '',
+            'courier'         => 'Shipit',
+            'tracking_url'    => '',
+        ];
+
+        if ( ! $order_id ) {
+            return $result;
+        }
+
+        $order = wc_get_order( $order_id );
+
+        if ( ! $order ) {
+            return $result;
+        }
+
+        $tracking_reference = trim( (string) $order->get_meta( '_shipit_tracking', true ) );
+
+        if ( '' === $tracking_reference ) {
+            $tracking_reference = trim( (string) $order->get_meta( '_tracking_number', true ) );
+        }
+
+        if ( '' === $tracking_reference ) {
+            $tracking_reference = $order_id . 'N';
+        }
+
+        $result['tracking_number'] = sanitize_text_field( $tracking_reference );
+
+        $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
+
+        if ( '' !== $stored_courier ) {
+            $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
+        }
+
+        $credentials = self::get_api_credentials();
+
+        if ( '' === $credentials['email'] || '' === $credentials['token'] ) {
+            return $result;
+        }
+
+        $endpoint = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $tracking_reference );
+
+        $response = wp_remote_get(
+            $endpoint,
+            [
+                'headers' => [
+                    'Accept'                => 'application/json',
+                    'Content-Type'          => 'application/json',
+                    'X-Shipit-Email'        => $credentials['email'],
+                    'X-Shipit-Access-Token' => $credentials['token'],
+                ],
+                'timeout' => 20,
+            ]
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return $result;
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+        if ( $status_code < 200 || $status_code >= 300 ) {
+            return $result;
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        if ( ! is_array( $data ) || empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
+            return $result;
+        }
+
+        $package = $data['packages'][0];
+
+        if ( isset( $package['courier_status'] ) && '' !== trim( (string) $package['courier_status'] ) ) {
+            $status = self::format_status_label( $package['courier_status'] );
+        } elseif ( isset( $package['status'] ) ) {
+            $status = self::format_status_label( $package['status'] );
+        } else {
+            $status = 'unknown';
+        }
+
+        if ( isset( $package['tracking_number'] ) && '' !== trim( (string) $package['tracking_number'] ) ) {
+            $result['tracking_number'] = sanitize_text_field( $package['tracking_number'] );
+        }
+
+        if ( isset( $package['courier_for_client'] ) && '' !== trim( (string) $package['courier_for_client'] ) ) {
+            $result['courier'] = sanitize_text_field( self::format_courier_label( $package['courier_for_client'] ) );
+        }
+
+        if ( isset( $package['tracking_url'] ) && '' !== trim( (string) $package['tracking_url'] ) ) {
+            $result['tracking_url'] = esc_url_raw( $package['tracking_url'] );
+        } elseif ( isset( $package['courier_url'] ) && '' !== trim( (string) $package['courier_url'] ) ) {
+            $result['tracking_url'] = esc_url_raw( $package['courier_url'] );
+        }
+
+        $eta_fields = [
+            'estimated_delivery_at',
+            'estimated_delivery_date',
+            'eta',
+        ];
+
+        $eta_value = '';
+
+        foreach ( $eta_fields as $field ) {
+            if ( isset( $package[ $field ] ) && '' !== trim( (string) $package[ $field ] ) ) {
+                $eta_value = $package[ $field ];
+                break;
+            }
+        }
+
+        if ( '' !== $eta_value ) {
+            $result['eta'] = self::format_eta( $eta_value );
+        }
+
+        if ( '' !== $status && 'unknown' !== $status ) {
+            $result['status']  = $status;
+            $result['message'] = $status;
+
+            if ( '' !== $result['eta'] ) {
+                $result['message'] = sprintf(
+                    /* translators: 1: Tracking status label. 2: Estimated delivery date. */
+                    __( '%1$s (Entrega estimada: %2$s)', 'woo-check' ),
+                    $status,
+                    $result['eta']
+                );
+            }
+        }
+
+        return $result;
+    }
+
+    public static function ajax_get_tracking_status() {
+        if ( ! isset( $_POST['order_id'] ) ) {
+            wp_send_json_error( [ 'message' => __( 'Missing order_id', 'woo-check' ) ] );
+        }
+
+        $order_id = absint( wp_unslash( $_POST['order_id'] ) );
+
+        if ( ! $order_id ) {
+            wp_send_json_error( [ 'message' => __( 'Invalid order_id', 'woo-check' ) ] );
+        }
+
+        $status_data = self::get_tracking_status_by_order( $order_id );
+
+        wp_send_json_success( $status_data );
+    }
+
+    /**
+     * Extract a nested value from an array using a path definition.
+     *
+     * @param array $data Source data.
+     * @param array $path Keys to traverse.
+     *
+     * @return mixed|null
+     */
+    private static function extract_value( $data, array $path ) {
+        if ( ! is_array( $data ) ) {
+            return null;
+        }
+
+        $cursor = $data;
+
+        foreach ( $path as $key ) {
+            if ( ! is_array( $cursor ) || ! array_key_exists( $key, $cursor ) ) {
+                return null;
+            }
+
+            $cursor = $cursor[ $key ];
+        }
+
+        return $cursor;
+    }
+
+    private static function get_api_credentials() {
+        $email = get_option( 'wc_check_shipit_email', get_option( 'woo_check_shipit_email', '' ) );
+        $token = get_option( 'wc_check_shipit_token', get_option( 'woo_check_shipit_token', '' ) );
+
+        return [
+            'email' => is_string( $email ) ? trim( $email ) : '',
+            'token' => is_string( $token ) ? trim( $token ) : '',
+        ];
+    }
+
+    /**
+     * Normalize a raw status label provided by Shipit.
+     *
+     * @param string $status Raw status string.
+     */
+    private static function format_status_label( $status ) {
+        $status = wc_clean( $status );
+
+        if ( '' === $status ) {
+            return '';
+        }
+
+        $status = str_replace( '_', ' ', $status );
+        $status = preg_replace( '/\s+/', ' ', $status );
+        $status = trim( (string) $status );
+
+        if ( '' === $status ) {
+            return '';
+        }
+
+        $normalized = strtolower( $status );
+
+        $map = [
+            'in transit'       => __( 'En tránsito', 'woo-check' ),
+            'en transito'      => __( 'En tránsito', 'woo-check' ),
+            'out for delivery' => __( 'En reparto', 'woo-check' ),
+            'delivered'        => __( 'Entregado', 'woo-check' ),
+            'pending'          => __( 'Pendiente', 'woo-check' ),
+            'pending pickup'   => __( 'Pendiente de retiro', 'woo-check' ),
+        ];
+
+        if ( isset( $map[ $normalized ] ) ) {
+            return $map[ $normalized ];
+        }
+
+        if ( function_exists( 'mb_convert_case' ) ) {
+            return mb_convert_case( $status, MB_CASE_TITLE, 'UTF-8' );
+        }
+
+        return ucwords( strtolower( $status ) );
+    }
+
+    /**
+     * Format the estimated delivery string returned by Shipit.
+     *
+     * @param string $eta Raw ETA string.
+     */
+    private static function format_eta( $eta ) {
+        $eta = wc_clean( $eta );
+
+        if ( '' === $eta ) {
+            return '';
+        }
+
+        $timestamp = strtotime( $eta );
+
+        if ( false === $timestamp ) {
+            return $eta;
+        }
+
+        return date_i18n( 'd-m-Y', $timestamp );
+    }
+
     private function log( $message, $context = null ) {
         $this->ensure_log_directory();
 
@@ -434,6 +725,29 @@ class WC_Check_Shipit {
         }
 
         return $data;
+    }
+
+    /**
+     * Format a courier label for presentation.
+     *
+     * @param string $courier Raw courier value.
+     *
+     * @return string
+     */
+    private static function format_courier_label( $courier ) {
+        $courier = trim( (string) $courier );
+
+        if ( '' === $courier ) {
+            return '';
+        }
+
+        $courier = preg_replace( '/[_\-]+/', ' ', $courier );
+
+        if ( function_exists( 'mb_convert_case' ) ) {
+            return mb_convert_case( $courier, MB_CASE_TITLE, 'UTF-8' );
+        }
+
+        return ucwords( strtolower( $courier ) );
     }
 }
 

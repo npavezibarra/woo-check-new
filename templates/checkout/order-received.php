@@ -272,34 +272,24 @@ $order = wc_get_order($order_id);
                 <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
                 $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
-
-                $has_tracking = !empty($tracking_number);
-
-                if ($has_tracking) :
+                $default_tracking  = $order->get_id() . 'N';
                 ?>
-                    <p id="tracking-info" data-has-tracking="1">
-                        <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
-                        <?php if (!empty($tracking_provider)) : ?>
-                            (
-                            <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
-                                <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
-                            <?php else : ?>
-                                <?php echo esc_html(ucfirst($tracking_provider)); ?>
-                            <?php endif; ?>
-                            )
-                        <?php endif; ?>
+                <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
+                    <p class="tracking-heading">
+                        <strong><?php esc_html_e('Tracking:', 'woo-check'); ?></strong>
+                        <span class="tracking-number"><?php echo esc_html($default_tracking); ?></span>
+                        <span class="tracking-courier">(<?php esc_html_e('Shipit', 'woo-check'); ?>)</span>
                     </p>
-                <?php else : ?>
-                    <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
-                <?php endif; ?>
+                    <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
+                    <p class="tracking-link" style="display:none;"><a href="#" target="_blank" rel="noopener noreferrer"></a></p>
+                </div>
                 <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
                     <?php
                     $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
 
                     if (empty($internal_id)) {
-                        $internal_id = $tracking_number;
+                        $internal_id = $default_tracking;
                     }
 
                     $billing_full_name = $order->get_formatted_billing_full_name();
@@ -522,47 +512,6 @@ $order = wc_get_order($order_id);
             });
         }
 
-        const trackingEl = document.getElementById("tracking-info");
-
-        if (!trackingEl || trackingEl.dataset.hasTracking === "1") {
-            return;
-        }
-
-        const orderId = "<?php echo esc_js($order->get_id()); ?>";
-        const ajaxUrl = "<?php echo esc_js(esc_url_raw(admin_url('admin-ajax.php'))); ?>";
-
-        function formatProvider(provider) {
-            if (!provider) {
-                return "";
-            }
-
-            const normalized = provider.toString();
-
-            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-        }
-
-        function fetchTracking() {
-            fetch(ajaxUrl, {
-                method: "POST",
-                headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                body: "action=get_tracking_info&order_id=" + encodeURIComponent(orderId)
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                if (data && data.tracking_number) {
-                    const providerLabel = formatProvider(data.provider);
-                    trackingEl.dataset.hasTracking = "1";
-                    trackingEl.innerHTML = "<strong>Tracking:</strong> " + data.tracking_number + (providerLabel ? " (" + providerLabel + ")" : "");
-                    clearInterval(pollInterval);
-                }
-            })
-            .catch(function(error) {
-                console.error(error);
-            });
-        }
-
-        fetchTracking();
-        const pollInterval = setInterval(fetchTracking, 15000);
     });
     </script>
 <?php endif; ?>
