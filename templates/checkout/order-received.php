@@ -83,7 +83,7 @@ $order = wc_get_order($order_id);
                     <?php if (!empty($tracking_provider)) : ?>
                         (
                         <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
-                            <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer">Recíbelo</a>
+                            <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
                         <?php else : ?>
                             <?php echo esc_html(ucfirst($tracking_provider)); ?>
                         <?php endif; ?>
