@@ -95,9 +95,26 @@ div#order-information {
     border-radius: 6px;
 }
 
-.bank-transfer-info {
+.order-summary-bank-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
     max-width: 1000px;
-    margin: 20px auto;
+    margin: 0 auto 20px;
+}
+
+.order-summary-bank-wrapper > #order-header,
+.order-summary-bank-wrapper > .bank-transfer-info {
+    flex: 1 1 50%;
+    min-width: 300px;
+}
+
+.order-summary-bank-wrapper--single > #order-header {
+    flex-basis: 100%;
+}
+
+.bank-transfer-info {
+    margin: 0;
     border: 1px solid #d9d9d9;
     border-radius: 8px;
     background-color: #ffffff;
@@ -200,8 +217,7 @@ div#order-information {
 }
 
 .order-header {
-    max-width: 1000px;
-    margin: 0 auto 20px;
+    margin: 0;
     background-color: #000;
     color: #fff;
     padding: 20px;
@@ -249,6 +265,14 @@ p.titulo-seccion {
     div#order-information {
         max-width: 90%;
 
+    }
+    .order-summary-bank-wrapper {
+        flex-direction: column;
+    }
+
+    .order-summary-bank-wrapper > #order-header,
+    .order-summary-bank-wrapper > .bank-transfer-info {
+        min-width: 100%;
     }
     .bank-transfer-item {
         grid-template-columns: 1fr;

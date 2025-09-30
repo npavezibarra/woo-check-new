@@ -68,52 +68,187 @@ $order = wc_get_order($order_id);
         }
     ?>
     <div id="order-information">
-        <div class="order-header">
-            <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
-            <?php
-            $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
-            $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
+        <?php
+        $metodoPago = $order ? $order->get_payment_method() : '';
+        $bank_transfer_info = get_bank_transfer_info($order_id, $metodoPago);
+        $order_summary_classes = 'order-summary-bank-wrapper';
 
-            $has_tracking = !empty($tracking_number);
-
-            if ($has_tracking) :
-            ?>
-                <p id="tracking-info" data-has-tracking="1">
-                    <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
-                    <?php if (!empty($tracking_provider)) : ?>
-                        (
-                        <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
-                            <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
-                        <?php else : ?>
-                            <?php echo esc_html(ucfirst($tracking_provider)); ?>
-                        <?php endif; ?>
-                        )
-                    <?php endif; ?>
-                </p>
-            <?php else : ?>
-                <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
-            <?php endif; ?>
-            <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
+        if (empty($bank_transfer_info)) {
+            $order_summary_classes .= ' order-summary-bank-wrapper--single';
+        }
+        ?>
+        <div class="<?php echo esc_attr($order_summary_classes); ?>">
+            <div id="order-header" class="order-header">
+                <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
+                $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
+                $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
 
-                if (empty($internal_id)) {
-                    $internal_id = $tracking_number;
-                }
+                $has_tracking = !empty($tracking_number);
 
-                $billing_full_name = $order->get_formatted_billing_full_name();
-                $tracking_status = class_exists('WC_Check_Recibelo')
-                    ? WC_Check_Recibelo::get_tracking_status($internal_id, $billing_full_name)
-                    : __('Estamos consultando el estado de este envío...', 'woo-check');
+                if ($has_tracking) :
                 ?>
-                <p class="recibelo-tracking-status"><?php echo esc_html($tracking_status); ?></p>
-            <?php endif; ?>
-            <?php if (!empty($order_datetime_display)) : ?>
-                <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
-            <?php endif; ?>
+                    <p id="tracking-info" data-has-tracking="1">
+                        <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
+                        <?php if (!empty($tracking_provider)) : ?>
+                            (
+                            <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                                <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
+                            <?php else : ?>
+                                <?php echo esc_html(ucfirst($tracking_provider)); ?>
+                            <?php endif; ?>
+                            )
+                        <?php endif; ?>
+                    </p>
+                <?php else : ?>
+                    <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
+                <?php endif; ?>
+                <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                    <?php
+                    $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
+
+                    if (empty($internal_id)) {
+                        $internal_id = $tracking_number;
+                    }
+
+                    $billing_full_name = $order->get_formatted_billing_full_name();
+                    $tracking_status = class_exists('WC_Check_Recibelo')
+                        ? WC_Check_Recibelo::get_tracking_status($internal_id, $billing_full_name)
+                        : __('Estamos consultando el estado de este envío...', 'woo-check');
+                    ?>
+                    <p class="recibelo-tracking-status"><?php echo esc_html($tracking_status); ?></p>
+                <?php endif; ?>
+                <?php if (!empty($order_datetime_display)) : ?>
+                    <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
+                <?php endif; ?>
+            </div>
+            <?php echo $bank_transfer_info; ?>
         </div>
 
         <?php
+function get_bank_transfer_info($order_id, $metodoPago)
+{
+    if ($metodoPago !== 'bacs') {
+        return '';
+    }
+
+    return <<<HTML
+        <div class="bank-transfer-info">
+            <button class="bank-transfer-toggle" type="button" aria-expanded="false">
+                <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
+                <span class="bank-transfer-icon" aria-hidden="true">+</span>
+            </button>
+            <div class="bank-transfer-content" hidden>
+                <ul class="bank-transfer-list">
+                    <li class="bank-transfer-item">
+                        <span class="bank-transfer-label">Nombre:</span>
+                        <span class="bank-transfer-value">Villegas y Compañía SpA</span>
+                        <button class="bank-transfer-copy" type="button" data-copy="Villegas y Compañía SpA" aria-label="Copiar nombre">
+                            <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                        </button>
+                    </li>
+                    <li class="bank-transfer-item">
+                        <span class="bank-transfer-label">RUT:</span>
+                        <span class="bank-transfer-value">77593240-6</span>
+                        <button class="bank-transfer-copy" type="button" data-copy="77593240-6" aria-label="Copiar RUT">
+                            <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                        </button>
+                    </li>
+                    <li class="bank-transfer-item">
+                        <span class="bank-transfer-label">Banco:</span>
+                        <span class="bank-transfer-value">Banco Itaú</span>
+                        <button class="bank-transfer-copy" type="button" data-copy="Banco Itaú" aria-label="Copiar banco">
+                            <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                        </button>
+                    </li>
+                    <li class="bank-transfer-item">
+                        <span class="bank-transfer-label">Cuenta Corriente:</span>
+                        <span class="bank-transfer-value">0224532529</span>
+                        <button class="bank-transfer-copy" type="button" data-copy="0224532529" aria-label="Copiar cuenta corriente">
+                            <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                        </button>
+                    </li>
+                    <li class="bank-transfer-item">
+                        <span class="bank-transfer-label">Correo:</span>
+                        <span class="bank-transfer-value"><a href="mailto:villeguistas@gmail.com">villeguistas@gmail.com</a></span>
+                        <button class="bank-transfer-copy" type="button" data-copy="villeguistas@gmail.com" aria-label="Copiar correo">
+                            <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
+                        </button>
+                    </li>
+                </ul>
+                <p class="bank-transfer-important"><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
+                <p class="bank-transfer-reminder">Indique el número de orden (<strong>{$order_id}</strong>) y su nombre en el mensaje de la transferencia.</p>
+            </div>
+        </div>
+        <script>
+            (function () {
+                if (window.bankTransferInfoInitialized) {
+                    return;
+                }
+                window.bankTransferInfoInitialized = true;
+
+                const initBankTransferInfo = function () {
+                    const toggles = document.querySelectorAll('.bank-transfer-toggle');
+                    toggles.forEach(function (toggle) {
+                        toggle.addEventListener('click', function () {
+                            const content = this.nextElementSibling;
+                            const icon = this.querySelector('.bank-transfer-icon');
+                            const isExpanded = this.getAttribute('aria-expanded') === 'true';
+
+                            if (isExpanded) {
+                                this.setAttribute('aria-expanded', 'false');
+                                content.setAttribute('hidden', '');
+                                if (icon) {
+                                    icon.textContent = '+';
+                                }
+                            } else {
+                                this.setAttribute('aria-expanded', 'true');
+                                content.removeAttribute('hidden');
+                                if (icon) {
+                                    icon.textContent = '−';
+                                }
+                            }
+                        });
+                    });
+
+                    const copyButtons = document.querySelectorAll('.bank-transfer-copy');
+                    copyButtons.forEach(function (button) {
+                        button.addEventListener('click', function () {
+                            const self = this;
+                            const valueToCopy = self.getAttribute('data-copy');
+                            const icon = self.querySelector('.bank-transfer-copy-icon');
+                            const originalIcon = icon ? icon.textContent : '';
+
+                            navigator.clipboard.writeText(valueToCopy)
+                                .then(function () {
+                                    if (icon) {
+                                        icon.textContent = '✓';
+                                    }
+                                    self.classList.add('bank-transfer-copy--success');
+                                    setTimeout(function () {
+                                        if (icon) {
+                                            icon.textContent = originalIcon || '📋';
+                                        }
+                                        button.classList.remove('bank-transfer-copy--success');
+                                    }, 2000);
+                                })
+                                .catch(function (error) {
+                                    console.error('No se pudo copiar el texto:', error);
+                                });
+                        });
+                    });
+                };
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', initBankTransferInfo);
+                } else {
+                    initBankTransferInfo();
+                }
+            })();
+        </script>
+    HTML;
+}
+
 function calcular_dias_entrega($regionCode, $horaCompra, $metodoPago, $order_id) {
     // Mapeo de regiones y días promedio de entrega
     $regionMapping = [
@@ -134,125 +269,6 @@ function calcular_dias_entrega($regionCode, $horaCompra, $metodoPago, $order_id)
         "CL-AI" => 2,
         "CL-MA" => 10
     ];
-
-    // Si el método de pago es transferencia bancaria (bacs), muestra el mensaje de espera con datos bancarios
-    if ($metodoPago === 'bacs') {
-        return <<<HTML
-            <div class="bank-transfer-info">
-                <button class="bank-transfer-toggle" type="button" aria-expanded="false">
-                    <span class="bank-transfer-title">Datos Transferencia Bancaria</span>
-                    <span class="bank-transfer-icon" aria-hidden="true">+</span>
-                </button>
-                <div class="bank-transfer-content" hidden>
-                    <ul class="bank-transfer-list">
-                        <li class="bank-transfer-item">
-                            <span class="bank-transfer-label">Nombre:</span>
-                            <span class="bank-transfer-value">Villegas y Compañía SpA</span>
-                            <button class="bank-transfer-copy" type="button" data-copy="Villegas y Compañía SpA" aria-label="Copiar nombre">
-                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                            </button>
-                        </li>
-                        <li class="bank-transfer-item">
-                            <span class="bank-transfer-label">RUT:</span>
-                            <span class="bank-transfer-value">77593240-6</span>
-                            <button class="bank-transfer-copy" type="button" data-copy="77593240-6" aria-label="Copiar RUT">
-                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                            </button>
-                        </li>
-                        <li class="bank-transfer-item">
-                            <span class="bank-transfer-label">Banco:</span>
-                            <span class="bank-transfer-value">Banco Itaú</span>
-                            <button class="bank-transfer-copy" type="button" data-copy="Banco Itaú" aria-label="Copiar banco">
-                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                            </button>
-                        </li>
-                        <li class="bank-transfer-item">
-                            <span class="bank-transfer-label">Cuenta Corriente:</span>
-                            <span class="bank-transfer-value">0224532529</span>
-                            <button class="bank-transfer-copy" type="button" data-copy="0224532529" aria-label="Copiar cuenta corriente">
-                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                            </button>
-                        </li>
-                        <li class="bank-transfer-item">
-                            <span class="bank-transfer-label">Correo:</span>
-                            <span class="bank-transfer-value"><a href="mailto:villeguistas@gmail.com">villeguistas@gmail.com</a></span>
-                            <button class="bank-transfer-copy" type="button" data-copy="villeguistas@gmail.com" aria-label="Copiar correo">
-                                <span class="bank-transfer-copy-icon" aria-hidden="true">📋</span>
-                            </button>
-                        </li>
-                    </ul>
-                    <p class="bank-transfer-important"><strong>IMPORTANTE:</strong> Enviar comprobante al correo indicado. Sin comprobante no podemos procesar la orden.</p>
-                    <p class="bank-transfer-reminder">Indique el número de orden (<strong>{$order_id}</strong>) y su nombre en el mensaje de la transferencia.</p>
-                </div>
-            </div>
-            <script>
-                (function () {
-                    if (window.bankTransferInfoInitialized) {
-                        return;
-                    }
-                    window.bankTransferInfoInitialized = true;
-
-                    const initBankTransferInfo = function () {
-                        const toggles = document.querySelectorAll('.bank-transfer-toggle');
-                        toggles.forEach(function (toggle) {
-                            toggle.addEventListener('click', function () {
-                                const content = this.nextElementSibling;
-                                const icon = this.querySelector('.bank-transfer-icon');
-                                const isExpanded = this.getAttribute('aria-expanded') === 'true';
-
-                                if (isExpanded) {
-                                    this.setAttribute('aria-expanded', 'false');
-                                    content.setAttribute('hidden', '');
-                                    if (icon) {
-                                        icon.textContent = '+';
-                                    }
-                                } else {
-                                    this.setAttribute('aria-expanded', 'true');
-                                    content.removeAttribute('hidden');
-                                    if (icon) {
-                                        icon.textContent = '−';
-                                    }
-                                }
-                            });
-                        });
-
-                        const copyButtons = document.querySelectorAll('.bank-transfer-copy');
-                        copyButtons.forEach(function (button) {
-                            button.addEventListener('click', function () {
-                                const self = this;
-                                const valueToCopy = self.getAttribute('data-copy');
-                                const icon = self.querySelector('.bank-transfer-copy-icon');
-                                const originalIcon = icon ? icon.textContent : '';
-
-                                navigator.clipboard.writeText(valueToCopy)
-                                    .then(function () {
-                                        if (icon) {
-                                            icon.textContent = '✓';
-                                        }
-                                        self.classList.add('bank-transfer-copy--success');
-                                        setTimeout(function () {
-                                            if (icon) {
-                                                icon.textContent = originalIcon || '📋';
-                                            }
-                                            button.classList.remove('bank-transfer-copy--success');
-                                        }, 2000);
-                                    })
-                                    .catch(function (error) {
-                                        console.error('No se pudo copiar el texto:', error);
-                                    });
-                            });
-                        });
-                    };
-
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', initBankTransferInfo);
-                    } else {
-                        initBankTransferInfo();
-                    }
-                })();
-            </script>
-        HTML;
-    }
 
     // Obtén los días base para la región
     $diasRegion = isset($regionMapping[$regionCode]) ? $regionMapping[$regionCode] : 0;
