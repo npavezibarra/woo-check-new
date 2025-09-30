@@ -96,6 +96,10 @@ div#order-information {
     cursor: pointer;
 }
 
+.flip-card-inner {
+    padding: 10px;
+}
+
 .order-address-flip-card .flip-card-inner {
     position: relative;
     width: 100%;
@@ -302,7 +306,7 @@ p.titulo-seccion {
         min-width: 100%;
     }
     .order-address-flip-card {
-        padding: 0 20px;
+        padding: 0;
     }
     .order-address-flip-card .flip-card,
     .order-address-flip-card .flip-card-inner {
