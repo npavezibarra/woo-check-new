@@ -57,8 +57,8 @@
 }
 
 .product-image img {
-    width: 100px;
-    height: 100px;
+    width: 80px;
+    height: 80px;
     object-fit: cover;
 }
 
@@ -82,7 +82,6 @@
 ul.order-products {
     margin: auto;
     margin-top: 20px;
-    border: 1px solid black;
     padding: 20px;
     border-radius: 6px;
 }
@@ -105,8 +104,15 @@ div#order-information {
 
 .order-summary-bank-wrapper > #order-header,
 .order-summary-bank-wrapper > .bank-transfer-info {
-    flex: 1 1 50%;
     min-width: 300px;
+}
+
+.order-summary-bank-wrapper > #order-header {
+    flex: 1 1 40%;
+}
+
+.order-summary-bank-wrapper > .bank-transfer-info {
+    flex: 1 1 60%;
 }
 
 .order-summary-bank-wrapper--single > #order-header {
