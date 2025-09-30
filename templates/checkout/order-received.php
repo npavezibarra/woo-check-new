@@ -51,7 +51,7 @@ $order = wc_get_order($order_id);
 ?>
 
 <div class="order-received-page">
-<h3>
+<h3 id="order-thank-you-heading">
     <?php
     $customer_first_name = $order ? $order->get_billing_first_name() : '';
     echo 'Gracias por tu compra' . (!empty($customer_first_name) ? ' ' . esc_html($customer_first_name) : '') . '!';

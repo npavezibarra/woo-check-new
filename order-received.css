@@ -86,6 +86,12 @@ div#order-information {
     height: 100vh;
 }
 
+#order-thank-you-heading {
+    color: #ffffff;
+    margin-top: 0;
+    padding-top: 30px;
+}
+
 .order-address-flip-card {
     display: flex;
     justify-content: center;
