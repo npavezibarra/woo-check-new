@@ -491,6 +491,175 @@ function woocheck_get_tracking_info() {
     );
 }
 
+/**
+ * Map a Recíbelo raw status into a user-friendly label.
+ *
+ * @param string $status Raw status returned by Recíbelo.
+ *
+ * @return string
+ */
+function woocheck_recibelo_status_label( $status ) {
+    $status = trim( (string) $status );
+
+    if ( '' === $status ) {
+        return '';
+    }
+
+    $normalized = strtolower( $status );
+
+    $map = [
+        'creado'            => __( 'Preparando envío', 'woo-check' ),
+        'etiqueta impresa'  => __( 'Preparando envío', 'woo-check' ),
+        'preparado'         => __( 'Preparando envío', 'woo-check' ),
+        'retirado'          => __( 'En tránsito', 'woo-check' ),
+        'en deposito'       => __( 'En tránsito', 'woo-check' ),
+        'en ruta'           => __( 'En tránsito', 'woo-check' ),
+        'completado'        => __( 'Finalizado', 'woo-check' ),
+        'no aceptado'       => __( 'Error/Rechazo', 'woo-check' ),
+    ];
+
+    if ( array_key_exists( $normalized, $map ) ) {
+        return $map[ $normalized ];
+    }
+
+    return $status;
+}
+
+/**
+ * Render the Recíbelo tracking widget for a given order.
+ *
+ * @param int|WC_Order $order Order instance or ID.
+ */
+function woocheck_render_recibelo_tracking_widget( $order ) {
+    if ( is_numeric( $order ) ) {
+        $order = wc_get_order( $order );
+    }
+
+    if ( ! $order instanceof WC_Order ) {
+        return;
+    }
+
+    $order_id = $order->get_id();
+
+    $internal_id = $order->get_meta( '_recibelo_internal_id', true );
+
+    if ( empty( $internal_id ) ) {
+        return;
+    }
+
+    $customer_name = trim( $order->get_formatted_billing_full_name() );
+
+    if ( '' === $customer_name ) {
+        return;
+    }
+
+    $url       = add_query_arg( [ 'internal_ids[]' => $internal_id ], 'https://app.recibelo.cl/api/check-package-internal-id' );
+    $response  = wp_remote_get(
+        $url,
+        [
+            'headers' => [ 'Accept' => 'application/json' ],
+            'timeout' => 20,
+        ]
+    );
+    $widget_id = 'woocheck-recibelo-tracking-' . absint( $order_id );
+
+    echo '<div id="' . esc_attr( $widget_id ) . '" class="woocheck-recibelo-tracking-widget">';
+    echo '<h4>' . esc_html__( 'Seguimiento Recíbelo', 'woo-check' ) . '</h4>';
+
+    if ( is_wp_error( $response ) ) {
+        echo '<p>' . esc_html__( 'No fue posible obtener la información de seguimiento en este momento.', 'woo-check' ) . '</p>';
+        echo '</div>';
+
+        return;
+    }
+
+    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+    if ( ! is_array( $body ) ) {
+        echo '<p>' . esc_html__( 'No se encontraron datos de seguimiento para este envío.', 'woo-check' ) . '</p>';
+        echo '</div>';
+
+        return;
+    }
+
+    $package = null;
+
+    foreach ( $body as $item ) {
+        if ( ! is_array( $item ) ) {
+            continue;
+        }
+
+        $name = isset( $item['contact_full_name'] ) ? trim( (string) $item['contact_full_name'] ) : '';
+
+        if ( '' === $name ) {
+            continue;
+        }
+
+        if ( 0 === strcasecmp( $name, $customer_name ) ) {
+            $package = $item;
+            break;
+        }
+    }
+
+    if ( ! $package ) {
+        echo '<p>' . esc_html__( 'No se encontró un envío que coincida con el nombre del destinatario.', 'woo-check' ) . '</p>';
+        echo '</div>';
+
+        return;
+    }
+
+    $current_status = isset( $package['current_status'] ) ? (string) $package['current_status'] : '';
+
+    if ( '' === $current_status ) {
+        echo '<p class="woocheck-recibelo-current-status">' . esc_html__( 'Estado actual no disponible.', 'woo-check' ) . '</p>';
+    } else {
+        $friendly = woocheck_recibelo_status_label( $current_status );
+
+        echo '<p class="woocheck-recibelo-current-status"><strong>' . esc_html__( 'Estado actual:', 'woo-check' ) . '</strong> ' . esc_html( $friendly );
+
+        if ( $friendly !== $current_status ) {
+            echo ' <small>(' . esc_html( $current_status ) . ')</small>';
+        }
+
+        echo '</p>';
+    }
+
+    if ( ! empty( $package['history_statuses'] ) && is_array( $package['history_statuses'] ) ) {
+        echo '<ul class="woocheck-recibelo-history">';
+
+        foreach ( $package['history_statuses'] as $entry ) {
+            if ( ! is_array( $entry ) ) {
+                continue;
+            }
+
+            $entry_status = isset( $entry['status'] ) ? (string) $entry['status'] : '';
+
+            if ( '' === $entry_status ) {
+                continue;
+            }
+
+            $entry_label = woocheck_recibelo_status_label( $entry_status );
+            $timestamp   = isset( $entry['created_at'] ) ? (string) $entry['created_at'] : '';
+
+            echo '<li>' . esc_html( $entry_label );
+
+            if ( $entry_label !== $entry_status ) {
+                echo ' <small>(' . esc_html( $entry_status ) . ')</small>';
+            }
+
+            if ( '' !== $timestamp ) {
+                echo ' <time datetime="' . esc_attr( $timestamp ) . '">' . esc_html( $timestamp ) . '</time>';
+            }
+
+            echo '</li>';
+        }
+
+        echo '</ul>';
+    }
+
+    echo '</div>';
+}
+
 
 // Override WooCommerce checkout template if needed
 add_filter('woocommerce_locate_template', 'woo_check_override_checkout_template', 10, 3);

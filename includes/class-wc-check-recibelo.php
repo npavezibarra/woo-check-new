@@ -82,8 +82,11 @@ class WooCheck_Recibelo {
         $tracking     = self::extract_tracking_from_response( $decoded_body );
 
         if ( ! empty( $tracking ) ) {
-            update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking['number'] ) );
+            $internal_id = sanitize_text_field( $tracking['number'] );
+
+            update_post_meta( $order_id, '_tracking_number', $internal_id );
             update_post_meta( $order_id, '_tracking_provider', $tracking['provider'] );
+            update_post_meta( $order_id, '_recibelo_internal_id', $internal_id );
         }
 
         return $response;

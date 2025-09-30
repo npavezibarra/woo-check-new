@@ -69,6 +69,9 @@ $order = wc_get_order($order_id);
             <?php else : ?>
                 <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
             <?php endif; ?>
+            <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                <?php woocheck_render_recibelo_tracking_widget($order); ?>
+            <?php endif; ?>
             <?php if (!empty($order_datetime_display)) : ?>
                 <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
             <?php endif; ?>
