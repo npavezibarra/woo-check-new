@@ -61,23 +61,101 @@ class WooCheck_Recibelo {
             return $response;
         }
 
-        $body         = wp_remote_retrieve_body( $response );
-        $order_id     = $order->get_id();
-        $status_code  = (int) wp_remote_retrieve_response_code( $response );
-        $decoded_body = json_decode( $body, true );
+        $body        = wp_remote_retrieve_body( $response );
+        $order_id    = $order->get_id();
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
 
         error_log( sprintf( 'WooCheck Recibelo: Sent order %d. Response: %s', $order_id, $body ) );
 
-        if ( $status_code >= 200 && $status_code < 300 && is_array( $decoded_body ) ) {
-            $tracking_number = isset( $decoded_body['internal_id'] ) ? $decoded_body['internal_id'] : '';
+        if ( $status_code < 200 || $status_code >= 300 ) {
+            $order->update_meta_data( '_recibelo_sync_failed', current_time( 'timestamp' ) );
+            $order->save_meta_data();
 
-            if ( ! empty( $tracking_number ) ) {
-                update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking_number ) );
-                update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
-            }
+            return $response;
+        }
+
+        $order->update_meta_data( '_recibelo_sync_status', 'synced' );
+        $order->delete_meta_data( '_recibelo_sync_failed' );
+        $order->save_meta_data();
+
+        $decoded_body = json_decode( $body, true );
+        $tracking     = self::extract_tracking_from_response( $decoded_body );
+
+        if ( ! empty( $tracking ) ) {
+            update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking['number'] ) );
+            update_post_meta( $order_id, '_tracking_provider', $tracking['provider'] );
         }
 
         return $response;
+    }
+
+    /**
+     * Attempt to extract the tracking data from the Recíbelo response payload.
+     *
+     * @param mixed $decoded_body JSON decoded response body.
+     *
+     * @return array{number:string,provider:string}|null
+     */
+    protected static function extract_tracking_from_response( $decoded_body ) {
+        if ( empty( $decoded_body ) ) {
+            return null;
+        }
+
+        if ( isset( $decoded_body['internal_id'] ) && '' !== trim( (string) $decoded_body['internal_id'] ) ) {
+            return [
+                'number'   => (string) $decoded_body['internal_id'],
+                'provider' => 'recibelo',
+            ];
+        }
+
+        $paths = [
+            [ 'data', 'internal_id' ],
+            [ 'order', 'internal_id' ],
+            [ 'data', 'order', 'internal_id' ],
+            [ 'internalId' ],
+            [ 'data', 'internalId' ],
+            [ 'order', 'internalId' ],
+            [ 'data', 'order', 'internalId' ],
+        ];
+
+        foreach ( $paths as $path ) {
+            $value = self::dig_value( $decoded_body, $path );
+
+            if ( null !== $value && '' !== trim( (string) $value ) ) {
+                return [
+                    'number'   => (string) $value,
+                    'provider' => 'recibelo',
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieve a nested array value using the provided path.
+     *
+     * @param mixed $data Source array.
+     * @param array $path Keys describing the location of the desired value.
+     *
+     * @return mixed|null
+     */
+    protected static function dig_value( $data, array $path ) {
+        if ( ! is_array( $data ) ) {
+            return null;
+        }
+
+        $current = $data;
+
+        foreach ( $path as $segment ) {
+            if ( ! is_array( $current ) || ! array_key_exists( $segment, $current ) ) {
+                return null;
+            }
+
+            $current = $current[ $segment ];
+        }
+
+        return $current;
     }
 
     /**
