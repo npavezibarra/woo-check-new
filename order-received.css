@@ -373,28 +373,11 @@ p.titulo-seccion {
     }
 }
 
-div#info-entrega {
-    border: 1px solid black;
-    padding: 20px;
-    text-align: center;
-    margin-bottom: 40px;
-    border-radius: 6px;
-}
-
-div#info-entrega > p {
-    margin-top: 0px;
-    font-size: 12px;
-}
-
 p.fecha-hora-orden {
     color: #ffffff;
     margin-top: 0px;
     margin-bottom: 0px;
     font-size: 12px;
-}
-
-div#estimacion-entrega {
-    padding: 10px 50px;
 }
 
 section#info-clientes {
