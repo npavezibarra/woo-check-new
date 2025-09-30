@@ -221,6 +221,127 @@ function wc_check_determine_commune_region_data( WC_Order $order ) {
     ];
 }
 
+function woo_check_map_region_name_to_state_code($region_name) {
+    static $map = null;
+
+    if (null === $map) {
+        $map = array();
+
+        if (function_exists('WC')) {
+            $countries = WC()->countries;
+
+            if (is_a($countries, 'WC_Countries')) {
+                $states = (array) $countries->get_states('CL');
+
+                foreach ($states as $code => $label) {
+                    $normalized_label = WooCheck_Shipit_Validator::normalize_commune($label);
+                    $map[$normalized_label] = $code;
+                }
+
+                $aliases = array(
+                    'OHIGGINS'                     => "Libertador General Bernardo O'Higgins",
+                    'LIBERTADOR GENERAL BERNARDO OHIGGINS' => "Libertador General Bernardo O'Higgins",
+                    'METROPOLITANA'                => 'Región Metropolitana de Santiago',
+                    'METROPOLITANA DE SANTIAGO'    => 'Región Metropolitana de Santiago',
+                    'REGION METROPOLITANA'         => 'Región Metropolitana de Santiago',
+                );
+
+                foreach ($aliases as $alias => $canonical) {
+                    $normalized_alias     = WooCheck_Shipit_Validator::normalize_commune($alias);
+                    $normalized_canonical = WooCheck_Shipit_Validator::normalize_commune($canonical);
+
+                    if (isset($map[$normalized_canonical])) {
+                        $map[$normalized_alias] = $map[$normalized_canonical];
+                    }
+                }
+            }
+        }
+    }
+
+    if ('' === trim((string) $region_name)) {
+        return '';
+    }
+
+    $normalized = WooCheck_Shipit_Validator::normalize_commune($region_name);
+
+    if (isset($map[$normalized])) {
+        return $map[$normalized];
+    }
+
+    foreach ($map as $normalized_label => $code) {
+        if (false !== strpos($normalized_label, $normalized) || false !== strpos($normalized, $normalized_label)) {
+            return $code;
+        }
+    }
+
+    return '';
+}
+
+function woo_check_validate_commune_input($value) {
+    $value = sanitize_text_field($value);
+    $value = trim($value);
+
+    if ('' === $value) {
+        return null;
+    }
+
+    $catalog = wc_check_get_commune_catalog();
+    $normalized = WooCheck_Shipit_Validator::normalize_commune($value);
+
+    if (!isset($catalog['by_name'][$normalized])) {
+        return null;
+    }
+
+    $entry = $catalog['by_name'][$normalized];
+    $region_name = isset($entry['region_name']) ? $entry['region_name'] : '';
+
+    return array(
+        'name'        => $value,
+        'normalized'  => $normalized,
+        'commune_id'  => isset($entry['id']) ? (int) $entry['id'] : null,
+        'region_id'   => isset($entry['region_id']) ? (int) $entry['region_id'] : null,
+        'region_name' => $region_name,
+        'region_code' => woo_check_map_region_name_to_state_code($region_name),
+    );
+}
+
+function woo_check_apply_commune_to_order(WC_Order $order, $type, array $commune_data) {
+    $type = 'shipping' === $type ? 'shipping' : 'billing';
+    $name = $commune_data['name'];
+
+    $order->update_meta_data(sprintf('%s_comuna', $type), $name);
+    $order->update_meta_data(sprintf('_%s_comuna', $type), $name);
+
+    if (!empty($commune_data['commune_id'])) {
+        $order->update_meta_data(sprintf('%s_commune_id', $type), (int) $commune_data['commune_id']);
+        $order->update_meta_data(sprintf('_%s_commune_id', $type), (int) $commune_data['commune_id']);
+    }
+
+    if (!empty($commune_data['region_id'])) {
+        $order->update_meta_data(sprintf('%s_region_id', $type), (int) $commune_data['region_id']);
+        $order->update_meta_data(sprintf('_%s_region_id', $type), (int) $commune_data['region_id']);
+    }
+
+    if (!empty($commune_data['region_name'])) {
+        $order->update_meta_data(sprintf('%s_region_name', $type), $commune_data['region_name']);
+        $order->update_meta_data(sprintf('_%s_region_name', $type), $commune_data['region_name']);
+    }
+
+    if ('shipping' === $type) {
+        $order->set_shipping_city($name);
+
+        if (!empty($commune_data['region_code'])) {
+            $order->set_shipping_state($commune_data['region_code']);
+        }
+    } else {
+        $order->set_billing_city($name);
+
+        if (!empty($commune_data['region_code'])) {
+            $order->set_billing_state($commune_data['region_code']);
+        }
+    }
+}
+
 function wc_check_order_targets_recibelo( WC_Order $order ) {
     $shipping_state = strtoupper( trim( (string) $order->get_shipping_state() ) );
     $billing_state  = strtoupper( trim( (string) $order->get_billing_state() ) );
@@ -493,6 +614,43 @@ function woo_check_enqueue_assets() {
     }
 }
 
+add_action('admin_enqueue_scripts', 'woo_check_enqueue_admin_order_assets');
+function woo_check_enqueue_admin_order_assets($hook) {
+    $screen = function_exists('get_current_screen') ? get_current_screen() : null;
+
+    if (empty($screen)) {
+        return;
+    }
+
+    $is_order_editor = false;
+
+    if (isset($screen->post_type) && 'shop_order' === $screen->post_type) {
+        $is_order_editor = true;
+    } elseif (isset($screen->id) && in_array($screen->id, array('shop_order', 'woocommerce_page_wc-orders'), true)) {
+        $is_order_editor = true;
+    }
+
+    if (!$is_order_editor) {
+        return;
+    }
+
+    wp_enqueue_script(
+        'woo-check-comunas-chile',
+        plugin_dir_url(__FILE__) . 'comunas-chile.js',
+        array(),
+        '1.0',
+        true
+    );
+
+    wp_enqueue_script(
+        'woo-check-admin-order',
+        plugin_dir_url(__FILE__) . 'woo-check-admin-order.js',
+        array('jquery', 'jquery-ui-autocomplete', 'woo-check-comunas-chile'),
+        '1.0',
+        true
+    );
+}
+
 
 // 8 - Customize and Remove Unwanted Checkout Fields
 add_filter('woocommerce_checkout_fields', 'customize_and_remove_unwanted_checkout_fields');
@@ -552,6 +710,130 @@ $fields['billing']['billing_state']['label'] = 'Regiones';
 $fields['shipping']['shipping_state']['label'] = 'Regiones';
 
     return $fields;
+}
+
+// Ensure Comuna is visible and editable in the admin order edit screen.
+add_filter('woocommerce_admin_billing_fields', function ($fields, $order) {
+    return woo_check_register_admin_comuna_field($fields, 'billing', $order);
+}, 10, 2);
+
+add_filter('woocommerce_admin_shipping_fields', function ($fields, $order) {
+    return woo_check_register_admin_comuna_field($fields, 'shipping', $order);
+}, 10, 2);
+
+function woo_check_register_admin_comuna_field($fields, $type, $order = null) {
+    $type          = 'shipping' === $type ? 'shipping' : 'billing';
+    $key           = 'comuna';
+    $state_key     = sprintf('%s_state', $type);
+    $field_args    = array(
+        'label' => __('Comuna', 'woocommerce'),
+        'show'  => true,
+        'value' => '',
+        'type'  => 'text',
+        'placeholder' => __('Ingresa comuna', 'woo-check'),
+        'wrapper_class' => 'form-field-wide woo-check-admin-comuna-field',
+        'class' => array('woo-check-admin-comuna-input'),
+        'custom_attributes' => array(
+            'autocomplete' => 'off',
+        ),
+    );
+
+    if ($order instanceof WC_Order) {
+        $field_args['value'] = woo_check_get_order_comuna_value($order, $type);
+    }
+
+    if (isset($fields[$state_key])) {
+        $state_field = $fields[$state_key];
+        unset($fields[$state_key]);
+        $fields[$key]     = $field_args;
+        $fields[$state_key] = $state_field;
+    } else {
+        $fields[$key] = $field_args;
+    }
+
+    return $fields;
+}
+
+function woo_check_get_order_comuna_value(WC_Order $order, $type) {
+    $type = 'shipping' === $type ? 'shipping' : 'billing';
+    $meta_keys = array(
+        sprintf('%s_comuna', $type),
+        sprintf('_%s_comuna', $type),
+        sprintf('%s_city', $type),
+        sprintf('_%s_city', $type),
+    );
+
+    foreach ($meta_keys as $meta_key) {
+        $value = $order->get_meta($meta_key, true);
+
+        if ('' !== trim((string) $value)) {
+            return $value;
+        }
+    }
+
+    if ('shipping' === $type) {
+        $value = $order->get_shipping_city();
+    } else {
+        $value = $order->get_billing_city();
+    }
+
+    return trim((string) $value);
+}
+
+add_action('woocommerce_process_shop_order_meta', 'woo_check_process_admin_order_commune');
+function woo_check_process_admin_order_commune($order_id) {
+    $order = wc_get_order($order_id);
+
+    if (!$order instanceof WC_Order) {
+        return;
+    }
+
+    $config = array(
+        'billing'  => array(
+            'field' => '_billing_comuna',
+        ),
+        'shipping' => array(
+            'field' => '_shipping_comuna',
+        ),
+    );
+
+    $updated = false;
+
+    foreach ($config as $type => $settings) {
+        $field_name = $settings['field'];
+
+        if (!isset($_POST[$field_name])) {
+            continue;
+        }
+
+        $raw_value = wp_unslash($_POST[$field_name]);
+        $commune_data = woo_check_validate_commune_input($raw_value);
+
+        if (!$commune_data) {
+            $order->update_meta_data(sprintf('%s_comuna', $type), '');
+            $order->update_meta_data(sprintf('_%s_comuna', $type), '');
+
+            if (class_exists('WC_Admin_Meta_Boxes')) {
+                $label = 'billing' === $type ? __('facturación', 'woo-check') : __('envío', 'woo-check');
+                WC_Admin_Meta_Boxes::add_error(
+                    sprintf(
+                        __('La comuna de %s debe seleccionarse desde la lista de comunas disponibles.', 'woo-check'),
+                        $label
+                    )
+                );
+            }
+
+            $updated = true;
+            continue;
+        }
+
+        woo_check_apply_commune_to_order($order, $type, $commune_data);
+        $updated = true;
+    }
+
+    if ($updated) {
+        $order->save();
+    }
 }
 
 // 9 - Save Billing and Shipping Comuna Fields to Order Meta
