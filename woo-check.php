@@ -526,6 +526,121 @@ function woocheck_recibelo_status_label( $status ) {
 }
 
 /**
+ * Normalize a string so it can be safely compared against Recíbelo payload data.
+ *
+ * @param string $value Raw string.
+ *
+ * @return string Normalized string.
+ */
+function woocheck_recibelo_normalize_string( $value ) {
+    $value = strtolower( trim( (string) $value ) );
+
+    if ( '' === $value ) {
+        return '';
+    }
+
+    if ( function_exists( 'remove_accents' ) ) {
+        $value = remove_accents( $value );
+    }
+
+    $value = preg_replace( '/\s+/u', ' ', $value );
+
+    return $value ?: '';
+}
+
+/**
+ * Determine whether the provided array uses sequential numeric keys.
+ *
+ * @param array $array Array to inspect.
+ *
+ * @return bool
+ */
+function woocheck_recibelo_is_sequential_array( $array ) {
+    if ( ! is_array( $array ) ) {
+        return false;
+    }
+
+    $expected = 0;
+
+    foreach ( $array as $key => $_ ) {
+        if ( (int) $key !== $expected ) {
+            return false;
+        }
+
+        $expected++;
+    }
+
+    return true;
+}
+
+/**
+ * Retrieve a nested array value using the provided path.
+ *
+ * @param array $data Source array.
+ * @param array $path Path of keys to traverse.
+ *
+ * @return mixed|null
+ */
+function woocheck_recibelo_dig_value( $data, array $path ) {
+    if ( ! is_array( $data ) ) {
+        return null;
+    }
+
+    $current = $data;
+
+    foreach ( $path as $segment ) {
+        if ( ! is_array( $current ) || ! array_key_exists( $segment, $current ) ) {
+            return null;
+        }
+
+        $current = $current[ $segment ];
+    }
+
+    return $current;
+}
+
+/**
+ * Extract the packages array from an arbitrary Recíbelo API payload.
+ *
+ * @param mixed $payload API response body.
+ *
+ * @return array<int,array<string,mixed>>
+ */
+function woocheck_recibelo_extract_packages( $payload ) {
+    if ( ! is_array( $payload ) ) {
+        return [];
+    }
+
+    if ( woocheck_recibelo_is_sequential_array( $payload ) ) {
+        return $payload;
+    }
+
+    $paths = [
+        [ 'data', 'packages' ],
+        [ 'data', 'items' ],
+        [ 'data', 'results' ],
+        [ 'data' ],
+        [ 'packages' ],
+        [ 'results' ],
+        [ 'items' ],
+    ];
+
+    foreach ( $paths as $path ) {
+        $value = woocheck_recibelo_dig_value( $payload, $path );
+
+        if ( is_array( $value ) ) {
+            if ( woocheck_recibelo_is_sequential_array( $value ) ) {
+                return $value;
+            }
+
+            return array_values( $value );
+        }
+    }
+
+    return [];
+}
+
+/**
  * Render the Recíbelo tracking widget for a given order.
  *
  * @param int|WC_Order $order Order instance or ID.
@@ -544,12 +659,35 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
     $internal_id = $order->get_meta( '_recibelo_internal_id', true );
 
     if ( empty( $internal_id ) ) {
+        $internal_id = $order->get_meta( '_tracking_number', true );
+    }
+
+    if ( empty( $internal_id ) ) {
         return;
     }
 
-    $customer_name = trim( $order->get_formatted_billing_full_name() );
+    $customer_name         = trim( $order->get_formatted_billing_full_name() );
+    $shipping_customer     = method_exists( $order, 'get_formatted_shipping_full_name' ) ? trim( (string) $order->get_formatted_shipping_full_name() ) : '';
+    $normalized_names      = [];
+    $name_candidates       = array_filter(
+        [
+            $customer_name,
+            $shipping_customer,
+        ],
+        static function ( $value ) {
+            return '' !== trim( (string) $value );
+        }
+    );
 
-    if ( '' === $customer_name ) {
+    foreach ( $name_candidates as $candidate ) {
+        $normalized = woocheck_recibelo_normalize_string( $candidate );
+
+        if ( '' !== $normalized ) {
+            $normalized_names[ $normalized ] = true;
+        }
+    }
+
+    if ( empty( $normalized_names ) ) {
         return;
     }
 
@@ -573,42 +711,109 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
         return;
     }
 
-    $body = json_decode( wp_remote_retrieve_body( $response ), true );
+    $body     = json_decode( wp_remote_retrieve_body( $response ), true );
+    $packages = woocheck_recibelo_extract_packages( $body );
 
-    if ( ! is_array( $body ) ) {
+    if ( empty( $packages ) ) {
         echo '<p>' . esc_html__( 'No se encontraron datos de seguimiento para este envío.', 'woo-check' ) . '</p>';
         echo '</div>';
 
         return;
     }
 
-    $package = null;
+    $normalized_internal_id = strtolower( trim( (string) $internal_id ) );
+    $package                = null;
+    $fallback_package       = null;
 
-    foreach ( $body as $item ) {
+    foreach ( $packages as $item ) {
         if ( ! is_array( $item ) ) {
             continue;
         }
 
-        $name = isset( $item['contact_full_name'] ) ? trim( (string) $item['contact_full_name'] ) : '';
+        $internal_candidates = [
+            $item['internal_id']    ?? null,
+            $item['internalId']     ?? null,
+            $item['internalID']     ?? null,
+            $item['id']             ?? null,
+            $item['tracking_id']    ?? null,
+            $item['trackingId']     ?? null,
+        ];
 
-        if ( '' === $name ) {
+        $package_internal_id = '';
+
+        foreach ( $internal_candidates as $candidate ) {
+            $candidate = trim( (string) $candidate );
+
+            if ( '' !== $candidate ) {
+                $package_internal_id = $candidate;
+                break;
+            }
+        }
+
+        $normalized_package_internal = strtolower( $package_internal_id );
+
+        if ( '' !== $normalized_internal_id && '' !== $normalized_package_internal && $normalized_package_internal === $normalized_internal_id ) {
+            $fallback_package = $fallback_package ?? $item;
+        }
+
+        $name_candidates = [
+            $item['contact_full_name'] ?? null,
+            $item['contactFullName']   ?? null,
+            $item['contact_name']      ?? null,
+            $item['contactName']       ?? null,
+            $item['customer_name']     ?? null,
+            $item['customerName']      ?? null,
+        ];
+
+        $matched = false;
+
+        foreach ( $name_candidates as $name_candidate ) {
+            $normalized_name = woocheck_recibelo_normalize_string( $name_candidate );
+
+            if ( '' === $normalized_name ) {
+                continue;
+            }
+
+            if ( isset( $normalized_names[ $normalized_name ] ) ) {
+                $matched = true;
+                break;
+            }
+        }
+
+        if ( ! $matched ) {
             continue;
         }
 
-        if ( 0 === strcasecmp( $name, $customer_name ) ) {
-            $package = $item;
-            break;
-        }
+        $package = $item;
+        break;
+    }
+
+    if ( ! $package && $fallback_package ) {
+        $package = $fallback_package;
     }
 
     if ( ! $package ) {
-        echo '<p>' . esc_html__( 'No se encontró un envío que coincida con el nombre del destinatario.', 'woo-check' ) . '</p>';
+        echo '<p>' . esc_html__( 'No se encontró un envío que coincida con el destinatario.', 'woo-check' ) . '</p>';
         echo '</div>';
 
         return;
     }
 
-    $current_status = isset( $package['current_status'] ) ? (string) $package['current_status'] : '';
+    $current_status_candidates = [
+        $package['current_status'] ?? null,
+        $package['currentStatus']  ?? null,
+    ];
+
+    $current_status = '';
+
+    foreach ( $current_status_candidates as $candidate ) {
+        $candidate = trim( (string) $candidate );
+
+        if ( '' !== $candidate ) {
+            $current_status = $candidate;
+            break;
+        }
+    }
 
     if ( '' === $current_status ) {
         echo '<p class="woocheck-recibelo-current-status">' . esc_html__( 'Estado actual no disponible.', 'woo-check' ) . '</p>';
@@ -624,22 +829,45 @@ function woocheck_render_recibelo_tracking_widget( $order ) {
         echo '</p>';
     }
 
-    if ( ! empty( $package['history_statuses'] ) && is_array( $package['history_statuses'] ) ) {
+    $history_statuses = [];
+
+    foreach ( [ 'history_statuses', 'historyStatuses', 'history' ] as $history_key ) {
+        if ( isset( $package[ $history_key ] ) && is_array( $package[ $history_key ] ) ) {
+            $history_statuses = $package[ $history_key ];
+            break;
+        }
+    }
+
+    if ( ! empty( $history_statuses ) ) {
         echo '<ul class="woocheck-recibelo-history">';
 
-        foreach ( $package['history_statuses'] as $entry ) {
+        foreach ( $history_statuses as $entry ) {
             if ( ! is_array( $entry ) ) {
                 continue;
             }
 
-            $entry_status = isset( $entry['status'] ) ? (string) $entry['status'] : '';
+            $entry_status = '';
+
+            foreach ( [ 'status', 'name' ] as $entry_status_key ) {
+                if ( isset( $entry[ $entry_status_key ] ) && '' !== trim( (string) $entry[ $entry_status_key ] ) ) {
+                    $entry_status = (string) $entry[ $entry_status_key ];
+                    break;
+                }
+            }
 
             if ( '' === $entry_status ) {
                 continue;
             }
 
             $entry_label = woocheck_recibelo_status_label( $entry_status );
-            $timestamp   = isset( $entry['created_at'] ) ? (string) $entry['created_at'] : '';
+            $timestamp   = '';
+
+            foreach ( [ 'created_at', 'createdAt', 'date' ] as $entry_date_key ) {
+                if ( isset( $entry[ $entry_date_key ] ) && '' !== trim( (string) $entry[ $entry_date_key ] ) ) {
+                    $timestamp = (string) $entry[ $entry_date_key ];
+                    break;
+                }
+            }
 
             echo '<li>' . esc_html( $entry_label );
 
