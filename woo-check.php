@@ -722,13 +722,20 @@ add_filter('woocommerce_admin_shipping_fields', function ($fields, $order) {
 }, 10, 2);
 
 function woo_check_register_admin_comuna_field($fields, $type, $order = null) {
-    $key           = sprintf('%s_comuna', $type);
+    $type          = 'shipping' === $type ? 'shipping' : 'billing';
+    $key           = 'comuna';
     $state_key     = sprintf('%s_state', $type);
     $field_args    = array(
         'label' => __('Comuna', 'woocommerce'),
         'show'  => true,
         'value' => '',
-        'wrapper_class' => 'form-field-wide',
+        'type'  => 'text',
+        'placeholder' => __('Ingresa comuna', 'woo-check'),
+        'wrapper_class' => 'form-field-wide woo-check-admin-comuna-field',
+        'class' => array('woo-check-admin-comuna-input'),
+        'custom_attributes' => array(
+            'autocomplete' => 'off',
+        ),
     );
 
     if ($order instanceof WC_Order) {
@@ -783,10 +790,10 @@ function woo_check_process_admin_order_commune($order_id) {
 
     $config = array(
         'billing'  => array(
-            'field' => 'billing_comuna',
+            'field' => '_billing_comuna',
         ),
         'shipping' => array(
-            'field' => 'shipping_comuna',
+            'field' => '_shipping_comuna',
         ),
     );
 
