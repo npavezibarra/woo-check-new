@@ -9,6 +9,105 @@ class WC_Check_Shipit {
     private $token;
     private $log_file;
 
+    /**
+     * Retrieve the tracking status for an order using Shipit reference lookup.
+     *
+     * @param int $order_id WooCommerce order identifier.
+     *
+     * @return array{
+     *     status:string,
+     *     message:string,
+     *     courier:string,
+     *     tracking_number:string,
+     *     tracking_url:string|null
+     * }
+     */
+    public static function get_tracking_status( $order_id ) {
+        $order_id = absint( $order_id );
+
+        $reference        = $order_id ? $order_id . 'N' : '';
+        $default_message  = __( 'Estamos consultando el estado de este envío...', 'woo-check' );
+        $default_response = [
+            'status'          => 'unknown',
+            'message'         => $default_message,
+            'courier'         => 'Shipit',
+            'tracking_number' => $reference,
+            'tracking_url'    => null,
+        ];
+
+        if ( ! $order_id ) {
+            return $default_response;
+        }
+
+        $options = get_option( 'woocheck_settings' );
+        $email   = isset( $options['shipit_email'] ) ? trim( (string) $options['shipit_email'] ) : '';
+        $token   = isset( $options['shipit_token'] ) ? trim( (string) $options['shipit_token'] ) : '';
+
+        if ( '' === $email || '' === $token ) {
+            return $default_response;
+        }
+
+        $url      = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $reference );
+        $response = wp_remote_get(
+            $url,
+            [
+                'headers' => [
+                    'Accept'                => 'application/json',
+                    'Content-Type'          => 'application/json',
+                    'X-Shipit-Email'        => $email,
+                    'X-Shipit-Access-Token' => $token,
+                ],
+                'timeout' => 20,
+            ]
+        );
+
+        if ( is_wp_error( $response ) ) {
+            return [
+                'status'          => 'error',
+                'message'         => __( 'Error consultando Shipit', 'woo-check' ),
+                'courier'         => 'Shipit',
+                'tracking_number' => $reference,
+                'tracking_url'    => null,
+            ];
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+        if ( $status_code < 200 || $status_code >= 300 ) {
+            return $default_response;
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+        $data = json_decode( $body, true );
+
+        if ( ! is_array( $data ) ) {
+            return $default_response;
+        }
+
+        if ( empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
+            return $default_response;
+        }
+
+        $package         = $data['packages'][0];
+        $status          = isset( $package['status'] ) ? sanitize_text_field( $package['status'] ) : 'unknown';
+        $courier_status  = isset( $package['courier_status'] ) ? sanitize_text_field( $package['courier_status'] ) : ucfirst( $status );
+        $tracking_number = isset( $package['tracking_number'] ) ? sanitize_text_field( $package['tracking_number'] ) : $reference;
+        $courier         = isset( $package['courier_for_client'] ) ? sanitize_text_field( $package['courier_for_client'] ) : 'Shipit';
+        $tracking_url    = isset( $package['tracking_url'] ) ? esc_url_raw( $package['tracking_url'] ) : null;
+
+        if ( '' === $courier_status ) {
+            $courier_status = ucfirst( $status );
+        }
+
+        return [
+            'status'          => $status,
+            'message'         => $courier_status ? $courier_status . ( $tracking_number ? ' — Tracking #: ' . $tracking_number : '' ) : $default_message,
+            'courier'         => $courier ?: 'Shipit',
+            'tracking_number' => $tracking_number,
+            'tracking_url'    => $tracking_url,
+        ];
+    }
+
     public function __construct() {
         $this->email = get_option( 'wc_check_shipit_email' );
         if ( empty( $this->email ) ) {
@@ -594,21 +693,6 @@ class WC_Check_Shipit {
         }
 
         return $result;
-    }
-
-    /**
-     * AJAX handler to retrieve Shipit tracking status.
-     */
-    public static function ajax_get_tracking_status() {
-        if ( ! isset( $_POST['order_id'] ) ) {
-            wp_send_json_error( [ 'message' => 'Missing order_id' ] );
-        }
-
-        $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
-
-        $status_data = self::get_tracking_status_by_order( $order_id );
-
-        wp_send_json_success( $status_data );
     }
 
     /**

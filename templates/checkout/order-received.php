@@ -272,42 +272,30 @@ $order = wc_get_order($order_id);
                 <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
+                $shipit_data = class_exists('WC_Check_Shipit')
+                    ? WC_Check_Shipit::get_tracking_status($order->get_id())
+                    : [];
+
                 $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
-
-                $has_tracking = !empty($tracking_number);
-
-                if ($has_tracking) :
-                    $normalized_provider = strtolower((string) $tracking_provider);
+                $tracking_courier  = !empty($shipit_data['courier']) ? $shipit_data['courier'] : 'Shipit';
+                $tracking_number   = !empty($shipit_data['tracking_number']) ? $shipit_data['tracking_number'] : $order->get_id() . 'N';
+                $tracking_message  = !empty($shipit_data['message']) ? $shipit_data['message'] : __('Estamos consultando el estado de este envío...', 'woo-check');
+                $tracking_url      = !empty($shipit_data['tracking_url']) ? $shipit_data['tracking_url'] : '';
                 ?>
-                    <?php if ($normalized_provider === 'shipit') : ?>
-                        <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
-                            <p>
-                                <strong>Tracking:</strong>
-                                <span class="tracking-number"><?php echo esc_html($tracking_number); ?></span>
-                                (
-                                <span class="tracking-courier"><?php esc_html_e('Shipit', 'woo-check'); ?></span>
-                                )
-                            </p>
-                            <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
-                        </div>
-                    <?php else : ?>
-                        <p id="tracking-info" data-has-tracking="1">
-                            <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
-                            <?php if (!empty($tracking_provider)) : ?>
-                                (
-                                <?php if ($normalized_provider === 'recibelo') : ?>
-                                    <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
-                                <?php else : ?>
-                                    <?php echo esc_html(ucfirst($tracking_provider)); ?>
-                                <?php endif; ?>
-                                )
-                            <?php endif; ?>
+                <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
+                    <p>
+                        <strong><?php printf( esc_html__( 'Tracking (%s):', 'woo-check' ), esc_html($tracking_courier) ); ?></strong>
+                        <?php echo esc_html($tracking_number); ?>
+                    </p>
+                    <p class="tracking-message"><?php echo esc_html($tracking_message); ?></p>
+                    <?php if (!empty($tracking_url)) : ?>
+                        <p>
+                            <a href="<?php echo esc_url($tracking_url); ?>" target="_blank" rel="noopener noreferrer">
+                                <?php printf( esc_html__( 'Ver seguimiento en %s', 'woo-check' ), esc_html($tracking_courier) ); ?>
+                            </a>
                         </p>
                     <?php endif; ?>
-                <?php else : ?>
-                    <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
-                <?php endif; ?>
+                </div>
                 <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
                     <?php
                     $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
@@ -536,47 +524,6 @@ $order = wc_get_order($order_id);
             });
         }
 
-        const trackingEl = document.getElementById("tracking-info");
-
-        if (!trackingEl || trackingEl.dataset.hasTracking === "1") {
-            return;
-        }
-
-        const orderId = "<?php echo esc_js($order->get_id()); ?>";
-        const ajaxUrl = "<?php echo esc_js(esc_url_raw(admin_url('admin-ajax.php'))); ?>";
-
-        function formatProvider(provider) {
-            if (!provider) {
-                return "";
-            }
-
-            const normalized = provider.toString();
-
-            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-        }
-
-        function fetchTracking() {
-            fetch(ajaxUrl, {
-                method: "POST",
-                headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                body: "action=get_tracking_info&order_id=" + encodeURIComponent(orderId)
-            })
-            .then(function(res) { return res.json(); })
-            .then(function(data) {
-                if (data && data.tracking_number) {
-                    const providerLabel = formatProvider(data.provider);
-                    trackingEl.dataset.hasTracking = "1";
-                    trackingEl.innerHTML = "<strong>Tracking:</strong> " + data.tracking_number + (providerLabel ? " (" + providerLabel + ")" : "");
-                    clearInterval(pollInterval);
-                }
-            })
-            .catch(function(error) {
-                console.error(error);
-            });
-        }
-
-        fetchTracking();
-        const pollInterval = setInterval(fetchTracking, 15000);
     });
     </script>
 <?php endif; ?>
