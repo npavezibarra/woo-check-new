@@ -555,21 +555,27 @@ $fields['shipping']['shipping_state']['label'] = 'Regiones';
 }
 
 // Ensure Comuna is visible and editable in the admin order edit screen.
-add_filter('woocommerce_admin_billing_fields', function ($fields) {
-    return woo_check_register_admin_comuna_field($fields, 'billing');
-});
+add_filter('woocommerce_admin_billing_fields', function ($fields, $order) {
+    return woo_check_register_admin_comuna_field($fields, 'billing', $order);
+}, 10, 2);
 
-add_filter('woocommerce_admin_shipping_fields', function ($fields) {
-    return woo_check_register_admin_comuna_field($fields, 'shipping');
-});
+add_filter('woocommerce_admin_shipping_fields', function ($fields, $order) {
+    return woo_check_register_admin_comuna_field($fields, 'shipping', $order);
+}, 10, 2);
 
-function woo_check_register_admin_comuna_field($fields, $type) {
+function woo_check_register_admin_comuna_field($fields, $type, $order = null) {
     $key           = sprintf('%s_comuna', $type);
     $state_key     = sprintf('%s_state', $type);
     $field_args    = array(
         'label' => __('Comuna', 'woocommerce'),
         'show'  => true,
+        'value' => '',
+        'wrapper_class' => 'form-field-wide',
     );
+
+    if ($order instanceof WC_Order) {
+        $field_args['value'] = woo_check_get_order_comuna_value($order, $type);
+    }
 
     if (isset($fields[$state_key])) {
         $state_field = $fields[$state_key];
@@ -581,6 +587,32 @@ function woo_check_register_admin_comuna_field($fields, $type) {
     }
 
     return $fields;
+}
+
+function woo_check_get_order_comuna_value(WC_Order $order, $type) {
+    $type = 'shipping' === $type ? 'shipping' : 'billing';
+    $meta_keys = array(
+        sprintf('%s_comuna', $type),
+        sprintf('_%s_comuna', $type),
+        sprintf('%s_city', $type),
+        sprintf('_%s_city', $type),
+    );
+
+    foreach ($meta_keys as $meta_key) {
+        $value = $order->get_meta($meta_key, true);
+
+        if ('' !== trim((string) $value)) {
+            return $value;
+        }
+    }
+
+    if ('shipping' === $type) {
+        $value = $order->get_shipping_city();
+    } else {
+        $value = $order->get_billing_city();
+    }
+
+    return trim((string) $value);
 }
 
 add_action('woocommerce_process_shop_order_meta', function ($order_id) {
