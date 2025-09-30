@@ -468,6 +468,9 @@ function wc_check_resend_order_to_recibelo( $order ) {
 add_action( 'wp_ajax_get_tracking_info', 'woocheck_get_tracking_info' );
 add_action( 'wp_ajax_nopriv_get_tracking_info', 'woocheck_get_tracking_info' );
 
+add_action( 'wp_ajax_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
+add_action( 'wp_ajax_nopriv_woocheck_shipit_status', [ 'WC_Check_Shipit', 'ajax_get_tracking_status' ] );
+
 function woocheck_get_tracking_info() {
     $order_id = isset( $_POST['order_id'] ) ? absint( wp_unslash( $_POST['order_id'] ) ) : 0;
 
@@ -1006,6 +1009,26 @@ function woo_check_enqueue_assets() {
         );
     }
 }
+
+add_action( 'wp_enqueue_scripts', function() {
+    if ( function_exists( 'is_order_received_page' ) && is_order_received_page() ) {
+        wp_enqueue_script(
+            'woocheck-tracking',
+            plugins_url( 'assets/js/woocheck-tracking.js', __FILE__ ),
+            [ 'jquery' ],
+            '1.0',
+            true
+        );
+
+        wp_localize_script(
+            'woocheck-tracking',
+            'WooCheckAjax',
+            [
+                'ajax_url' => admin_url( 'admin-ajax.php' ),
+            ]
+        );
+    }
+} );
 
 add_action('admin_enqueue_scripts', 'woo_check_enqueue_admin_order_assets');
 function woo_check_enqueue_admin_order_assets($hook) {

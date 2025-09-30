@@ -278,19 +278,30 @@ $order = wc_get_order($order_id);
                 $has_tracking = !empty($tracking_number);
 
                 if ($has_tracking) :
+                    $normalized_provider = strtolower((string) $tracking_provider);
                 ?>
-                    <p id="tracking-info" data-has-tracking="1">
-                        <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
-                        <?php if (!empty($tracking_provider)) : ?>
-                            (
-                            <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
-                                <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
-                            <?php else : ?>
-                                <?php echo esc_html(ucfirst($tracking_provider)); ?>
+                    <?php if ($normalized_provider === 'shipit') : ?>
+                        <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
+                            <p>
+                                <strong>Tracking:</strong>
+                                <?php echo esc_html($tracking_number); ?> (Shipit)
+                            </p>
+                            <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
+                        </div>
+                    <?php else : ?>
+                        <p id="tracking-info" data-has-tracking="1">
+                            <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
+                            <?php if (!empty($tracking_provider)) : ?>
+                                (
+                                <?php if ($normalized_provider === 'recibelo') : ?>
+                                    <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer" style="color: #fff;">Recíbelo</a>
+                                <?php else : ?>
+                                    <?php echo esc_html(ucfirst($tracking_provider)); ?>
+                                <?php endif; ?>
+                                )
                             <?php endif; ?>
-                            )
-                        <?php endif; ?>
-                    </p>
+                        </p>
+                    <?php endif; ?>
                 <?php else : ?>
                     <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
                 <?php endif; ?>
