@@ -23,6 +23,19 @@ if (!defined('ABSPATH')) {
         .wc-block-mini-cart.wp-block-woocommerce-mini-cart {
             visibility: visible !important;
         }
+
+        .recibelo-tracking-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #ffffff;
+            border-radius: 3px;
+            padding: 3px 6px;
+        }
+
+        .recibelo-tracking-status::before {
+            content: "\1F4E6";
+        }
     </style>
 </head>
 
@@ -65,7 +78,18 @@ $order = wc_get_order($order_id);
 
             if ($has_tracking) :
             ?>
-                <p id="tracking-info" data-has-tracking="1"><strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?><?php if (!empty($tracking_provider)) : ?> (<?php echo esc_html(ucfirst($tracking_provider)); ?>)<?php endif; ?></p>
+                <p id="tracking-info" data-has-tracking="1">
+                    <strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?>
+                    <?php if (!empty($tracking_provider)) : ?>
+                        (
+                        <?php if (strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                            <a href="https://recibelo.cl/seguimiento" target="_blank" rel="noopener noreferrer">Recíbelo</a>
+                        <?php else : ?>
+                            <?php echo esc_html(ucfirst($tracking_provider)); ?>
+                        <?php endif; ?>
+                        )
+                    <?php endif; ?>
+                </p>
             <?php else : ?>
                 <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
             <?php endif; ?>
