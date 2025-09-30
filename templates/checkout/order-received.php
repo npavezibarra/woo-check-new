@@ -50,6 +50,7 @@ $order = wc_get_order($order_id);
 <?php if ($order) : ?>
     <div id="order-information">
         <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
+        <p class="fecha-hora-orden">Fecha y hora de la orden: 29-09-2025 13:06:43</p>
 
         <?php
 function calcular_dias_entrega($regionCode, $horaCompra, $metodoPago, $order_id) {
