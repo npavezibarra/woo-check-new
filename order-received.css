@@ -83,8 +83,7 @@ div#order-information {
 }
 
 .order-address-flip-card {
-    display: flex;
-    justify-content: center;
+    width: 100%;
     padding: 0;
 }
 
