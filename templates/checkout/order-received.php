@@ -35,6 +35,17 @@ echo do_blocks('<!-- wp:template-part {"slug":"header","area":"header","tagName"
 // Obtener los detalles de la orden
 $order_id = wc_get_order_id_by_order_key($_GET['key']);
 $order = wc_get_order($order_id);
+$tracking_url = '';
+
+if ($order) {
+    $order_id_for_tracking      = $order->get_id();
+    $customer_name_for_tracking = $order->get_formatted_billing_full_name();
+
+    $tracking_url = 'https://recibelo.cl/seguimiento/?order_code='
+        . urlencode($order_id_for_tracking)
+        . '&name='
+        . urlencode($customer_name_for_tracking);
+}
 ?>
 
 <div class="order-received-page">
@@ -71,6 +82,16 @@ $order = wc_get_order($order_id);
             <?php endif; ?>
             <?php if (!empty($order_datetime_display)) : ?>
                 <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
+            <?php endif; ?>
+
+            <?php if (!empty($tracking_url)) : ?>
+                <div class="recibelo-tracking">
+                    <a href="<?php echo esc_url($tracking_url); ?>" target="_blank"
+                        class="button recibelo-button"
+                        style="display:inline-block; padding:10px 20px; background:#e91e63; color:#fff; border-radius:5px; text-decoration:none; font-weight:bold;">
+                        Ver seguimiento en Recíbelo
+                    </a>
+                </div>
             <?php endif; ?>
         </div>
 
