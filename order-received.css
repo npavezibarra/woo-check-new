@@ -97,26 +97,26 @@ div#order-information {
 .order-summary-bank-wrapper {
     display: flex;
     /* flex-wrap: wrap; */
+    align-items: flex-start;
     gap: 20px;
     max-width: 1000px;
     margin: 0 auto 20px;
 }
 
-.order-summary-bank-wrapper > #order-header,
+.order-summary-bank-wrapper > .order-summary-primary,
 .order-summary-bank-wrapper > .bank-transfer-info {
+    flex: 1 1 50%;
     min-width: 300px;
 }
 
-.order-summary-bank-wrapper > #order-header {
-    flex: 1 1 40%;
-}
-
-.order-summary-bank-wrapper > .bank-transfer-info {
-    flex: 1 1 60%;
-}
-
-.order-summary-bank-wrapper--single > #order-header {
+.order-summary-bank-wrapper--single > .order-summary-primary {
     flex-basis: 100%;
+}
+
+.order-summary-primary {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .bank-transfer-info {
@@ -276,7 +276,7 @@ p.titulo-seccion {
         flex-direction: column;
     }
 
-    .order-summary-bank-wrapper > #order-header,
+    .order-summary-bank-wrapper > .order-summary-primary,
     .order-summary-bank-wrapper > .bank-transfer-info {
         min-width: 100%;
     }

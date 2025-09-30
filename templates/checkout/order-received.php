@@ -192,7 +192,8 @@ $order = wc_get_order($order_id);
         }
         ?>
         <div class="<?php echo esc_attr($order_summary_classes); ?>">
-            <div id="order-header" class="order-header">
+            <div class="order-summary-primary">
+                <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
                 $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
@@ -235,6 +236,25 @@ $order = wc_get_order($order_id);
                 <?php if (!empty($order_datetime_display)) : ?>
                     <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
                 <?php endif; ?>
+                </div>
+                <div id="info-extra-envio">
+                    <?php if ($order) : ?>
+                        <?php
+                        // Obtener los valores del pedido
+                        $shipping_total = $order->get_shipping_total(); // Total de envío
+                        $total = $order->get_total(); // Total de la orden (incluye todo)
+
+                        // Calcular IVA como 19% del subtotal antes de impuestos
+                        $subtotal = $total - $shipping_total; // Subtotal sin envío
+                        $iva = $subtotal * 0.19; // IVA es el 19% del subtotal
+                        ?>
+                        <p><strong>Envío:</strong> <?php echo wc_price($shipping_total); ?></p>
+                        <p><strong>IVA (19%):</strong> <?php echo wc_price($iva); ?></p>
+                        <p><strong>Total Orden:</strong> <?php echo wc_price($total); ?></p>
+                    <?php else : ?>
+                        <p>No se encontraron detalles del pedido.</p>
+                    <?php endif; ?>
+                </div>
             </div>
             <?php echo $bank_transfer_info; ?>
         </div>
@@ -311,24 +331,6 @@ $order = wc_get_order($order_id);
             <h3>Detalles de la orden</h3>
             <?php echo $order_products_markup; ?>
         <?php endif; ?>
-        <div id="info-extra-envio">
-            <?php if ($order) : ?>
-                <?php
-                // Obtener los valores del pedido
-                $shipping_total = $order->get_shipping_total(); // Total de envío
-                $total = $order->get_total(); // Total de la orden (incluye todo)
-
-                // Calcular IVA como 19% del subtotal antes de impuestos
-                $subtotal = $total - $shipping_total; // Subtotal sin envío
-                $iva = $subtotal * 0.19; // IVA es el 19% del subtotal
-                ?>
-                <p><strong>Envío:</strong> <?php echo wc_price($shipping_total); ?></p>
-                <p><strong>IVA (19%):</strong> <?php echo wc_price($iva); ?></p>
-                <p><strong>Total Orden:</strong> <?php echo wc_price($total); ?></p>
-            <?php else : ?>
-                <p>No se encontraron detalles del pedido.</p>
-            <?php endif; ?>
-        </div>
     </div>
 <?php else : ?>
     <h2>Orden no encontrada.</h2>
