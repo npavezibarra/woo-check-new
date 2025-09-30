@@ -109,6 +109,7 @@ div#order-information {
 
 .order-header .fecha-hora-orden {
     margin-top: 10px;
+    font-size: 12px;
 }
 
 p.titulo-seccion {
@@ -251,6 +252,7 @@ p.fecha-hora-orden {
     color: #ffffff;
     margin-top: 0px;
     margin-bottom: 0px;
+    font-size: 12px;
 }
 
 div#estimacion-entrega {

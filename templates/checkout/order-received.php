@@ -48,10 +48,18 @@ $order = wc_get_order($order_id);
 
 
 <?php if ($order) : ?>
+    <?php
+        $order_datetime_display = '';
+        if ($order->get_date_created()) {
+            $order_datetime_display = $order->get_date_created()->date_i18n('d-m-Y H:i:s');
+        }
+    ?>
     <div id="order-information">
         <div class="order-header">
             <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
-            <p class="fecha-hora-orden">Fecha y hora de la orden: 29-09-2025 13:06:43</p>
+            <?php if (!empty($order_datetime_display)) : ?>
+                <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
+            <?php endif; ?>
         </div>
 
         <?php
@@ -155,8 +163,6 @@ if ($order) {
     $metodoPago = $order->get_payment_method(); // Método de pago (por ejemplo: 'bacs', 'stripe', etc.)
 
     // Muestra la fecha y hora de la orden
-    $fechaHoraOrden = (new DateTime($horaCompra))->format('d-m-Y H:i:s');
-
     $diasEntrega = calcular_dias_entrega($regionCode, $horaCompra, $metodoPago, $order_id);
 
     // Genera el contenido dentro de un <div> con id="info-entrega"
