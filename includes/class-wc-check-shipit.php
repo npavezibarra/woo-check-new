@@ -69,11 +69,24 @@ class WC_Check_Shipit {
         $this->log_api( $data, $response );
 
         if ( ! is_wp_error( $response ) ) {
-            $body = json_decode( wp_remote_retrieve_body( $response ), true );
+            $body        = json_decode( wp_remote_retrieve_body( $response ), true );
+            $order_id    = $order->get_id();
+            $tracking_no = '';
 
             if ( isset( $body['tracking_number'] ) ) {
                 $order->update_meta_data( '_shipit_tracking', sanitize_text_field( $body['tracking_number'] ) );
                 $order->save_meta_data();
+            }
+
+            $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+            if ( $status_code >= 200 && $status_code < 300 ) {
+                $tracking_no = $order_id . 'N';
+            }
+
+            if ( ! empty( $tracking_no ) ) {
+                update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking_no ) );
+                update_post_meta( $order_id, '_tracking_provider', 'shipit' );
             }
         }
 

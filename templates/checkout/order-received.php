@@ -57,6 +57,18 @@ $order = wc_get_order($order_id);
     <div id="order-information">
         <div class="order-header">
             <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
+            <?php
+            $tracking_number  = get_post_meta($order->get_id(), '_tracking_number', true);
+            $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
+
+            $has_tracking = !empty($tracking_number);
+
+            if ($has_tracking) :
+            ?>
+                <p id="tracking-info" data-has-tracking="1"><strong>Tracking:</strong> <?php echo esc_html($tracking_number); ?><?php if (!empty($tracking_provider)) : ?> (<?php echo esc_html(ucfirst($tracking_provider)); ?>)<?php endif; ?></p>
+            <?php else : ?>
+                <p id="tracking-info" data-has-tracking="0"><em>Tu número de seguimiento estará disponible pronto.</em></p>
+            <?php endif; ?>
             <?php if (!empty($order_datetime_display)) : ?>
                 <p class="fecha-hora-orden">Fecha y hora de la orden: <?php echo esc_html($order_datetime_display); ?></p>
             <?php endif; ?>
@@ -327,6 +339,51 @@ $billing_class = $has_physical_products ? '' : ' only-billing';
         </div>
         <?php endif; ?>
     </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const trackingEl = document.getElementById("tracking-info");
+
+        if (!trackingEl || trackingEl.dataset.hasTracking === "1") {
+            return;
+        }
+
+        const orderId = "<?php echo esc_js($order->get_id()); ?>";
+        const ajaxUrl = "<?php echo esc_js(esc_url_raw(admin_url('admin-ajax.php'))); ?>";
+
+        function formatProvider(provider) {
+            if (!provider) {
+                return "";
+            }
+
+            const normalized = provider.toString();
+
+            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+        }
+
+        function fetchTracking() {
+            fetch(ajaxUrl, {
+                method: "POST",
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                body: "action=get_tracking_info&order_id=" + encodeURIComponent(orderId)
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data && data.tracking_number) {
+                    const providerLabel = formatProvider(data.provider);
+                    trackingEl.dataset.hasTracking = "1";
+                    trackingEl.innerHTML = "<strong>Tracking:</strong> " + data.tracking_number + (providerLabel ? " (" + providerLabel + ")" : "");
+                    clearInterval(pollInterval);
+                }
+            })
+            .catch(function(error) {
+                console.error(error);
+            });
+        }
+
+        fetchTracking();
+        const pollInterval = setInterval(fetchTracking, 15000);
+    });
+    </script>
 </section>
 
 

@@ -61,8 +61,21 @@ class WooCheck_Recibelo {
             return $response;
         }
 
-        $body = wp_remote_retrieve_body( $response );
-        error_log( sprintf( 'WooCheck Recibelo: Sent order %d. Response: %s', $order->get_id(), $body ) );
+        $body         = wp_remote_retrieve_body( $response );
+        $order_id     = $order->get_id();
+        $status_code  = (int) wp_remote_retrieve_response_code( $response );
+        $decoded_body = json_decode( $body, true );
+
+        error_log( sprintf( 'WooCheck Recibelo: Sent order %d. Response: %s', $order_id, $body ) );
+
+        if ( $status_code >= 200 && $status_code < 300 && is_array( $decoded_body ) ) {
+            $tracking_number = isset( $decoded_body['internal_id'] ) ? $decoded_body['internal_id'] : '';
+
+            if ( ! empty( $tracking_number ) ) {
+                update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking_number ) );
+                update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
+            }
+        }
 
         return $response;
     }
