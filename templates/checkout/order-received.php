@@ -330,11 +330,25 @@ $order = wc_get_order($order_id);
                         $subtotal = $total - $shipping_total; // Subtotal sin envío
                         $iva = $subtotal * 0.19; // IVA es el 19% del subtotal
                         ?>
-                        <p><strong>🚚 Envío:</strong> <?php echo wc_price($shipping_total); ?></p>
-                        <p><strong>🦹 IVA (19%):</strong> <?php echo wc_price($iva); ?></p>
-                        <p><strong>💵 Total Orden:</strong> <?php echo wc_price($total); ?></p>
+                        <div class="info-extra-items" role="list">
+                            <div class="info-extra-item" role="listitem">
+                                <span class="info-extra-icon" aria-hidden="true">🚚</span>
+                                <span class="info-extra-label"><?php esc_html_e('Envío', 'woocommerce'); ?></span>
+                                <span class="info-extra-value"><?php echo wp_kses_post(wc_price($shipping_total)); ?></span>
+                            </div>
+                            <div class="info-extra-item" role="listitem">
+                                <span class="info-extra-icon" aria-hidden="true">🕵️‍♂️</span>
+                                <span class="info-extra-label"><?php esc_html_e('IVA (19%)', 'woocommerce'); ?></span>
+                                <span class="info-extra-value"><?php echo wp_kses_post(wc_price($iva)); ?></span>
+                            </div>
+                            <div class="info-extra-item" role="listitem">
+                                <span class="info-extra-icon" aria-hidden="true">💵</span>
+                                <span class="info-extra-label"><?php esc_html_e('Total Orden', 'woocommerce'); ?></span>
+                                <span class="info-extra-value"><?php echo wp_kses_post(wc_price($total)); ?></span>
+                            </div>
+                        </div>
                     <?php else : ?>
-                        <p>No se encontraron detalles del pedido.</p>
+                        <p><?php esc_html_e('No se encontraron detalles del pedido.', 'woocommerce'); ?></p>
                     <?php endif; ?>
                 </div>
             </div>
