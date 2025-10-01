@@ -307,7 +307,7 @@ div#order-information {
     background-image: linear-gradient(to right, #434343 0%, black 100%);
     color: #fff;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #dadada;
 }
 
@@ -385,7 +385,7 @@ p.fecha-hora-orden {
 div#info-extra-envio {
     background: #ffffff;
     border: 1px solid #d9d9d9;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 24px 20px;
 }
 
