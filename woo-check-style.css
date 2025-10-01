@@ -66,6 +66,18 @@ h1.alignwide.wp-block-post-title,
     border: 0;
 }
 
+#woocommerce-checkout-form-coupon .form-row .form-row-first {
+    width: 100%;
+}
+
+input#coupon_code {
+    margin: 0;
+}
+
+#woocommerce-checkout-form-coupon p.form-row.form-row-last {
+    margin: 0;
+}
+
 .checkout-modal {
     position: fixed;
     inset: 0;
@@ -89,7 +101,7 @@ h1.alignwide.wp-block-post-title,
 
 .checkout-modal__panel {
     position: relative;
-    width: min(520px, 100%);
+    width: 320px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: #ffffff;
@@ -160,7 +172,7 @@ h1.alignwide.wp-block-post-title,
     }
 
     .checkout-modal__panel {
-        width: min(100%, 420px);
+        width: min(100%, 320px);
         padding: 24px 20px;
     }
 
