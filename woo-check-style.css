@@ -28,6 +28,7 @@ form.checkout.woocommerce-checkout {
 #woocommerce-checkout-form h3 {
     font-family: sans-serif;
     font-weight: 900;
+    margin-bottom: 5px;
 }
 
 h1.alignwide.wp-block-post-title,
@@ -86,7 +87,7 @@ h1.alignwide.wp-block-post-title,
 }
 
 tr.cart-discount {
-    background: linear-gradient(314deg, #fff19e 0%, #dcc269 100%);
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
 }
 
 .woocommerce form .form-row.woocommerce-validated input.input-text,
@@ -293,7 +294,7 @@ label.woocommerce-form__label.woocommerce-form__label-for-checkbox.checkbox {
     font-size: 15px;
     border: 1px solid #c8c8c8;
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: 19px;
     background: #efefef;
 }
 
@@ -413,7 +414,7 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 .wc-block-components-notice-banner.is-info {
-    background: linear-gradient(314deg, #fff19e 0%, #dcc269 100%);
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
     border-color: #ffe16e;
 }
 
