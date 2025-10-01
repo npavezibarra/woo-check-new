@@ -12,12 +12,6 @@ jQuery(document).ready(function($) {
             triggerSelector: '.showlogin',
             modalId: 'checkout-login-modal',
             ariaLabel: 'Formulario de inicio de sesión'
-        },
-        {
-            formSelector: 'form.checkout_coupon',
-            triggerSelector: '.showcoupon',
-            modalId: 'checkout-coupon-modal',
-            ariaLabel: 'Formulario de cupón'
         }
     ];
 

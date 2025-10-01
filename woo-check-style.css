@@ -115,17 +115,56 @@ h1.alignwide.wp-block-post-title,
     outline-offset: 2px;
 }
 
+.coupon-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.coupon-modal-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.coupon-modal {
+    background: #ffffff;
+    width: min(400px, 100%);
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    animation: fadeInScale 0.2s ease;
+}
+
+.coupon-modal form {
+    margin: 0;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
 .woocommerce-form-login-toggle,
 .woocommerce-form-coupon-toggle {
     width: 100%;
-}
-
-.woocommerce-form-login-toggle {
-    margin-right: 10px;
-}
-
-.woocommerce-form-coupon-toggle {
-    margin-left: 10px;
+    margin: 0;
 }
 
 @media (max-width: 767px) {
@@ -154,6 +193,11 @@ h1.alignwide.wp-block-post-title,
 
     .checkout-modal__panel {
         width: min(100%, 420px);
+        padding: 24px 20px;
+    }
+
+    .coupon-modal {
+        width: min(100%, 360px);
         padding: 24px 20px;
     }
 }
