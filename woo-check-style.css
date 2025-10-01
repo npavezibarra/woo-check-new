@@ -12,6 +12,12 @@ form.checkout.woocommerce-checkout {
     margin: auto;
 }
 
+body.woocommerce-checkout {
+    background: url(https://elvillegas.cl/wp-content/uploads/2024/05/Nunork4.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
 /* Example: Style for billing fields */
 .woocommerce-checkout #customer_details .col-1,
 .woocommerce-checkout #customer_details .col-2 {
