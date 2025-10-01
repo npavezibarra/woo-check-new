@@ -156,6 +156,10 @@ input#coupon_code {
     margin-bottom: 10px;
 }
 
+form.woocommerce-form.woocommerce-form-login.login {
+    background: #ffffff;
+}
+
 .checkout-modal__close {
     position: absolute;
     top: 12px;
