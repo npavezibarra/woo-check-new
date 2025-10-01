@@ -14,13 +14,13 @@ jQuery(function($) {
     const modalConfigs = [
         {
             formSelector: '.woocommerce-form-login',
-            triggerSelector: '.showlogin',
+            triggerSelector: 'a.showlogin',
             modalId: 'checkout-login-modal',
             ariaLabel: 'Formulario de inicio de sesión'
         },
         {
             formSelector: '#woocommerce-checkout-form-coupon',
-            triggerSelector: '.showcoupon',
+            triggerSelector: 'a.showcoupon',
             modalId: 'checkout-coupon-modal',
             ariaLabel: 'Formulario de cupón'
         }
@@ -168,6 +168,13 @@ jQuery(function($) {
         $body.off('click', config.triggerSelector);
         $body.off('click' + namespace, config.triggerSelector);
 
+        if (config.triggerSelector.startsWith('a.')) {
+            const secondarySelector = config.triggerSelector.slice(1);
+
+            $body.off('click', secondarySelector);
+            $body.off('click' + namespace, secondarySelector);
+        }
+
         $body.on('click' + namespace, config.triggerSelector, function(event) {
             event.preventDefault();
             event.stopPropagation();
@@ -175,7 +182,13 @@ jQuery(function($) {
             modalData.openModal($(this));
         });
 
-        $(config.triggerSelector).each(function() {
+        let $triggers = $(config.triggerSelector);
+
+        if (config.triggerSelector.startsWith('a.')) {
+            $triggers = $triggers.add($(config.triggerSelector.slice(1)));
+        }
+
+        $triggers.each(function() {
             const $trigger = $(this);
 
             $trigger.attr({
