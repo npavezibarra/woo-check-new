@@ -3,7 +3,27 @@ jQuery(document).ready(function($) {
         ? WooCheckAjax.fallback_message
         : 'Estamos consultando el estado de este envío...';
 
-    function applyTrackingData($container, data) {
+    function getProviderInfo(provider) {
+        var providerSlug = '';
+
+        if (typeof provider === 'string' && provider.trim() !== '') {
+            providerSlug = provider.trim().toLowerCase();
+        }
+
+        var providerLabels = {
+            'recibelo': 'Recíbelo',
+            'shipit': 'Shipit'
+        };
+
+        var providerLabel = providerLabels[providerSlug] || '';
+
+        return {
+            slug: providerSlug,
+            label: providerLabel
+        };
+    }
+
+    function applyTrackingData($container, data, providerInfo) {
         if (!data) {
             return;
         }
@@ -12,10 +32,16 @@ jQuery(document).ready(function($) {
             $container.find('.tracking-number').text(data.tracking_number);
         }
 
-        if (data.courier) {
-            $container.find('.tracking-courier').text('(' + data.courier + ')');
+        var courierLabel = providerInfo && providerInfo.label ? providerInfo.label : '';
+
+        if (!courierLabel && data.courier) {
+            courierLabel = data.courier;
+        }
+
+        if (courierLabel) {
+            $container.find('.tracking-courier').text('(' + courierLabel + ')');
         } else {
-            $container.find('.tracking-courier').text('(Shipit)');
+            $container.find('.tracking-courier').text('');
         }
 
         var message = data.message ? data.message : FALLBACK_MESSAGE;
@@ -32,7 +58,7 @@ jQuery(document).ready(function($) {
                 }).appendTo($linkWrapper.empty());
             }
 
-            var linkLabel = data.courier ? 'Ver seguimiento en ' + data.courier : 'Ver seguimiento';
+            var linkLabel = courierLabel ? 'Ver seguimiento en ' + courierLabel : 'Ver seguimiento';
             $anchor.attr('href', data.tracking_url).text(linkLabel);
             $linkWrapper.show();
         } else {
@@ -41,9 +67,7 @@ jQuery(document).ready(function($) {
         }
     }
 
-    function refreshTracking() {
-        var $container = $('#tracking-status');
-
+    function refreshTracking($container, providerInfo) {
         if ($container.length === 0 || typeof WooCheckAjax === 'undefined') {
             return;
         }
@@ -54,12 +78,16 @@ jQuery(document).ready(function($) {
             return;
         }
 
+        if (providerInfo.slug === 'recibelo') {
+            return;
+        }
+
         $.post(WooCheckAjax.ajax_url, {
             action: 'woocheck_shipit_status',
             order_id: orderId
         }).done(function(response) {
             if (response && response.success) {
-                applyTrackingData($container, response.data);
+                applyTrackingData($container, response.data, providerInfo);
             } else {
                 $container.find('.tracking-message').text(FALLBACK_MESSAGE);
             }
@@ -68,6 +96,26 @@ jQuery(document).ready(function($) {
         });
     }
 
-    refreshTracking();
-    setInterval(refreshTracking, 20000);
+    var $trackingContainer = $('#tracking-status');
+    var providerInfo = getProviderInfo($trackingContainer.data('tracking-provider'));
+
+    if ($trackingContainer.length === 0) {
+        return;
+    }
+
+    if (providerInfo.label) {
+        var $courier = $trackingContainer.find('.tracking-courier');
+
+        if ($courier.length) {
+            $courier.text('(' + providerInfo.label + ')');
+        }
+    }
+
+    refreshTracking($trackingContainer, providerInfo);
+
+    if (providerInfo.slug !== 'recibelo') {
+        setInterval(function() {
+            refreshTracking($trackingContainer, providerInfo);
+        }, 20000);
+    }
 });
