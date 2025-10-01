@@ -25,8 +25,7 @@ body.woocommerce-checkout {
 
 .checkout-notices-row {
     display: flex;
-    justify-content: space-between;
-    gap: 20px;
+    align-items: stretch;
     margin: 0 auto 20px;
     max-width: 880px;
     flex-wrap: nowrap;
@@ -35,7 +34,14 @@ body.woocommerce-checkout {
 .checkout-notices-row .woocommerce-info {
     box-sizing: border-box;
     margin: 0;
-    width: calc(50% - 10px);
+    flex: 1 1 calc((100% - 20px) / 2);
+    max-width: calc((100% - 20px) / 2);
+    width: calc((100% - 20px) / 2);
+}
+
+#checkout-notices-divider {
+    flex: 0 0 20px;
+    width: 20px;
 }
 
 .woocommerce-form-login,
@@ -47,10 +53,16 @@ body.woocommerce-checkout {
 @media (max-width: 767px) {
     .checkout-notices-row {
         flex-direction: column;
-        gap: 15px;
+    }
+
+    #checkout-notices-divider {
+        flex: 0 0 20px;
+        height: 20px;
+        width: 100%;
     }
 
     .checkout-notices-row .woocommerce-info {
+        max-width: 100%;
         width: 100%;
     }
 }
