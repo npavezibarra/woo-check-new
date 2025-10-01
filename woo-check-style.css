@@ -86,7 +86,7 @@ h1.alignwide.wp-block-post-title,
 }
 
 tr.cart-discount {
-    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
+    background: linear-gradient(314deg, #fff19e 0%, #dcc269 100%);
 }
 
 .woocommerce form .form-row.woocommerce-validated input.input-text,
@@ -409,7 +409,7 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 .wc-block-components-notice-banner.is-info {
-    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
+    background: linear-gradient(314deg, #fff19e 0%, #dcc269 100%);
     border-color: #ffe16e;
 }
 
