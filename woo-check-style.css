@@ -66,15 +66,25 @@ h1.alignwide.wp-block-post-title,
     border: 0;
 }
 
-#woocommerce-checkout-form-coupon .form-row .form-row-first {
+#woocommerce-checkout-form-coupon .form-row-first,
+#woocommerce-checkout-form-coupon .form-row-last {
+    width: 100% !important;
+    float: none;
+}
+
+#woocommerce-checkout-form-coupon .form-row-first input {
+    width: 100%;
+}
+
+#woocommerce-checkout-form-coupon .form-row-last {
+    margin: 0;
+}
+
+#woocommerce-checkout-form-coupon .form-row-last .button {
     width: 100%;
 }
 
 input#coupon_code {
-    margin: 0;
-}
-
-#woocommerce-checkout-form-coupon p.form-row.form-row-last {
     margin: 0;
 }
 
