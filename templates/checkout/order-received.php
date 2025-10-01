@@ -272,19 +272,50 @@ $order = wc_get_order($order_id);
                 <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
-                $default_tracking  = $order->get_id() . 'N';
+                $tracking_provider_raw = get_post_meta($order->get_id(), '_tracking_provider', true);
+                $default_tracking      = $order->get_id() . 'N';
+
+                $tracking_provider_labels = [
+                    'recibelo' => __('Recíbelo', 'woo-check'),
+                    'shipit'   => __('Shipit', 'woo-check'),
+                ];
+
+                $tracking_provider_slug   = '';
+                $tracking_provider_label  = '';
+
+                if (is_string($tracking_provider_raw)) {
+                    $tracking_provider_candidate = strtolower(trim($tracking_provider_raw));
+
+                    if (isset($tracking_provider_labels[$tracking_provider_candidate])) {
+                        $tracking_provider_slug  = $tracking_provider_candidate;
+                        $tracking_provider_label = $tracking_provider_labels[$tracking_provider_candidate];
+                    }
+                }
+
+                $tracking_status_attributes = sprintf(
+                    'data-order-id="%s"',
+                    esc_attr($order->get_id())
+                );
+
+                if ($tracking_provider_slug !== '') {
+                    $tracking_status_attributes .= sprintf(
+                        ' data-tracking-provider="%s"',
+                        esc_attr($tracking_provider_slug)
+                    );
+                }
                 ?>
-                <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
+                <div id="tracking-status" <?php echo $tracking_status_attributes; ?>>
                     <p class="tracking-heading">
                         <strong><?php esc_html_e('Tracking:', 'woo-check'); ?></strong>
                         <span class="tracking-number"><?php echo esc_html($default_tracking); ?></span>
-                        <span class="tracking-courier">(<?php esc_html_e('Shipit', 'woo-check'); ?>)</span>
+                        <?php if ($tracking_provider_label !== '') : ?>
+                            <span class="tracking-courier">(<?php echo esc_html($tracking_provider_label); ?>)</span>
+                        <?php endif; ?>
                     </p>
                     <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
                     <p class="tracking-link" style="display:none;"><a href="#" target="_blank" rel="noopener noreferrer"></a></p>
                 </div>
-                <?php if (!empty($tracking_provider) && strtolower((string) $tracking_provider) === 'recibelo') : ?>
+                <?php if ($tracking_provider_slug === 'recibelo') : ?>
                     <?php
                     $internal_id = get_post_meta($order->get_id(), '_recibelo_internal_id', true);
 
