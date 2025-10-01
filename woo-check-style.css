@@ -306,7 +306,7 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 .wc-block-components-notice-banner.is-info {
-    background-color: #fffce6;
+    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
     border-color: #ffe16e;
 }
 
