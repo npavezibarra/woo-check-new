@@ -59,8 +59,15 @@ h1.alignwide.wp-block-post-title,
 
 .woocommerce-form-login-toggle,
 .woocommerce-form-coupon-toggle {
-    margin: 0;
     width: 100%;
+}
+
+.woocommerce-form-login-toggle {
+    margin-right: 10px;
+}
+
+.woocommerce-form-coupon-toggle {
+    margin-left: 10px;
 }
 
 @media (max-width: 767px) {
@@ -80,6 +87,11 @@ h1.alignwide.wp-block-post-title,
     .checkout-notices-row .woocommerce-info {
         max-width: 100%;
         width: 100%;
+    }
+
+    .woocommerce-form-login-toggle,
+    .woocommerce-form-coupon-toggle {
+        margin: 0;
     }
 }
 
