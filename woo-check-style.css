@@ -163,7 +163,7 @@ input#coupon_code {
 }
 
 form.woocommerce-form.woocommerce-form-login.login {
-    background: #ffffff;
+    background: white;
 }
 
 .checkout-modal__close {
