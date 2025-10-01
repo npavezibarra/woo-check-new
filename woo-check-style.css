@@ -25,6 +25,12 @@ form.checkout.woocommerce-checkout {
     margin: 0 auto 50px;
 }
 
+#woocommerce-checkout-form h3 {
+    font-family: sans-serif;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
 h1.alignwide.wp-block-post-title,
 #checkout-page-title {
     color: white;
@@ -61,9 +67,32 @@ h1.alignwide.wp-block-post-title,
     width: 100%;
 }
 
-.woocommerce-form-coupon-toggle .woocommerce-info {
-    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
+
+.woocommerce-form-login-toggle > .wc-block-components-notice-banner,
+.woocommerce-form-login-toggle > .woocommerce-info {
+    background-image: radial-gradient(at top center, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.03) 100%),
+        linear-gradient(to top, rgba(255, 255, 255, 0.1) 0%, rgba(143, 152, 157, 0.6) 100%);
+}
+
+.woocommerce-form-login-toggle.wc-block-components-notice-banner,
+.woocommerce-form-login-toggle.woocommerce-info {
+    background-image: radial-gradient(at top center, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.03) 100%),
+        linear-gradient(to top, rgba(255, 255, 255, 0.1) 0%, rgba(143, 152, 157, 0.6) 100%);
+}
+
+.woocommerce-form-coupon-toggle > .wc-block-components-notice-banner,
+.woocommerce-form-coupon-toggle > .woocommerce-info {
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
     border: 0;
+}
+
+tr.cart-discount {
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
+}
+
+.woocommerce form .form-row.woocommerce-validated input.input-text,
+.woocommerce form .form-row.woocommerce-validated select {
+    border-color: #dec46c;
 }
 
 #woocommerce-checkout-form-coupon .form-row-first {
@@ -116,7 +145,7 @@ input#coupon_code {
 
 .checkout-modal__panel {
     position: relative;
-    width: 320px;
+    width: 380px;
     max-height: calc(100vh - 40px);
     overflow-y: auto;
     background: #ffffff;
@@ -139,6 +168,18 @@ input#coupon_code {
     margin: 0;
 }
 
+#checkout-login-modal .woocommerce-form.woocommerce-form-login.login p.form-row.form-row-last {
+    width: 100%;
+}
+
+#checkout-login-modal .woocommerce-form.woocommerce-form-login.login button.woocommerce-button.button.woocommerce-form-login__submit.wp-element-button {
+    margin-bottom: 10px;
+}
+
+form.woocommerce-form.woocommerce-form-login.login {
+    background: white;
+}
+
 .checkout-modal__close {
     position: absolute;
     top: 12px;
@@ -159,7 +200,16 @@ input#coupon_code {
 .woocommerce-form-login-toggle,
 .woocommerce-form-coupon-toggle {
     width: 100%;
-    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .woocommerce-form-login-toggle {
+        margin-right: 10px;
+    }
+
+    .woocommerce-form-coupon-toggle {
+        margin-left: 0;
+    }
 }
 
 @media (max-width: 767px) {
@@ -181,13 +231,16 @@ input#coupon_code {
         width: 100%;
     }
 
-    .woocommerce-form-login-toggle,
+    .woocommerce-form-login-toggle {
+        margin-right: 0;
+    }
+
     .woocommerce-form-coupon-toggle {
-        margin: 0;
+        margin-left: 10px;
     }
 
     .checkout-modal__panel {
-        width: min(100%, 320px);
+        width: min(100%, 380px);
         padding: 24px 20px;
     }
 
@@ -212,6 +265,22 @@ p#billing_country_field {
     display: none;
 }
 
+p#billing_first_name_field {
+    width: 47%;
+}
+
+p#billing_last_name_field {
+    float: right;
+}
+
+p#shipping_first_name_field {
+    width: 47%;
+}
+
+p#shipping_last_name_field {
+    float: right;
+}
+
 #shipping_country_field {
     display: none;
 }
@@ -225,7 +294,7 @@ label.woocommerce-form__label.woocommerce-form__label-for-checkbox.checkbox {
     font-size: 15px;
     border: 1px solid #c8c8c8;
     padding: 5px 10px;
-    border-radius: 4px;
+    border-radius: 19px;
     background: #efefef;
 }
 
@@ -233,6 +302,10 @@ table.shop_table.woocommerce-checkout-review-order-table {
     font-size: 13px;
     background: white;
     border: 2px solid #c9c9c9;
+}
+
+#order_review thead {
+    background: #ebebeb;
 }
 
 #add_payment_method #payment, .woocommerce-cart #payment, .woocommerce-checkout #payment {
@@ -341,7 +414,7 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 .wc-block-components-notice-banner.is-info {
-    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
     border-color: #ffe16e;
 }
 
