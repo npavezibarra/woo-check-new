@@ -273,7 +273,6 @@ $order = wc_get_order($order_id);
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
                 $tracking_provider_raw = get_post_meta($order->get_id(), '_tracking_provider', true);
-                $default_tracking      = $order->get_id() . 'N';
 
                 $tracking_provider_labels = [
                     'recibelo' => __('Recíbelo', 'woo-check'),
@@ -289,6 +288,42 @@ $order = wc_get_order($order_id);
                     if (isset($tracking_provider_labels[$tracking_provider_candidate])) {
                         $tracking_provider_slug  = $tracking_provider_candidate;
                         $tracking_provider_label = $tracking_provider_labels[$tracking_provider_candidate];
+                    }
+                }
+
+                $recibelo_internal_id = trim((string) get_post_meta($order->get_id(), '_recibelo_internal_id', true));
+                $shipit_tracking      = trim((string) get_post_meta($order->get_id(), '_shipit_tracking', true));
+                $generic_tracking     = trim((string) get_post_meta($order->get_id(), '_tracking_number', true));
+
+                $order_targets_recibelo = function_exists('wc_check_order_targets_recibelo')
+                    ? wc_check_order_targets_recibelo($order)
+                    : false;
+
+                $has_recibelo_identifier = $recibelo_internal_id !== '';
+
+                if ($has_recibelo_identifier) {
+                    $default_tracking = $recibelo_internal_id;
+                } elseif ($order_targets_recibelo && $generic_tracking !== '') {
+                    $default_tracking = $generic_tracking;
+                } elseif ($shipit_tracking !== '') {
+                    $default_tracking = $shipit_tracking;
+                } elseif ($generic_tracking !== '') {
+                    $default_tracking = $generic_tracking;
+                } else {
+                    $default_tracking = (string) $order->get_id();
+                }
+
+                if (
+                    $tracking_provider_slug === 'shipit'
+                    && !$order_targets_recibelo
+                    && !$has_recibelo_identifier
+                ) {
+                    if ($default_tracking === '') {
+                        $default_tracking = (string) $order->get_id();
+                    }
+
+                    if ($default_tracking !== '' && substr($default_tracking, -1) !== 'N') {
+                        $default_tracking .= 'N';
                     }
                 }
 
