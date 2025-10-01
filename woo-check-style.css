@@ -1,14 +1,23 @@
 /* woo-check-style.css */
 
 /* Example: Change background color of the checkout form */
+body.woocommerce-checkout {
+    background: url(https://elvillegas.cl/wp-content/uploads/2024/05/Nunork4.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    --checkout-content-width: 880px;
+}
+
 .woocommerce-checkout form.checkout {
     background-color: #f9f9f9;
     padding: 20px;
     border-radius: 8px;
+    box-sizing: border-box;
 }
 
 form.checkout.woocommerce-checkout {
-    max-width: 820px;
+    max-width: var(--checkout-content-width);
+    width: min(100%, var(--checkout-content-width));
     margin: 0 auto 50px;
 }
 
@@ -17,17 +26,13 @@ h1.alignwide.wp-block-post-title,
     color: white;
 }
 
-body.woocommerce-checkout {
-    background: url(https://elvillegas.cl/wp-content/uploads/2024/05/Nunork4.jpg);
-    background-size: cover;
-    background-repeat: no-repeat;
-}
-
 .checkout-notices-row {
     display: flex;
     align-items: stretch;
     margin: 0 auto 20px;
-    max-width: 880px;
+    max-width: var(--checkout-content-width);
+    width: min(100%, var(--checkout-content-width));
+    box-sizing: border-box;
     flex-wrap: nowrap;
 }
 
@@ -42,6 +47,8 @@ body.woocommerce-checkout {
 #checkout-notices-divider {
     flex: 0 0 20px;
     width: 20px;
+    min-width: 20px;
+    display: block;
 }
 
 .woocommerce-form-login,
@@ -50,15 +57,24 @@ body.woocommerce-checkout {
     width: 100%;
 }
 
+.woocommerce-form-login-toggle,
+.woocommerce-form-coupon-toggle {
+    margin: 0;
+    width: 100%;
+}
+
 @media (max-width: 767px) {
     .checkout-notices-row {
         flex-direction: column;
+        max-width: var(--checkout-content-width);
+        width: min(100%, var(--checkout-content-width));
     }
 
     #checkout-notices-divider {
         flex: 0 0 20px;
         height: 20px;
         width: 100%;
+        min-height: 20px;
     }
 
     .checkout-notices-row .woocommerce-info {
