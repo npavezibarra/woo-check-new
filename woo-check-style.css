@@ -61,6 +61,11 @@ h1.alignwide.wp-block-post-title,
     width: 100%;
 }
 
+.woocommerce-form-coupon-toggle .woocommerce-info {
+    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
+    border: 0;
+}
+
 .checkout-modal {
     position: fixed;
     inset: 0;
