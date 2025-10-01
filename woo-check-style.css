@@ -9,7 +9,11 @@
 
 form.checkout.woocommerce-checkout {
     max-width: 820px;
-    margin: auto;
+    margin: 0 auto 50px;
+}
+
+body.woocommerce-checkout #checkout-page-title {
+    color: #ffffff;
 }
 
 body.woocommerce-checkout {
