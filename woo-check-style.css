@@ -66,10 +66,19 @@ h1.alignwide.wp-block-post-title,
     border: 0;
 }
 
-#woocommerce-checkout-form-coupon .form-row-first,
-#woocommerce-checkout-form-coupon .form-row-last {
+#woocommerce-checkout-form-coupon .form-row-first {
     width: 100% !important;
     float: none;
+}
+
+.woocommerce form .form-row-last,
+.woocommerce-page form .form-row-last {
+    float: none;
+}
+
+.woocommerce form p.form-row.form-row-first,
+.woocommerce-page form p.form-row.form-row-first {
+    width: 100%;
 }
 
 #woocommerce-checkout-form-coupon .form-row-first input {
@@ -78,10 +87,6 @@ h1.alignwide.wp-block-post-title,
 
 #woocommerce-checkout-form-coupon .form-row-last {
     margin: 0;
-}
-
-#woocommerce-checkout-form-coupon .form-row-last .button {
-    width: 100%;
 }
 
 input#coupon_code {
