@@ -8,6 +8,10 @@ body.woocommerce-checkout {
     --checkout-content-width: 880px;
 }
 
+body.checkout-modal-open {
+    overflow: hidden;
+}
+
 .woocommerce-checkout form.checkout {
     background-color: #f9f9f9;
     padding: 20px;
@@ -57,6 +61,55 @@ h1.alignwide.wp-block-post-title,
     width: 100%;
 }
 
+.checkout-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 9999;
+}
+
+.checkout-modal.is-visible {
+    display: flex;
+}
+
+.checkout-modal__panel {
+    position: relative;
+    width: min(520px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 30px 24px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+}
+
+.checkout-modal .woocommerce-form-login,
+.checkout-modal .woocommerce-form-coupon {
+    display: block;
+    margin: 0;
+}
+
+.checkout-modal__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: #333333;
+}
+
+.checkout-modal__close:focus {
+    outline: 2px solid #1e88e5;
+    outline-offset: 2px;
+}
+
 .woocommerce-form-login-toggle,
 .woocommerce-form-coupon-toggle {
     width: 100%;
@@ -92,6 +145,11 @@ h1.alignwide.wp-block-post-title,
     .woocommerce-form-login-toggle,
     .woocommerce-form-coupon-toggle {
         margin: 0;
+    }
+
+    .checkout-modal__panel {
+        width: min(100%, 420px);
+        padding: 24px 20px;
     }
 }
 
