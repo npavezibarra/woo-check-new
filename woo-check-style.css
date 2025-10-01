@@ -212,6 +212,14 @@ p#billing_country_field {
     display: none;
 }
 
+p#billing_first_name_field {
+    width: 47%;
+}
+
+p#billing_last_name_field {
+    float: right;
+}
+
 #shipping_country_field {
     display: none;
 }
