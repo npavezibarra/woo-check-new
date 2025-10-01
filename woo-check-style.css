@@ -1,15 +1,196 @@
 /* woo-check-style.css */
 
 /* Example: Change background color of the checkout form */
+body.woocommerce-checkout {
+    background: url(https://elvillegas.cl/wp-content/uploads/2024/05/Nunork4.jpg);
+    background-size: cover;
+    background-repeat: no-repeat;
+    --checkout-content-width: 880px;
+}
+
+body.checkout-modal-open {
+    overflow: hidden;
+}
+
 .woocommerce-checkout form.checkout {
     background-color: #f9f9f9;
     padding: 20px;
     border-radius: 8px;
+    box-sizing: border-box;
 }
 
 form.checkout.woocommerce-checkout {
-    max-width: 820px;
-    margin: auto;
+    max-width: var(--checkout-content-width);
+    width: min(100%, var(--checkout-content-width));
+    margin: 0 auto 50px;
+}
+
+h1.alignwide.wp-block-post-title,
+#checkout-page-title {
+    color: white;
+}
+
+.checkout-notices-row {
+    display: flex;
+    align-items: stretch;
+    margin: 0 auto 20px;
+    max-width: var(--checkout-content-width);
+    width: min(100%, var(--checkout-content-width));
+    box-sizing: border-box;
+    flex-wrap: nowrap;
+}
+
+.checkout-notices-row .woocommerce-info {
+    box-sizing: border-box;
+    margin: 0;
+    flex: 1 1 calc((100% - 20px) / 2);
+    max-width: calc((100% - 20px) / 2);
+    width: calc((100% - 20px) / 2);
+}
+
+#checkout-notices-divider {
+    flex: 0 0 20px;
+    width: 20px;
+    min-width: 20px;
+    display: block;
+}
+
+.woocommerce-form-login,
+.woocommerce-form-coupon {
+    max-width: 100%;
+    width: 100%;
+}
+
+.woocommerce-form-coupon-toggle .woocommerce-info {
+    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
+    border: 0;
+}
+
+#woocommerce-checkout-form-coupon .form-row-first {
+    width: 100% !important;
+    float: none;
+}
+
+.woocommerce form .form-row-last,
+.woocommerce-page form .form-row-last {
+    float: none;
+}
+
+.woocommerce form p.form-row.form-row-first,
+.woocommerce-page form p.form-row.form-row-first {
+    width: 100%;
+}
+
+#woocommerce-checkout-form-coupon .form-row-first input {
+    width: 100%;
+}
+
+#woocommerce-checkout-form-coupon .form-row-last {
+    margin: 0;
+}
+
+input#coupon_code {
+    margin: 0;
+}
+
+.checkout-modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.65);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 9999;
+}
+
+.checkout-modal.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.checkout-modal__panel {
+    position: relative;
+    width: 320px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 30px 24px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.checkout-modal.is-ready .checkout-modal__panel {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.checkout-modal .woocommerce-form-login,
+.checkout-modal .woocommerce-form-coupon {
+    display: block;
+    margin: 0;
+}
+
+.checkout-modal__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    border: 0;
+    background: transparent;
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: #333333;
+}
+
+.checkout-modal__close:focus {
+    outline: 2px solid #1e88e5;
+    outline-offset: 2px;
+}
+
+.woocommerce-form-login-toggle,
+.woocommerce-form-coupon-toggle {
+    width: 100%;
+    margin: 0;
+}
+
+@media (max-width: 767px) {
+    .checkout-notices-row {
+        flex-direction: column;
+        max-width: var(--checkout-content-width);
+        width: min(100%, var(--checkout-content-width));
+    }
+
+    #checkout-notices-divider {
+        flex: 0 0 20px;
+        height: 20px;
+        width: 100%;
+        min-height: 20px;
+    }
+
+    .checkout-notices-row .woocommerce-info {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .woocommerce-form-login-toggle,
+    .woocommerce-form-coupon-toggle {
+        margin: 0;
+    }
+
+    .checkout-modal__panel {
+        width: min(100%, 320px);
+        padding: 24px 20px;
+    }
+
 }
 
 /* Example: Style for billing fields */
@@ -160,7 +341,7 @@ table.shop_table.woocommerce-checkout-review-order-table {
 }
 
 .wc-block-components-notice-banner.is-info {
-    background-color: #fffce6;
+    background: linear-gradient(90deg, #fcff9e 0%, #c67700 100%);
     border-color: #ffe16e;
 }
 

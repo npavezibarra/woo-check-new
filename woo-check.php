@@ -949,14 +949,17 @@ function woo_check_enqueue_assets() {
 
     // Enqueue general styles everywhere
     wp_enqueue_style(
-        'woo-check-general-style', 
-        plugin_dir_url(__FILE__) . 'general.css', 
-        array(), 
+        'woo-check-general-style',
+        plugin_dir_url(__FILE__) . 'general.css',
+        array(),
         '1.0'
     );
 
+    $is_checkout     = function_exists('is_checkout') ? is_checkout() : false;
+    $is_edit_address = function_exists('is_wc_endpoint_url') ? is_wc_endpoint_url('edit-address') : false;
+
     // Enqueue on the Order Received page
-    if (is_wc_endpoint_url('order-received')) {
+    if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('order-received')) {
         wp_enqueue_style(
             'woo-check-order-received-style',
             plugin_dir_url(__FILE__) . 'order-received.css',
@@ -966,11 +969,11 @@ function woo_check_enqueue_assets() {
     }
 
     // Enqueue on the Checkout page or Edit Address page
-    if (is_checkout() || is_wc_endpoint_url('edit-address')) {
+    if ($is_checkout || $is_edit_address) {
         wp_enqueue_style(
-            'woo-check-style', 
-            plugin_dir_url(__FILE__) . 'woo-check-style.css', 
-            array(), 
+            'woo-check-style',
+            plugin_dir_url(__FILE__) . 'woo-check-style.css',
+            array(),
             '1.0'
         );
 
@@ -979,6 +982,19 @@ function woo_check_enqueue_assets() {
             plugin_dir_url(__FILE__) . 'woo-check-autocomplete.js',
             array('jquery', 'jquery-ui-autocomplete'),
             '1.0',
+            true
+        );
+    }
+
+    if ($is_checkout) {
+        $checkout_script_path = plugin_dir_path(__FILE__) . 'woo-check.js';
+        $checkout_script_ver  = file_exists($checkout_script_path) ? filemtime($checkout_script_path) : '1.0';
+
+        wp_enqueue_script(
+            'woo-check-checkout',
+            plugin_dir_url(__FILE__) . 'woo-check.js',
+            array('jquery'),
+            $checkout_script_ver,
             true
         );
     }
