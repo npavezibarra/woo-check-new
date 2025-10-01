@@ -148,6 +148,14 @@ input#coupon_code {
     margin: 0;
 }
 
+#checkout-login-modal .woocommerce-form.woocommerce-form-login.login p.form-row.form-row-last {
+    width: 100%;
+}
+
+#checkout-login-modal .woocommerce-form.woocommerce-form-login.login button.woocommerce-button.button.woocommerce-form-login__submit.wp-element-button {
+    margin-bottom: 10px;
+}
+
 .checkout-modal__close {
     position: absolute;
     top: 12px;
