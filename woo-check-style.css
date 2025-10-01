@@ -176,7 +176,16 @@ input#coupon_code {
 .woocommerce-form-login-toggle,
 .woocommerce-form-coupon-toggle {
     width: 100%;
-    margin: 0;
+}
+
+@media (min-width: 768px) {
+    .woocommerce-form-login-toggle {
+        margin-right: 10px;
+    }
+
+    .woocommerce-form-coupon-toggle {
+        margin-left: 0;
+    }
 }
 
 @media (max-width: 767px) {
@@ -198,9 +207,12 @@ input#coupon_code {
         width: 100%;
     }
 
-    .woocommerce-form-login-toggle,
+    .woocommerce-form-login-toggle {
+        margin-right: 0;
+    }
+
     .woocommerce-form-coupon-toggle {
-        margin: 0;
+        margin-left: 10px;
     }
 
     .checkout-modal__panel {
