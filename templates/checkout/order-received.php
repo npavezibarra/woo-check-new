@@ -272,8 +272,9 @@ $order = wc_get_order($order_id);
                 <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $tracking_provider_raw = get_post_meta($order->get_id(), '_tracking_provider', true);
-                $default_tracking      = $order->get_id() . 'N';
+                $tracking_provider_raw   = get_post_meta($order->get_id(), '_tracking_provider', true);
+                $tracking_number_meta    = get_post_meta($order->get_id(), '_tracking_number', true);
+                $tracking_number_meta    = sanitize_text_field(trim((string) $tracking_number_meta));
 
                 $tracking_provider_labels = [
                     'recibelo' => __('Recíbelo', 'woo-check'),
@@ -289,6 +290,16 @@ $order = wc_get_order($order_id);
                     if (isset($tracking_provider_labels[$tracking_provider_candidate])) {
                         $tracking_provider_slug  = $tracking_provider_candidate;
                         $tracking_provider_label = $tracking_provider_labels[$tracking_provider_candidate];
+                    }
+                }
+
+                if ($tracking_number_meta !== '') {
+                    $default_tracking = $tracking_number_meta;
+                } else {
+                    $default_tracking = (string) $order->get_id();
+
+                    if ($default_tracking !== '' && $tracking_provider_slug === 'shipit') {
+                        $default_tracking .= 'N';
                     }
                 }
 
