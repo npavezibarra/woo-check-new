@@ -9,12 +9,16 @@ add_action( 'woocommerce_before_checkout_form', function() {
 
 if ( function_exists( 'woocommerce_checkout_coupon_form' ) ) {
     remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
-    add_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 15 );
-}
 
-add_action( 'woocommerce_before_checkout_form', function() {
-    echo '<div id="checkout-notices-divider" aria-hidden="true"></div>';
-}, 13 );
+    add_action( 'woocommerce_before_checkout_form', function() {
+        if ( function_exists( 'wc_coupons_enabled' ) && ! wc_coupons_enabled() ) {
+            return;
+        }
+
+        echo '<div id="checkout-notices-divider" aria-hidden="true"></div>';
+        woocommerce_checkout_coupon_form();
+    }, 15 );
+}
 
 add_action( 'woocommerce_before_checkout_form', function() {
     echo '</div>';
