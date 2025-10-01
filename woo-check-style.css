@@ -24,18 +24,15 @@ body.woocommerce-checkout {
 
 .checkout-notices-row {
     display: flex;
-    max-width: 880px;
+    max-width: 860px;
     margin: 0 auto 20px;
+    gap: 20px;
 }
 
 .checkout-notices-row .woocommerce-info {
     flex: 1 1 50%;
     box-sizing: border-box;
     margin: 0;
-}
-
-.checkout-notices-row .woocommerce-info + .woocommerce-info {
-    margin-left: 20px;
 }
 
 .woocommerce-form-login-toggle,
