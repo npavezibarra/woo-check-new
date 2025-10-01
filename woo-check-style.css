@@ -89,6 +89,11 @@ tr.cart-discount {
     background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
 }
 
+.woocommerce form .form-row.woocommerce-validated input.input-text,
+.woocommerce form .form-row.woocommerce-validated select {
+    border-color: #dec46c;
+}
+
 #woocommerce-checkout-form-coupon .form-row-first {
     width: 100% !important;
     float: none;
