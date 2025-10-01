@@ -303,6 +303,10 @@ table.shop_table.woocommerce-checkout-review-order-table {
     border: 2px solid #c9c9c9;
 }
 
+#order_review thead {
+    background: #ebebeb;
+}
+
 #add_payment_method #payment, .woocommerce-cart #payment, .woocommerce-checkout #payment {
     background: #ebebeb;
     border-radius: 5px;
