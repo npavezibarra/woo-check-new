@@ -272,14 +272,30 @@ $order = wc_get_order($order_id);
                 <div id="order-header" class="order-header">
                 <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
                 <?php
-                $tracking_provider = get_post_meta($order->get_id(), '_tracking_provider', true);
-                $default_tracking  = $order->get_id() . 'N';
+                $tracking_provider      = get_post_meta($order->get_id(), '_tracking_provider', true);
+                $default_tracking       = $order->get_id() . 'N';
+                $tracking_provider_slug = strtolower((string) $tracking_provider);
+
+                if ('' === $tracking_provider_slug) {
+                    $tracking_provider_slug = 'shipit';
+                }
+
+                $provider_label_map = [
+                    'recibelo' => 'Recíbelo',
+                    'shipit'   => 'Shipit',
+                ];
+
+                $tracking_provider_label = $provider_label_map[$tracking_provider_slug] ?? ucwords($tracking_provider_slug);
                 ?>
-                <div id="tracking-status" data-order-id="<?php echo esc_attr($order->get_id()); ?>">
+                <div
+                    id="tracking-status"
+                    data-order-id="<?php echo esc_attr($order->get_id()); ?>"
+                    data-tracking-provider="<?php echo esc_attr($tracking_provider_slug); ?>"
+                >
                     <p class="tracking-heading">
                         <strong><?php esc_html_e('Tracking:', 'woo-check'); ?></strong>
                         <span class="tracking-number"><?php echo esc_html($default_tracking); ?></span>
-                        <span class="tracking-courier">(<?php esc_html_e('Shipit', 'woo-check'); ?>)</span>
+                        <span class="tracking-courier">(<?php echo esc_html($tracking_provider_label); ?>)</span>
                     </p>
                     <p class="tracking-message"><?php esc_html_e('Estamos consultando el estado de este envío...', 'woo-check'); ?></p>
                     <p class="tracking-link" style="display:none;"><a href="#" target="_blank" rel="noopener noreferrer"></a></p>

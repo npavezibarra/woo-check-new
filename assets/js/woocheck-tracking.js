@@ -3,20 +3,52 @@ jQuery(document).ready(function($) {
         ? WooCheckAjax.fallback_message
         : 'Estamos consultando el estado de este envío...';
 
-    function applyTrackingData($container, data) {
+    function normalizeProvider(provider) {
+        if (!provider) {
+            return '';
+        }
+
+        return String(provider).trim().toLowerCase();
+    }
+
+    function getProviderLabel(provider) {
+        var normalized = normalizeProvider(provider);
+
+        if (!normalized) {
+            return 'Shipit';
+        }
+
+        var map = {
+            recibelo: 'Recíbelo',
+            shipit: 'Shipit'
+        };
+
+        if (map.hasOwnProperty(normalized)) {
+            return map[normalized];
+        }
+
+        return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
+
+    function applyTrackingData($container, data, fallbackProvider) {
         if (!data) {
             return;
+        }
+
+        var providerFromData = normalizeProvider(data.provider);
+        var providerSlug = providerFromData || normalizeProvider(fallbackProvider);
+        var providerLabel = getProviderLabel(providerSlug);
+
+        if (providerSlug) {
+            $container.data('tracking-provider', providerSlug);
         }
 
         if (data.tracking_number) {
             $container.find('.tracking-number').text(data.tracking_number);
         }
 
-        if (data.courier) {
-            $container.find('.tracking-courier').text('(' + data.courier + ')');
-        } else {
-            $container.find('.tracking-courier').text('(Shipit)');
-        }
+        var courierLabel = data.courier ? data.courier : providerLabel;
+        $container.find('.tracking-courier').text('(' + courierLabel + ')');
 
         var message = data.message ? data.message : FALLBACK_MESSAGE;
         $container.find('.tracking-message').text(message);
@@ -32,7 +64,7 @@ jQuery(document).ready(function($) {
                 }).appendTo($linkWrapper.empty());
             }
 
-            var linkLabel = data.courier ? 'Ver seguimiento en ' + data.courier : 'Ver seguimiento';
+            var linkLabel = providerLabel ? 'Ver seguimiento en ' + providerLabel : 'Ver seguimiento';
             $anchor.attr('href', data.tracking_url).text(linkLabel);
             $linkWrapper.show();
         } else {
@@ -49,6 +81,11 @@ jQuery(document).ready(function($) {
         }
 
         var orderId = $container.data('order-id');
+        var providerSlug = normalizeProvider($container.data('tracking-provider'));
+
+        if (providerSlug === 'recibelo') {
+            return;
+        }
 
         if (!orderId || !WooCheckAjax.ajax_url) {
             return;
@@ -59,7 +96,7 @@ jQuery(document).ready(function($) {
             order_id: orderId
         }).done(function(response) {
             if (response && response.success) {
-                applyTrackingData($container, response.data);
+                applyTrackingData($container, response.data, providerSlug);
             } else {
                 $container.find('.tracking-message').text(FALLBACK_MESSAGE);
             }
