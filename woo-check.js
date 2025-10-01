@@ -9,6 +9,8 @@ jQuery(function($) {
     const focusableSelector = 'a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])';
     const $body = $(document.body);
 
+    const panelTransitionDuration = 250;
+
     const modalConfigs = [
         {
             formSelector: '.woocommerce-form-login',
@@ -49,18 +51,31 @@ jQuery(function($) {
             });
 
             $form.removeAttr('style');
-            $panel.append($close, $form);
+            $panel.append($close);
+            $panel.append($form);
             $modal.append($panel);
             $('body').append($modal);
 
             let $activeTrigger = null;
+            let hideTimer = null;
 
             const closeModal = function(restoreFocus = true) {
                 if (!$modal.hasClass('is-visible')) {
                     return;
                 }
 
-                $modal.removeClass('is-visible').attr('aria-hidden', 'true');
+                window.clearTimeout(hideTimer);
+
+                $modal.attr('aria-hidden', 'true');
+                $modal.removeClass('is-ready');
+
+                hideTimer = window.setTimeout(function() {
+                    $modal.removeClass('is-visible');
+
+                    if (!$('.checkout-modal.is-visible').not($modal).length) {
+                        $body.removeClass('checkout-modal-open');
+                    }
+                }, panelTransitionDuration);
 
                 if ($activeTrigger && $activeTrigger.length) {
                     $activeTrigger.attr('aria-expanded', 'false');
@@ -71,15 +86,13 @@ jQuery(function($) {
                 }
 
                 $activeTrigger = null;
-
-                if (!$('.checkout-modal.is-visible').not($modal).length) {
-                    $body.removeClass('checkout-modal-open');
-                }
             };
 
             $modal.data('wooCheckClose', closeModal);
 
             const openModal = function($trigger) {
+                window.clearTimeout(hideTimer);
+
                 $form.show();
 
                 $('.checkout-modal.is-visible').not($modal).each(function() {
@@ -93,8 +106,17 @@ jQuery(function($) {
                     }
                 });
 
+                $modal.removeClass('is-ready');
                 $body.addClass('checkout-modal-open');
                 $modal.addClass('is-visible').attr('aria-hidden', 'false');
+
+                const raf = window.requestAnimationFrame || function(callback) {
+                    return window.setTimeout(callback, 16);
+                };
+
+                raf(function() {
+                    $modal.addClass('is-ready');
+                });
 
                 if ($trigger && $trigger.length) {
                     $activeTrigger = $trigger;
@@ -112,7 +134,7 @@ jQuery(function($) {
                     } else {
                         $close.trigger('focus');
                     }
-                }, 50);
+                }, panelTransitionDuration);
             };
 
             $close.on('click', function() {

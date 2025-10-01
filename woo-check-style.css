@@ -69,16 +69,22 @@ h1.alignwide.wp-block-post-title,
 .checkout-modal {
     position: fixed;
     inset: 0;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
     background: rgba(0, 0, 0, 0.65);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
     z-index: 9999;
 }
 
 .checkout-modal.is-visible {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .checkout-modal__panel {
@@ -90,6 +96,14 @@ h1.alignwide.wp-block-post-title,
     border-radius: 8px;
     padding: 30px 24px;
     box-shadow: 0 24px 48px rgba(0, 0, 0, 0.2);
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.checkout-modal.is-ready .checkout-modal__panel {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 .checkout-modal .woocommerce-form-login,
