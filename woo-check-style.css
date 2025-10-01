@@ -418,6 +418,12 @@ table.shop_table.woocommerce-checkout-review-order-table {
     border-color: #ffe16e;
 }
 
+.wc-block-components-notice-banner.is-success {
+    max-width: 701px;
+    margin: auto;
+    margin-bottom: 40px;
+}
+
 .wc-block-components-notice-banner.is-info>svg {
     background-color: #ba7d00;
 }
