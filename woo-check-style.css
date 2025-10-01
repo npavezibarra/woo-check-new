@@ -22,6 +22,28 @@ body.woocommerce-checkout {
     background-repeat: no-repeat;
 }
 
+.checkout-notices-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.checkout-notices-row .woocommerce-info {
+    flex: 1 1 50%;
+    box-sizing: border-box;
+}
+
+.woocommerce-form-login-toggle,
+.woocommerce-form-coupon-toggle {
+    width: 100%;
+}
+
+.woocommerce-form-login,
+.woocommerce-form-coupon {
+    max-width: 100%;
+    width: 100%;
+}
+
 /* Example: Style for billing fields */
 .woocommerce-checkout #customer_details .col-1,
 .woocommerce-checkout #customer_details .col-2 {
