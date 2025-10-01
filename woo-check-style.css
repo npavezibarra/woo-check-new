@@ -66,6 +66,15 @@ h1.alignwide.wp-block-post-title,
     border: 0;
 }
 
+.wc-block-components-notice-banner.is-info {
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
+    border-color: #ffe16e;
+}
+
+tr.cart-discount {
+    background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
+}
+
 #woocommerce-checkout-form-coupon .form-row-first {
     width: 100% !important;
     float: none;
