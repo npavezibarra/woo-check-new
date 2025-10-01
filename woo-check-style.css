@@ -12,8 +12,8 @@ form.checkout.woocommerce-checkout {
     margin: 0 auto 50px;
 }
 
-body.woocommerce-checkout #checkout-page-title {
-    color: #ffffff;
+h1.alignwide.wp-block-post-title {
+    color: white;
 }
 
 body.woocommerce-checkout {
