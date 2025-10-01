@@ -80,6 +80,8 @@ jQuery(function($) {
             $modal.data('wooCheckClose', closeModal);
 
             const openModal = function($trigger) {
+                $form.show();
+
                 $('.checkout-modal.is-visible').not($modal).each(function() {
                     const $otherModal = $(this);
                     const otherClose = $otherModal.data('wooCheckClose');
@@ -132,7 +134,8 @@ jQuery(function($) {
             modalData = {
                 modal: $modal,
                 openModal: openModal,
-                closeModal: closeModal
+                closeModal: closeModal,
+                form: $form
             };
 
             $form.data('wooCheckModalData', modalData);
@@ -146,6 +149,7 @@ jQuery(function($) {
         $body.on('click' + namespace, config.triggerSelector, function(event) {
             event.preventDefault();
             event.stopPropagation();
+            event.stopImmediatePropagation();
             modalData.openModal($(this));
         });
 
