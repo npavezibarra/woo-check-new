@@ -104,7 +104,9 @@ jQuery(document).ready(function($) {
         var message = data.message ? data.message : FALLBACK_MESSAGE;
 
         if (!trackingNumber && isRecibelo) {
-            setTrackingNumber($container, WAITING_COPY);
+            var fallbackTracking = ($container.data('order-id') || '').toString();
+
+            setTrackingNumber($container, fallbackTracking || WAITING_COPY);
         } else {
             setTrackingNumber($container, trackingNumber);
         }
