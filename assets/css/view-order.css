@@ -141,6 +141,43 @@
   margin-top: 0;
   margin-bottom: 0.75rem;
   font-size: 1.1rem;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+}
+
+#info-extra-envio {
+  margin-top: 1.5rem;
+  background: #f9f9f9;
+  border-radius: 12px;
+  border: 1px solid #e3e3e3;
+  padding: 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-extra-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.info-extra-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.info-extra-icon {
+  font-size: 1.1rem;
+}
+
+.info-extra-label {
+  font-weight: 600;
+}
+
+.info-extra-value {
+  font-weight: 700;
+  color: #1d1d1f;
 }
 
 .order-address-flip-card address {

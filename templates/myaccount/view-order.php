@@ -268,6 +268,42 @@ if ( '' !== $tracking_provider_label ) {
             <?php endif; ?>
         </div>
 
+        <?php
+        $tax_totals      = $order->get_tax_totals();
+        $tax_total_label = __( 'IVA', 'woo-check' );
+
+        if ( ! empty( $tax_totals ) ) {
+            $first_tax_total = reset( $tax_totals );
+
+            if ( is_object( $first_tax_total ) ) {
+                if ( method_exists( $first_tax_total, 'get_label' ) ) {
+                    $tax_total_label = $first_tax_total->get_label();
+                } elseif ( isset( $first_tax_total->label ) && '' !== $first_tax_total->label ) {
+                    $tax_total_label = $first_tax_total->label;
+                }
+
+                $rate_percent = '';
+                if ( method_exists( $first_tax_total, 'get_rate_percent' ) ) {
+                    $rate_percent = $first_tax_total->get_rate_percent();
+                } elseif ( isset( $first_tax_total->rate_percent ) ) {
+                    $rate_percent = $first_tax_total->rate_percent;
+                }
+
+                if ( '' !== $rate_percent && ! is_wp_error( $rate_percent ) ) {
+                    $rate_percent = wc_trim_zeros( wc_format_decimal( $rate_percent, 2 ) );
+
+                    if ( 0 === (float) $rate_percent || '' === $rate_percent ) {
+                        $rate_percent = '';
+                    }
+                }
+
+                if ( '' !== $rate_percent ) {
+                    $tax_total_label = sprintf( '%s (%s%%)', $tax_total_label, $rate_percent );
+                }
+            }
+        }
+        ?>
+
         <?php if ( $has_address_information ) : ?>
             <div class="order-address-flip-card">
                 <div id="order-address-flip-card" class="flip-card" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'Ver direcciones de facturación y envío', 'woocommerce' ); ?>" aria-pressed="false">
@@ -284,6 +320,26 @@ if ( '' !== $tracking_provider_label ) {
                 </div>
             </div>
         <?php endif; ?>
+
+        <div id="info-extra-envio">
+            <div class="info-extra-items" role="list">
+                <div class="info-extra-item" role="listitem">
+                    <span class="info-extra-icon" aria-hidden="true">🚚</span>
+                    <span class="info-extra-label"><?php esc_html_e( 'Envío', 'woo-check' ); ?></span>
+                    <span class="info-extra-value"><?php echo wp_kses_post( wc_price( (float) $order->get_shipping_total() + (float) $order->get_shipping_tax() ) ); ?></span>
+                </div>
+                <div class="info-extra-item" role="listitem">
+                    <span class="info-extra-icon" aria-hidden="true">🕵️‍♂️</span>
+                    <span class="info-extra-label"><?php echo esc_html( $tax_total_label ); ?></span>
+                    <span class="info-extra-value"><?php echo wp_kses_post( wc_price( (float) $order->get_total_tax() ) ); ?></span>
+                </div>
+                <div class="info-extra-item" role="listitem">
+                    <span class="info-extra-icon" aria-hidden="true">💵</span>
+                    <span class="info-extra-label"><?php esc_html_e( 'Total Orden', 'woo-check' ); ?></span>
+                    <span class="info-extra-value"><?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></span>
+                </div>
+            </div>
+        </div>
 
         <p class="woocommerce-order-payment-method">
             <strong><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?>
