@@ -78,6 +78,8 @@ class WooCheck_Recibelo {
         $order->delete_meta_data( '_recibelo_sync_failed' );
         $order->save_meta_data();
 
+        update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
+
         $decoded_body = json_decode( $body, true );
         $tracking     = self::extract_tracking_from_response( $decoded_body );
 
@@ -87,6 +89,9 @@ class WooCheck_Recibelo {
             update_post_meta( $order_id, '_tracking_number', $internal_id );
             update_post_meta( $order_id, '_tracking_provider', $tracking['provider'] );
             update_post_meta( $order_id, '_recibelo_internal_id', $internal_id );
+            update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
+        } else {
+            update_post_meta( $order_id, '_tracking_number', '' );
         }
 
         return $response;
@@ -442,6 +447,37 @@ if ( ! class_exists( 'WC_Check_Recibelo' ) ) {
             return $default_message;
         }
 
+        public static function ajax_get_tracking_status() {
+            if ( ! isset( $_POST['order_id'] ) ) {
+                wp_send_json_error( [ 'message' => __( 'Missing order_id', 'woo-check' ) ] );
+            }
+
+            $order_id = absint( wp_unslash( $_POST['order_id'] ) );
+
+            if ( ! $order_id ) {
+                wp_send_json_error( [ 'message' => __( 'Invalid order_id', 'woo-check' ) ] );
+            }
+
+            $order = wc_get_order( $order_id );
+
+            if ( ! $order ) {
+                wp_send_json_error( [ 'message' => __( 'Order not found', 'woo-check' ) ] );
+            }
+
+            $internal_id   = $order->get_meta( '_recibelo_internal_id', true );
+            $customer_name = $order->get_formatted_billing_full_name();
+
+            $status = self::get_tracking_status( $internal_id, $customer_name );
+
+            wp_send_json_success( [
+                'status'          => $status,
+                'message'         => $status,
+                'courier'         => 'Recíbelo',
+                'tracking_number' => $internal_id,
+                'tracking_url'    => '',
+            ] );
+        }
+
         /**
          * Extract Recíbelo packages from an API payload.
          *
@@ -553,3 +589,6 @@ if ( ! class_exists( 'WC_Check_Recibelo' ) ) {
         }
     }
 }
+
+add_action( 'wp_ajax_woocheck_recibelo_status', [ 'WC_Check_Recibelo', 'ajax_get_tracking_status' ] );
+add_action( 'wp_ajax_nopriv_woocheck_recibelo_status', [ 'WC_Check_Recibelo', 'ajax_get_tracking_status' ] );

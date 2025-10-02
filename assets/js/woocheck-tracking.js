@@ -8,6 +8,24 @@ jQuery(document).ready(function($) {
             return;
         }
 
+        var courierSlug = data.courier ? data.courier.toLowerCase() : '';
+        if (!courierSlug) {
+            var providerSlug = ($container.data('tracking-provider') || '').toString().toLowerCase();
+            if (providerSlug) {
+                courierSlug = providerSlug;
+            }
+        }
+
+        var waitingCopy = 'Esperando tracking number...';
+
+        if (!data.tracking_number && courierSlug === 'recibelo') {
+            var courierLabel = data.courier ? '(' + data.courier + ')' : '(Recíbelo)';
+            $container.find('.tracking-courier').text(courierLabel);
+            $container.find('.tracking-number').text('');
+            $container.find('.tracking-message').text(waitingCopy);
+            return;
+        }
+
         if (data.tracking_number) {
             $container.find('.tracking-number').text(data.tracking_number);
         }
@@ -19,6 +37,7 @@ jQuery(document).ready(function($) {
         }
 
         var message = data.message ? data.message : FALLBACK_MESSAGE;
+
         $container.find('.tracking-message').text(message);
 
         var $linkWrapper = $container.find('.tracking-link');
@@ -49,13 +68,17 @@ jQuery(document).ready(function($) {
         }
 
         var orderId = $container.data('order-id');
+        var provider = $container.data('tracking-provider');
+        var action = (provider && provider.toLowerCase() === 'recibelo')
+            ? 'woocheck_recibelo_status'
+            : 'woocheck_shipit_status';
 
         if (!orderId || !WooCheckAjax.ajax_url) {
             return;
         }
 
         $.post(WooCheckAjax.ajax_url, {
-            action: 'woocheck_shipit_status',
+            action: action,
             order_id: orderId
         }).done(function(response) {
             if (response && response.success) {

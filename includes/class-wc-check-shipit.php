@@ -94,24 +94,22 @@ class WC_Check_Shipit {
         $this->log_api( $data, $response );
 
         if ( ! is_wp_error( $response ) ) {
-            $body        = json_decode( wp_remote_retrieve_body( $response ), true );
-            $order_id    = $order->get_id();
-            $tracking_no = '';
+            $body      = json_decode( wp_remote_retrieve_body( $response ), true );
+            $order_id  = $order->get_id();
+            $reference = sanitize_text_field( $order_id . 'N' );
 
-            if ( isset( $body['tracking_number'] ) ) {
-                $order->update_meta_data( '_shipit_tracking', sanitize_text_field( $body['tracking_number'] ) );
-                $order->save_meta_data();
-            }
+            $order->update_meta_data( '_shipit_tracking', $reference );
+            $order->save_meta_data();
 
-            $status_code = (int) wp_remote_retrieve_response_code( $response );
+            if ( isset( $body['tracking_number'] ) && '' !== trim( (string) $body['tracking_number'] ) ) {
+                $tracking_number = sanitize_text_field( $body['tracking_number'] );
 
-            if ( $status_code >= 200 && $status_code < 300 ) {
-                $tracking_no = $order_id . 'N';
-            }
-
-            if ( ! empty( $tracking_no ) ) {
-                update_post_meta( $order_id, '_tracking_number', sanitize_text_field( $tracking_no ) );
+                update_post_meta( $order_id, '_tracking_number', $tracking_number );
                 update_post_meta( $order_id, '_tracking_provider', 'shipit' );
+            } else {
+                update_post_meta( $order_id, '_tracking_number', $reference );
+                update_post_meta( $order_id, '_tracking_provider', 'shipit' );
+                error_log( "WooCheck: Shipit did not return tracking_number for order #{$order_id}" );
             }
         }
 
@@ -264,10 +262,12 @@ class WC_Check_Shipit {
             $email = 'no-reply@yourdomain.cl';
         }
 
+        $reference = (string) $order->get_id() . 'N';
+
         $payload = [
             'shipment' => [
                 'platform'  => 2,
-                'reference' => $order->get_id() . 'N',
+                'reference' => $reference,
                 'items'     => max( 1, $item_count ),
                 'sizes'     => $dimensions,
                 'courier'   => [
@@ -431,23 +431,53 @@ class WC_Check_Shipit {
             return $result;
         }
 
-        $tracking_reference = trim( (string) $order->get_meta( '_shipit_tracking', true ) );
-
-        if ( '' === $tracking_reference ) {
-            $tracking_reference = trim( (string) $order->get_meta( '_tracking_number', true ) );
-        }
-
-        if ( '' === $tracking_reference ) {
-            $tracking_reference = $order_id . 'N';
-        }
-
-        $result['tracking_number'] = sanitize_text_field( $tracking_reference );
-
-        $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
+        $stored_courier = strtolower( trim( (string) $order->get_meta( '_tracking_provider', true ) ) );
 
         if ( '' !== $stored_courier ) {
             $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
         }
+
+        if ( 'recibelo' === $stored_courier ) {
+            $result['tracking_number'] = '';
+            $result['message']         = __( 'Esperando tracking number...', 'woo-check' );
+
+            return $result;
+        }
+
+        $shipit_reference      = $order_id ? $order_id . 'N' : '';
+        $meta_tracking         = trim( (string) $order->get_meta( '_shipit_tracking', true ) );
+        $generic_tracking      = trim( (string) $order->get_meta( '_tracking_number', true ) );
+        $reference_candidates  = [];
+
+        if ( '' !== $shipit_reference ) {
+            $reference_candidates[] = $shipit_reference;
+        }
+
+        if ( '' !== $meta_tracking && ! in_array( $meta_tracking, $reference_candidates, true ) ) {
+            $reference_candidates[] = $meta_tracking;
+        }
+
+        if ( '' !== $generic_tracking && ! in_array( $generic_tracking, $reference_candidates, true ) ) {
+            $reference_candidates[] = $generic_tracking;
+        }
+
+        $reference_candidates = array_values(
+            array_filter(
+                $reference_candidates,
+                static function ( $candidate ) {
+                    return '' !== $candidate;
+                }
+            )
+        );
+
+        if ( empty( $reference_candidates ) ) {
+            $result['tracking_number'] = '';
+            $result['message']         = __( 'Esperando tracking number...', 'woo-check' );
+
+            return $result;
+        }
+
+        $result['tracking_number'] = sanitize_text_field( $reference_candidates[0] );
 
         $credentials = self::get_api_credentials();
 
@@ -455,39 +485,56 @@ class WC_Check_Shipit {
             return $result;
         }
 
-        $endpoint = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $tracking_reference );
+        $package        = null;
+        $reference_used = '';
 
-        $response = wp_remote_get(
-            $endpoint,
-            [
-                'headers' => [
-                    'Accept'                => 'application/json',
-                    'Content-Type'          => 'application/json',
-                    'X-Shipit-Email'        => $credentials['email'],
-                    'X-Shipit-Access-Token' => $credentials['token'],
-                ],
-                'timeout' => 20,
-            ]
-        );
+        foreach ( $reference_candidates as $candidate ) {
+            $endpoint = 'https://api.shipit.cl/v/packages/reference/' . rawurlencode( $candidate );
 
-        if ( is_wp_error( $response ) ) {
+            $response = wp_remote_get(
+                $endpoint,
+                [
+                    'headers' => [
+                        'Accept'                => 'application/json',
+                        'Content-Type'          => 'application/json',
+                        'X-Shipit-Email'        => $credentials['email'],
+                        'X-Shipit-Access-Token' => $credentials['token'],
+                    ],
+                    'timeout' => 20,
+                ]
+            );
+
+            if ( is_wp_error( $response ) ) {
+                continue;
+            }
+
+            $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+            if ( $status_code < 200 || $status_code >= 300 ) {
+                continue;
+            }
+
+            $body = wp_remote_retrieve_body( $response );
+            $data = json_decode( $body, true );
+
+            if ( ! is_array( $data ) || empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
+                continue;
+            }
+
+            $package        = $data['packages'][0];
+            $reference_used = $candidate;
+
+            break;
+        }
+
+        if ( ! $package ) {
             return $result;
         }
 
-        $status_code = (int) wp_remote_retrieve_response_code( $response );
-
-        if ( $status_code < 200 || $status_code >= 300 ) {
-            return $result;
+        if ( '' !== $reference_used && $reference_used !== $meta_tracking ) {
+            $order->update_meta_data( '_shipit_tracking', sanitize_text_field( $reference_used ) );
+            $order->save_meta_data();
         }
-
-        $body = wp_remote_retrieve_body( $response );
-        $data = json_decode( $body, true );
-
-        if ( ! is_array( $data ) || empty( $data['packages'][0] ) || ! is_array( $data['packages'][0] ) ) {
-            return $result;
-        }
-
-        $package = $data['packages'][0];
 
         if ( isset( $package['courier_status'] ) && '' !== trim( (string) $package['courier_status'] ) ) {
             $status = self::format_status_label( $package['courier_status'] );
@@ -498,7 +545,16 @@ class WC_Check_Shipit {
         }
 
         if ( isset( $package['tracking_number'] ) && '' !== trim( (string) $package['tracking_number'] ) ) {
-            $result['tracking_number'] = sanitize_text_field( $package['tracking_number'] );
+            $tracking_number          = sanitize_text_field( $package['tracking_number'] );
+            $result['tracking_number'] = $tracking_number;
+
+            if ( $order->get_meta( '_tracking_number', true ) !== $tracking_number ) {
+                update_post_meta( $order_id, '_tracking_number', $tracking_number );
+            }
+
+            if ( 'shipit' !== $stored_courier ) {
+                update_post_meta( $order_id, '_tracking_provider', 'shipit' );
+            }
         }
 
         if ( isset( $package['courier_for_client'] ) && '' !== trim( (string) $package['courier_for_client'] ) ) {
