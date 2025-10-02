@@ -46,3 +46,44 @@
   display: grid;
   gap: 0.5rem;
 }
+
+.order-header {
+  margin: 0 0 1.5rem;
+  background-image: linear-gradient(to right, #434343 0%, black 100%);
+  color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dadada;
+}
+
+.order-header p {
+  margin: 0;
+}
+
+.order-header .fecha-hora-orden {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.recibelo-tracking-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ffffff;
+  border-radius: 3px;
+  padding: 3px 6px;
+  margin-top: 10px;
+}
+
+.recibelo-tracking-status::before {
+  content: "\1F4E6";
+}
+
+.tracking-link a {
+  color: #ffffff;
+}
+
+.tracking-link a:focus,
+.tracking-link a:hover {
+  color: #ffffff;
+}
