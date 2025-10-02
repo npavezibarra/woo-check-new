@@ -379,6 +379,10 @@ p.titulo-seccion {
     position: relative; /* To position the dividing line */
 }
 
+.woocommerce-order-received header {
+    background: #f9f9f9;
+}
+
 p.fecha-hora-orden {
     color: #ffffff;
     margin-top: 0px;
