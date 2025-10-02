@@ -1,0 +1,222 @@
+.woocommerce-order-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+}
+
+@media (max-width: 1140px) {
+  .woocommerce-order-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.woocommerce-order-column {
+  background: #fff;
+  /* padding: 1.5rem; */
+  border-radius: 12px;
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
+}
+
+.order_items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.order_item {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 1rem;
+}
+
+.order_item-thumbnail img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.order_item-quantity,
+.order_item-total {
+  font-weight: 600;
+  text-align: right;
+}
+
+.order-header {
+  margin: 0 0 1.5rem;
+  background-image: linear-gradient(to right, #434343 0%, black 100%);
+  color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #dadada;
+}
+
+.order-header p {
+  margin: 0;
+}
+
+.order-header .fecha-hora-orden {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.recibelo-tracking-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ffffff;
+  border-radius: 3px;
+  padding: 3px 6px;
+  margin: 20px 0px;
+}
+
+.recibelo-tracking-status::before {
+  content: "\1F4E6";
+}
+
+.tracking-link a {
+  color: #ffffff;
+}
+
+.tracking-link a:focus,
+.tracking-link a:hover {
+  color: #ffffff;
+}
+
+.tracking-courier a {
+  color: #ffffff;
+}
+
+.tracking-courier a:focus,
+.tracking-courier a:hover {
+  color: #ffffff;
+}
+
+.order-address-flip-card {
+  margin-top: 1.5rem;
+  perspective: 1000px;
+}
+
+.order-address-flip-card .flip-card { 
+  position: relative;
+  width: 100%;
+  outline: none;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.woocommerce-order-column--right > h3 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin-top: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.order-address-flip-card .flip-card-inner {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  transition: transform 0.6s ease;
+  transform-style: preserve-3d;
+}
+
+.order-address-flip-card .flip-card:hover .flip-card-inner,
+.order-address-flip-card .flip-card:focus .flip-card-inner,
+.order-address-flip-card .flip-card:focus-within .flip-card-inner,
+.order-address-flip-card .flip-card.is-flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.order-address-flip-card .flip-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  background: linear-gradient(314deg, rgb(255, 241, 158) 0%, rgb(220, 194, 105) 100%);
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.order-address-flip-card .flip-card-face.flip-card-front,
+.order-address-flip-card .flip-card-face.flip-card-back {
+  border-radius: 8px;
+}
+
+.order-address-flip-card .flip-card-front {
+  transform: rotateY(0deg);
+}
+
+.order-address-flip-card .flip-card-face.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.order-address-flip-card h4 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+}
+
+#info-extra-envio {
+  margin-top: 1.5rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #e3e3e3;
+  padding: 1.25rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.info-extra-items {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.info-extra-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.info-extra-icon {
+  font-size: 1.1rem;
+}
+
+.info-extra-label {
+  font-weight: 600;
+}
+
+.info-extra-value {
+  font-weight: 700;
+  color: #1d1d1f;
+}
+
+.order-address-flip-card address {
+  margin: 0;
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.order-address-flip-card .flip-card a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.order-address-flip-card .flip-card:focus {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 767px) {
+  .order-address-flip-card .flip-card-inner {
+    min-height: 240px;
+  }
+}

@@ -961,6 +961,15 @@ function woo_check_enqueue_assets() {
         '1.0'
     );
 
+    if ( function_exists( 'is_account_page' ) && is_account_page() ) {
+        wp_enqueue_style(
+            'woo-check-view-order',
+            plugin_dir_url(__FILE__) . 'assets/css/view-order.css',
+            array(),
+            '1.0.0'
+        );
+    }
+
     $is_checkout     = function_exists('is_checkout') ? is_checkout() : false;
     $is_edit_address = function_exists('is_wc_endpoint_url') ? is_wc_endpoint_url('edit-address') : false;
 
