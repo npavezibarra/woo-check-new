@@ -49,13 +49,17 @@ jQuery(document).ready(function($) {
         }
 
         var orderId = $container.data('order-id');
+        var provider = $container.data('tracking-provider');
+        var action = (provider && provider.toLowerCase() === 'recibelo')
+            ? 'woocheck_recibelo_status'
+            : 'woocheck_shipit_status';
 
         if (!orderId || !WooCheckAjax.ajax_url) {
             return;
         }
 
         $.post(WooCheckAjax.ajax_url, {
-            action: 'woocheck_shipit_status',
+            action: action,
             order_id: orderId
         }).done(function(response) {
             if (response && response.success) {
