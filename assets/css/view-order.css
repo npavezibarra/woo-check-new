@@ -4,6 +4,12 @@
   gap: 2rem;
 }
 
+@media (max-width: 1140px) {
+  .woocommerce-order-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
 .woocommerce-order-column {
   background: #fff;
   /* padding: 1.5rem; */
