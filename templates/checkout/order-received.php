@@ -339,9 +339,30 @@ $order = wc_get_order($order_id);
                     }
                 }
 
-                $tracking_number_display = $tracking_number !== ''
-                    ? $tracking_number
-                    : $tracking_message;
+                if ($tracking_number !== '') {
+                    $tracking_number_display = $tracking_number;
+                } elseif ($tracking_provider_label !== '') {
+                    $tracking_number_display = $tracking_message;
+                } else {
+                    $tracking_number_display = '';
+                }
+
+                $tracking_message_visible = ($tracking_number === '' && $tracking_provider_label === '');
+                $tracking_message_style   = $tracking_message_visible ? '' : ' style="display:none;"';
+
+                $tracking_courier_html = '';
+
+                if ($tracking_provider_label !== '') {
+                    if ($tracking_provider_slug === 'recibelo') {
+                        $tracking_courier_html = sprintf(
+                            '(<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>)',
+                            esc_url('https://recibelo.cl/seguimiento'),
+                            esc_html($tracking_provider_label)
+                        );
+                    } else {
+                        $tracking_courier_html = sprintf('(%s)', esc_html($tracking_provider_label));
+                    }
+                }
 
                 $tracking_status_attributes = sprintf(
                     'data-order-id="%s"',
@@ -354,16 +375,23 @@ $order = wc_get_order($order_id);
                         esc_attr($tracking_provider_slug)
                     );
                 }
+
+                if ($tracking_provider_label !== '') {
+                    $tracking_status_attributes .= sprintf(
+                        ' data-tracking-provider-label="%s"',
+                        esc_attr($tracking_provider_label)
+                    );
+                }
                 ?>
                 <div id="tracking-status" <?php echo $tracking_status_attributes; ?>>
                     <p class="tracking-heading">
                         <strong><?php esc_html_e('Tracking:', 'woo-check'); ?></strong>
                         <span class="tracking-number"><?php echo esc_html($tracking_number_display); ?></span>
-                        <?php if ($tracking_provider_label !== '') : ?>
-                            <span class="tracking-courier">(<?php echo esc_html($tracking_provider_label); ?>)</span>
+                        <?php if ($tracking_courier_html !== '') : ?>
+                            <span class="tracking-courier"><?php echo wp_kses_post($tracking_courier_html); ?></span>
                         <?php endif; ?>
                     </p>
-                    <p class="tracking-message"><?php echo esc_html($tracking_message); ?></p>
+                    <p class="tracking-message"<?php echo $tracking_message_style; ?>><?php echo esc_html($tracking_message); ?></p>
                     <p class="tracking-link" style="display:none;"><a href="#" target="_blank" rel="noopener noreferrer"></a></p>
                 </div>
                 <?php if ($tracking_provider_slug === 'recibelo') : ?>
