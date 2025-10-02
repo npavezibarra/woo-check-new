@@ -39,14 +39,6 @@
   text-align: right;
 }
 
-.woocommerce-order-totals {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
 .order-header {
   margin: 0 0 1.5rem;
   background-image: linear-gradient(to right, #434343 0%, black 100%);

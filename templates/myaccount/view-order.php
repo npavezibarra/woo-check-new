@@ -289,21 +289,6 @@ if ( '' !== $tracking_provider_label ) {
             <strong><?php esc_html_e( 'Estado del pedido:', 'woo-check' ); ?></strong> <?php echo esc_html( wc_get_order_status_name( $order->get_status() ) ); ?>
         </p>
 
-        <h3><?php esc_html_e( 'Billing Address', 'woo-check' ); ?></h3>
-        <address>
-            <?php echo wp_kses_post( $order->get_formatted_billing_address() ); ?><br>
-            <?php echo esc_html( $order->get_billing_phone() ); ?><br>
-            <?php echo esc_html( $order->get_billing_email() ); ?>
-        </address>
-
-        <h3><?php esc_html_e( 'Totals', 'woo-check' ); ?></h3>
-        <ul class="woocommerce-order-totals">
-            <li><?php esc_html_e( 'Subtotal:', 'woo-check' ); ?> <?php echo wp_kses_post( $order->get_subtotal_to_display() ); ?></li>
-            <li><?php esc_html_e( 'Shipping:', 'woo-check' ); ?> <?php echo wp_kses_post( wc_price( $order->get_shipping_total() ) ); ?></li>
-            <li><?php esc_html_e( 'Tax:', 'woo-check' ); ?> <?php echo wp_kses_post( wc_price( $order->get_total_tax() ) ); ?></li>
-            <li><strong><?php esc_html_e( 'Total:', 'woo-check' ); ?> <?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></strong></li>
-        </ul>
-
         <p class="woocommerce-order-payment-method">
             <strong><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?>
         </p>
