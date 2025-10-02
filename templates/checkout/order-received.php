@@ -299,7 +299,11 @@ $order = wc_get_order($order_id);
                     ? wc_check_order_targets_recibelo($order)
                     : false;
 
+                $order_identifier          = (string) $order->get_id();
+                $shipit_fallback_reference = $order_identifier !== '' ? $order_identifier . 'N' : '';
+
                 $tracking_message = __('We are checking the status of this shipment...', 'woo-check');
+                $waiting_message  = __('Esperando tracking number...', 'woo-check');
                 $tracking_number  = $generic_tracking;
 
                 $uses_recibelo_context = (
@@ -311,20 +315,26 @@ $order = wc_get_order($order_id);
                 if ($uses_recibelo_context) {
                     if ($recibelo_internal_id !== '') {
                         $tracking_number = $recibelo_internal_id;
-                    } elseif ($tracking_number === '') {
-                        $tracking_number  = '';
-                        $tracking_message = __('Waiting for tracking number...', 'woo-check');
+                    } else {
+                        if ($tracking_number === $shipit_fallback_reference) {
+                            $tracking_number = '';
+                        }
+
+                        if ($tracking_number === '') {
+                            $tracking_message = $waiting_message;
+                        }
+                    }
+
+                    if ($tracking_provider_slug !== 'recibelo') {
+                        $tracking_provider_slug  = 'recibelo';
+                        $tracking_provider_label = $tracking_provider_labels['recibelo'];
                     }
                 } else {
                     if ($tracking_number === '') {
                         if ($shipit_tracking !== '') {
                             $tracking_number = $shipit_tracking;
-                        } elseif ($tracking_provider_slug === 'shipit') {
-                            $order_identifier = (string) $order->get_id();
-
-                            if ($order_identifier !== '') {
-                                $tracking_number = $order_identifier . 'N';
-                            }
+                        } elseif ($tracking_provider_slug === 'shipit' && $shipit_fallback_reference !== '') {
+                            $tracking_number = $shipit_fallback_reference;
                         }
                     }
                 }

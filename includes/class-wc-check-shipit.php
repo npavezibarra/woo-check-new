@@ -446,7 +446,7 @@ class WC_Check_Shipit {
             } else {
                 if ( 'recibelo' === strtolower( (string) $provider ) ) {
                     $tracking_reference   = '';
-                    $result['message']    = __( 'Waiting for tracking number...', 'woo-check' );
+                    $result['message']    = __( 'Esperando tracking number...', 'woo-check' );
                 }
 
                 $result['tracking_number'] = '';

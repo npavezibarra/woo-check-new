@@ -78,6 +78,8 @@ class WooCheck_Recibelo {
         $order->delete_meta_data( '_recibelo_sync_failed' );
         $order->save_meta_data();
 
+        update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
+
         $decoded_body = json_decode( $body, true );
         $tracking     = self::extract_tracking_from_response( $decoded_body );
 
@@ -88,6 +90,8 @@ class WooCheck_Recibelo {
             update_post_meta( $order_id, '_tracking_provider', $tracking['provider'] );
             update_post_meta( $order_id, '_recibelo_internal_id', $internal_id );
             update_post_meta( $order_id, '_tracking_provider', 'recibelo' );
+        } else {
+            update_post_meta( $order_id, '_tracking_number', '' );
         }
 
         return $response;

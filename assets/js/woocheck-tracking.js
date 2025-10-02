@@ -9,17 +9,25 @@ jQuery(document).ready(function($) {
         }
 
         var courierSlug = data.courier ? data.courier.toLowerCase() : '';
+        if (!courierSlug) {
+            var providerSlug = ($container.data('tracking-provider') || '').toString().toLowerCase();
+            if (providerSlug) {
+                courierSlug = providerSlug;
+            }
+        }
 
-        if (!data.tracking_number && data.courier && courierSlug === 'recibelo') {
+        var waitingCopy = 'Esperando tracking number...';
+
+        if (!data.tracking_number && courierSlug === 'recibelo') {
+            var courierLabel = data.courier ? '(' + data.courier + ')' : '(Recíbelo)';
+            $container.find('.tracking-courier').text(courierLabel);
             $container.find('.tracking-number').text('');
-            $container.find('.tracking-message').text('Waiting for tracking number...');
+            $container.find('.tracking-message').text(waitingCopy);
             return;
         }
 
         if (data.tracking_number) {
             $container.find('.tracking-number').text(data.tracking_number);
-        } else if (courierSlug === 'recibelo') {
-            $container.find('.tracking-number').text('');
         }
 
         if (data.courier) {
