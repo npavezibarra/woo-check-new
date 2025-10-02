@@ -299,44 +299,38 @@ $order = wc_get_order($order_id);
                     ? wc_check_order_targets_recibelo($order)
                     : false;
 
-                $has_recibelo_identifier = $recibelo_internal_id !== '';
+                $tracking_message = __('We are checking the status of this shipment...', 'woo-check');
+                $tracking_number  = $generic_tracking;
 
-                if ($has_recibelo_identifier) {
-                    $default_tracking = $recibelo_internal_id;
-                } elseif ($order_targets_recibelo) {
-                    $default_tracking = '';
-                } elseif ($shipit_tracking !== '') {
-                    $default_tracking = $shipit_tracking;
-                } elseif ($generic_tracking !== '') {
-                    $default_tracking = $generic_tracking;
+                $uses_recibelo_context = (
+                    $tracking_provider_slug === 'recibelo'
+                    || $order_targets_recibelo
+                    || $recibelo_internal_id !== ''
+                );
+
+                if ($uses_recibelo_context) {
+                    if ($recibelo_internal_id !== '') {
+                        $tracking_number = $recibelo_internal_id;
+                    } elseif ($tracking_number === '') {
+                        $tracking_number  = '';
+                        $tracking_message = __('Waiting for tracking number...', 'woo-check');
+                    }
                 } else {
-                    $default_tracking = (string) $order->get_id();
-                }
+                    if ($tracking_number === '') {
+                        if ($shipit_tracking !== '') {
+                            $tracking_number = $shipit_tracking;
+                        } elseif ($tracking_provider_slug === 'shipit') {
+                            $order_identifier = (string) $order->get_id();
 
-                $default_tracking_message = __('Estamos consultando el estado de este envío...', 'woo-check');
-                $tracking_message         = $default_tracking_message;
-
-                if ($tracking_provider_slug === 'recibelo' && $recibelo_internal_id === '') {
-                    $default_tracking = '';
-                    $tracking_message = __('Esperando tracking number...', 'woo-check');
-                }
-
-                if (
-                    $tracking_provider_slug === 'shipit'
-                    && !$order_targets_recibelo
-                    && !$has_recibelo_identifier
-                ) {
-                    if ($default_tracking === '') {
-                        $default_tracking = (string) $order->get_id();
-                    }
-
-                    if ($default_tracking !== '' && substr($default_tracking, -1) !== 'N') {
-                        $default_tracking .= 'N';
+                            if ($order_identifier !== '') {
+                                $tracking_number = $order_identifier . 'N';
+                            }
+                        }
                     }
                 }
 
-                $tracking_number_display = $default_tracking !== ''
-                    ? $default_tracking
+                $tracking_number_display = $tracking_number !== ''
+                    ? $tracking_number
                     : $tracking_message;
 
                 $tracking_status_attributes = sprintf(

@@ -444,14 +444,19 @@ class WC_Check_Shipit {
         }
 
         if ( '' === $tracking_reference ) {
-            if ( 'recibelo' === strtolower( $stored_courier ) ) {
+            $provider = $order->get_meta( '_tracking_provider', true );
+
+            if ( 'shipit' === strtolower( (string) $provider ) ) {
+                $tracking_reference = $order_id ? $order_id . 'N' : '';
+            } else {
+                if ( 'recibelo' === strtolower( (string) $provider ) ) {
+                    $result['message'] = __( 'Waiting for tracking number...', 'woo-check' );
+                }
+
                 $result['tracking_number'] = '';
-                $result['message']         = __( 'Esperando tracking number...', 'woo-check' );
 
                 return $result;
             }
-
-            $tracking_reference = $order_id ? $order_id . 'N' : '';
         }
 
         $result['tracking_number'] = sanitize_text_field( $tracking_reference );

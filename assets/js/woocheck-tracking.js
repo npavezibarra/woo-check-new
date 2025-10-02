@@ -9,7 +9,12 @@ jQuery(document).ready(function($) {
         }
 
         var courierSlug = data.courier ? data.courier.toLowerCase() : '';
-        var waitingMessage = 'Esperando tracking number...';
+
+        if (!data.tracking_number && data.courier && courierSlug === 'recibelo') {
+            $container.find('.tracking-number').text('');
+            $container.find('.tracking-message').text('Waiting for tracking number...');
+            return;
+        }
 
         if (data.tracking_number) {
             $container.find('.tracking-number').text(data.tracking_number);
@@ -25,12 +30,7 @@ jQuery(document).ready(function($) {
 
         var message = data.message ? data.message : FALLBACK_MESSAGE;
 
-        if (!data.tracking_number && courierSlug === 'recibelo') {
-            message = waitingMessage;
-            $container.find('.tracking-message').text(waitingMessage);
-        } else {
-            $container.find('.tracking-message').text(message);
-        }
+        $container.find('.tracking-message').text(message);
 
         var $linkWrapper = $container.find('.tracking-link');
         var $anchor = $linkWrapper.find('a');
