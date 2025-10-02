@@ -68,14 +68,14 @@ $order = wc_get_order($order_id);
         }
 
         $format_address_block = function ($type) use ($order) {
-            $lines = [];
+            $lines       = [];
+            $address_key = $type === 'billing' ? 'billing' : 'shipping';
 
-            if ($type === 'billing') {
+            if ($address_key === 'billing') {
                 $first_name = $order->get_billing_first_name();
                 $last_name  = $order->get_billing_last_name();
                 $address_1  = $order->get_billing_address_1();
                 $address_2  = $order->get_billing_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'billing_comuna', true);
                 $state      = $order->get_billing_state();
                 $phone      = $order->get_billing_phone();
                 $email      = $order->get_billing_email();
@@ -84,10 +84,24 @@ $order = wc_get_order($order_id);
                 $last_name  = $order->get_shipping_last_name();
                 $address_1  = $order->get_shipping_address_1();
                 $address_2  = $order->get_shipping_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'shipping_comuna', true);
                 $state      = $order->get_shipping_state();
                 $phone      = $order->get_shipping_phone();
                 $email      = '';
+            }
+
+            $comuna = '';
+            if (function_exists('woo_check_get_order_comuna_value')) {
+                $comuna = woo_check_get_order_comuna_value($order, $address_key);
+            }
+
+            if ('' === trim((string) $comuna)) {
+                $comuna = get_post_meta($order->get_id(), sprintf('%s_comuna', $address_key), true);
+            }
+
+            if ('' === trim((string) $comuna)) {
+                $comuna = $address_key === 'billing'
+                    ? $order->get_billing_city()
+                    : $order->get_shipping_city();
             }
 
             $full_name = trim(trim((string) $first_name) . ' ' . trim((string) $last_name));
