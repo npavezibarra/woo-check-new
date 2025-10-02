@@ -485,6 +485,49 @@ $order = wc_get_order($order_id);
                     }
                     window.bankTransferInfoInitialized = true;
 
+                    const setupBankTransferPositioning = function () {
+                        const bankTransferInfo = document.querySelector('.bank-transfer-info');
+                        const orderSummaryPrimary = document.querySelector('.order-summary-primary');
+                        const orderSummaryWrapper = document.querySelector('.order-summary-bank-wrapper');
+                        const orderHeader = document.querySelector('#order-header');
+
+                        if (!bankTransferInfo || !orderSummaryPrimary || !orderSummaryWrapper || !orderHeader) {
+                            return;
+                        }
+
+                        const orderAddressCard = document.querySelector('.order-address-flip-card');
+                        const mobileQuery = window.matchMedia('(max-width: 600px)');
+
+                        const repositionBankTransferInfo = function (event) {
+                            const isMobile = event && typeof event.matches === 'boolean' ? event.matches : mobileQuery.matches;
+
+                            if (isMobile) {
+                                const mobileParent = orderHeader.parentElement;
+                                const referenceNode = orderAddressCard && mobileParent && mobileParent.contains(orderAddressCard)
+                                    ? orderAddressCard
+                                    : null;
+
+                                if (referenceNode) {
+                                    if (mobileParent !== bankTransferInfo.parentElement || bankTransferInfo.nextElementSibling !== referenceNode) {
+                                        mobileParent.insertBefore(bankTransferInfo, referenceNode);
+                                    }
+                                } else if (orderHeader.nextElementSibling !== bankTransferInfo) {
+                                    orderHeader.insertAdjacentElement('afterend', bankTransferInfo);
+                                }
+                            } else if (orderSummaryWrapper !== bankTransferInfo.parentElement) {
+                                orderSummaryWrapper.appendChild(bankTransferInfo);
+                            }
+                        };
+
+                        repositionBankTransferInfo(mobileQuery);
+
+                        if (typeof mobileQuery.addEventListener === 'function') {
+                            mobileQuery.addEventListener('change', repositionBankTransferInfo);
+                        } else if (typeof mobileQuery.addListener === 'function') {
+                            mobileQuery.addListener(repositionBankTransferInfo);
+                        }
+                    };
+
                     const initBankTransferInfo = function () {
                         const toggles = document.querySelectorAll('.bank-transfer-toggle');
                         toggles.forEach(function (toggle) {
@@ -595,6 +638,8 @@ $order = wc_get_order($order_id);
                                     });
                             });
                         });
+
+                        setupBankTransferPositioning();
                     };
 
                     if (document.readyState === 'loading') {
