@@ -2,55 +2,65 @@
 /**
  * View Order
  *
- * Shows the details of a particular order on the account page.
+ * Custom layout for the Woo Check plugin order view page.
  *
- * This template can be overridden by copying it to yourtheme/woocommerce/myaccount/view-order.php.
- *
- * HOWEVER, on occasion WooCommerce will need to update template files and you
- * (the theme developer) will need to copy the new files to your theme to
- * maintain compatibility. We try to do this as little as possible, but it does
- * happen. When this occurs the version of the template file will be bumped and
- * the readme will list any important changes.
- *
- * @see     https://woocommerce.com/document/template-structure/
- * @package WooCommerce\Templates
- * @version 3.0.0
+ * @package Woo_Check
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$notes = $order->get_customer_order_notes();
-?>
-<p>
-<?php
-printf(
-	/* translators: 1: order number 2: order date 3: order status */
-	esc_html__( 'Order #%1$s was placed on %2$s and is currently %3$s.', 'woocommerce' ),
-	'<mark class="order-number">' . $order->get_order_number() . '</mark>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	'<mark class="order-date">' . wc_format_datetime( $order->get_date_created() ) . '</mark>', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-	'<mark class="order-status">' . wc_get_order_status_name( $order->get_status() ) . '</mark>' // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-);
-?>
-</p>
+$order = isset( $order_id ) ? wc_get_order( $order_id ) : false;
 
-<?php if ( $notes ) : ?>
-	<h2><?php esc_html_e( 'Order updates', 'woocommerce' ); ?></h2>
-	<ol class="woocommerce-OrderUpdates commentlist notes">
-		<?php foreach ( $notes as $note ) : ?>
-		<li class="woocommerce-OrderUpdate comment note">
-			<div class="woocommerce-OrderUpdate-inner comment_container">
-				<div class="woocommerce-OrderUpdate-text comment-text">
-					<p class="woocommerce-OrderUpdate-meta meta"><?php echo date_i18n( esc_html__( 'l jS \o\f F Y, h:ia', 'woocommerce' ), strtotime( $note->comment_date ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></p>
-					<div class="woocommerce-OrderUpdate-description description">
-						<?php echo wpautop( wptexturize( $note->comment_content ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					</div>
-					<div class="clear"></div>
-				</div>
-				<div class="clear"></div>
-			</div>
-		</li>
-		<?php endforeach; ?>
-	</ol>
-<?php endif; ?>
+if ( ! $order ) {
+    return;
+}
+?>
 
-<?php do_action( 'woocommerce_view_order', $order_id ); ?>
+<div class="woocommerce-order-columns">
+
+    <!-- Left Column -->
+    <div class="woocommerce-order-column woocommerce-order-column--left">
+        <h2><?php printf( __( 'Order #%s', 'woo-check' ), esc_html( $order->get_order_number() ) ); ?></h2>
+        <p><?php echo esc_html( wc_format_datetime( $order->get_date_created() ) ); ?></p>
+        <p><?php echo esc_html( wc_get_order_status_name( $order->get_status() ) ); ?></p>
+
+        <!-- Tracking (if handled by woo-check) -->
+        <?php do_action( 'woo_check_order_tracking', $order ); ?>
+
+        <h3><?php esc_html_e( 'Billing Address', 'woo-check' ); ?></h3>
+        <address>
+            <?php echo wp_kses_post( $order->get_formatted_billing_address() ); ?><br>
+            <?php echo esc_html( $order->get_billing_phone() ); ?><br>
+            <?php echo esc_html( $order->get_billing_email() ); ?>
+        </address>
+
+        <h3><?php esc_html_e( 'Totals', 'woo-check' ); ?></h3>
+        <ul class="woocommerce-order-totals">
+            <li><?php esc_html_e( 'Subtotal:', 'woo-check' ); ?> <?php echo wp_kses_post( $order->get_subtotal_to_display() ); ?></li>
+            <li><?php esc_html_e( 'Shipping:', 'woo-check' ); ?> <?php echo wp_kses_post( wc_price( $order->get_shipping_total() ) ); ?></li>
+            <li><?php esc_html_e( 'Tax:', 'woo-check' ); ?> <?php echo wp_kses_post( wc_price( $order->get_total_tax() ) ); ?></li>
+            <li><strong><?php esc_html_e( 'Total:', 'woo-check' ); ?> <?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></strong></li>
+        </ul>
+    </div>
+
+    <!-- Right Column -->
+    <div class="woocommerce-order-column woocommerce-order-column--right">
+        <h3><?php esc_html_e( 'Your Items', 'woo-check' ); ?></h3>
+        <ul class="order_items">
+            <?php foreach ( $order->get_items() as $item_id => $item ) : ?>
+                <?php
+                $product   = $item->get_product();
+                $thumbnail = $product ? $product->get_image( 'thumbnail' ) : '';
+                ?>
+                <li class="order_item">
+                    <span class="order_item-thumbnail"><?php echo $thumbnail; ?></span>
+                    <span class="order_item-name"><?php echo esc_html( $item->get_name() ); ?></span>
+                    <span class="order_item-quantity">&times; <?php echo esc_html( $item->get_quantity() ); ?></span>
+                    <span class="order_item-total"><?php echo wp_kses_post( $order->get_formatted_line_subtotal( $item ) ); ?></span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+
+</div>
+<?php do_action( 'woocommerce_view_order', $order->get_id() ); ?>
