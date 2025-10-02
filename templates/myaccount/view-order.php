@@ -321,6 +321,30 @@ if ( '' !== $tracking_provider_label ) {
         if ( '' !== $tax_rate_percent ) {
             $tax_total_label = sprintf( '%s (%s%%)', $tax_total_label_base, $tax_rate_percent );
         }
+
+        $payment_method_title = wp_strip_all_tags( (string) $order->get_payment_method_title() );
+        $payment_method_emoji = '';
+
+        if ( '' !== $payment_method_title ) {
+            $normalized_payment_title = $payment_method_title;
+
+            if ( function_exists( 'remove_accents' ) ) {
+                $normalized_payment_title = remove_accents( $normalized_payment_title );
+            }
+
+            $normalized_payment_title = strtolower( $normalized_payment_title );
+
+            if ( false !== strpos( $normalized_payment_title, 'transferencia' ) ) {
+                $payment_method_emoji = '🏦';
+            } elseif (
+                false !== strpos( $normalized_payment_title, 'debito' )
+                || false !== strpos( $normalized_payment_title, 'credito' )
+            ) {
+                $payment_method_emoji = '💳';
+            } else {
+                $payment_method_emoji = '💳';
+            }
+        }
         ?>
 
         <?php if ( $has_address_information ) : ?>
@@ -360,9 +384,15 @@ if ( '' !== $tracking_provider_label ) {
             </div>
         </div>
 
-        <p class="woocommerce-order-payment-method">
-            <strong><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?>
-        </p>
+        <?php if ( '' !== $payment_method_title ) : ?>
+            <p class="woocommerce-order-payment-method">
+                <?php if ( '' !== $payment_method_emoji ) : ?>
+                    <span class="payment-method-emoji" aria-hidden="true"><?php echo esc_html( $payment_method_emoji ); ?></span>
+                <?php endif; ?>
+                <span class="screen-reader-text"><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></span>
+                <span class="payment-method-value"><?php echo esc_html( $payment_method_title ); ?></span>
+            </p>
+        <?php endif; ?>
     </div>
 
     <!-- Right Column -->
