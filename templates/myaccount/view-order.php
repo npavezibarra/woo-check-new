@@ -270,7 +270,7 @@ if ( '' !== $tracking_provider_label ) {
 
         <?php if ( $has_address_information ) : ?>
             <div class="order-address-flip-card">
-                <div class="flip-card" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'Ver direcciones de facturación y envío', 'woocommerce' ); ?>" aria-pressed="false">
+                <div id="order-address-flip-card" class="flip-card" tabindex="0" role="button" aria-label="<?php esc_attr_e( 'Ver direcciones de facturación y envío', 'woocommerce' ); ?>" aria-pressed="false">
                     <div class="flip-card-inner">
                         <div class="flip-card-face flip-card-front">
                             <h4><?php esc_html_e( 'Dirección de Facturación', 'woocommerce' ); ?></h4>
@@ -318,7 +318,7 @@ if ( '' !== $tracking_provider_label ) {
 <?php if ( $has_address_information ) : ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var flipCard = document.querySelector('.order-address-flip-card .flip-card');
+        var flipCard = document.getElementById('order-address-flip-card');
         if (!flipCard) {
             return;
         }

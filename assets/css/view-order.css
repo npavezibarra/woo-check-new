@@ -85,12 +85,17 @@
   perspective: 1000px;
 }
 
-.order-address-flip-card .flip-card {
+.order-address-flip-card .flip-card { 
   position: relative;
   width: 100%;
   outline: none;
   cursor: pointer;
   border-radius: 12px;
+}
+
+.woocommerce-order-column--right > h3 {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  margin-top: 0;
 }
 
 .order-address-flip-card .flip-card-inner {
