@@ -317,7 +317,6 @@ $order = wc_get_order($order_id);
                 $shipit_fallback_reference = $order_identifier !== '' ? $order_identifier . 'N' : '';
 
                 $tracking_message = __('We are checking the status of this shipment...', 'woo-check');
-                $waiting_message  = __('Esperando tracking number...', 'woo-check');
                 $tracking_number  = $generic_tracking;
 
                 $uses_recibelo_context = (
@@ -335,7 +334,7 @@ $order = wc_get_order($order_id);
                         }
 
                         if ($tracking_number === '') {
-                            $tracking_message = $waiting_message;
+                            $tracking_number = $order_identifier;
                         }
                     }
 

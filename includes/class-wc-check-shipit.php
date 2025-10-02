@@ -438,8 +438,13 @@ class WC_Check_Shipit {
         }
 
         if ( 'recibelo' === $stored_courier ) {
-            $result['tracking_number'] = '';
-            $result['message']         = __( 'Esperando tracking number...', 'woo-check' );
+            $recibelo_tracking = trim( (string) $order->get_meta( '_recibelo_internal_id', true ) );
+
+            if ( '' === $recibelo_tracking ) {
+                $recibelo_tracking = (string) $order->get_id();
+            }
+
+            $result['tracking_number'] = sanitize_text_field( $recibelo_tracking );
 
             return $result;
         }
