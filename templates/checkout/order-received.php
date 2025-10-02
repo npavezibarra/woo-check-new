@@ -62,60 +62,105 @@ $order = wc_get_order($order_id);
 
 <?php if ($order) : ?>
     <?php
+        $order_number_display = (string) $order->get_order_number();
+        $order_number_attribute = sanitize_html_class($order_number_display);
+
+        if ($order_number_attribute === '') {
+            $order_number_attribute = (string) $order->get_id();
+        }
+
         $order_datetime_display = '';
         if ($order->get_date_created()) {
             $order_datetime_display = $order->get_date_created()->date_i18n('d-m-Y H:i:s');
         }
 
-        $format_address_block = function ($type) use ($order) {
+        $billing_address_data = [
+            'first_name' => $order->get_billing_first_name(),
+            'last_name'  => $order->get_billing_last_name(),
+            'address_1'  => $order->get_billing_address_1(),
+            'address_2'  => $order->get_billing_address_2(),
+            'comuna'     => get_post_meta($order->get_id(), 'billing_comuna', true),
+            'state'      => $order->get_billing_state(),
+            'phone'      => $order->get_billing_phone(),
+            'email'      => $order->get_billing_email(),
+        ];
+
+        $shipping_address_data = [
+            'first_name' => $order->get_shipping_first_name(),
+            'last_name'  => $order->get_shipping_last_name(),
+            'address_1'  => $order->get_shipping_address_1(),
+            'address_2'  => $order->get_shipping_address_2(),
+            'comuna'     => get_post_meta($order->get_id(), 'shipping_comuna', true),
+            'state'      => $order->get_shipping_state(),
+            'phone'      => $order->get_shipping_phone(),
+            'email'      => '',
+        ];
+
+        $filter_empty_values = static function ($value) {
+            return trim((string) $value) !== '';
+        };
+
+        $billing_presence_values = array_filter([
+            $billing_address_data['first_name'],
+            $billing_address_data['last_name'],
+            $billing_address_data['address_1'],
+            $billing_address_data['address_2'],
+            $billing_address_data['comuna'],
+            $billing_address_data['state'],
+            $billing_address_data['phone'],
+            $billing_address_data['email'],
+        ], $filter_empty_values);
+
+        $shipping_presence_values = array_filter([
+            $shipping_address_data['first_name'],
+            $shipping_address_data['last_name'],
+            $shipping_address_data['address_1'],
+            $shipping_address_data['address_2'],
+            $shipping_address_data['comuna'],
+            $shipping_address_data['state'],
+            $shipping_address_data['phone'],
+        ], $filter_empty_values);
+
+        if (empty($billing_presence_values) && !empty($shipping_presence_values)) {
+            $billing_address_data  = $shipping_address_data;
+            $billing_presence_values = $shipping_presence_values;
+        }
+
+        if (empty($shipping_presence_values) && !empty($billing_presence_values)) {
+            $shipping_address_data   = $billing_address_data;
+            $shipping_presence_values = $billing_presence_values;
+        }
+
+        $format_address_block = static function (array $address_data) {
             $lines = [];
 
-            if ($type === 'billing') {
-                $first_name = $order->get_billing_first_name();
-                $last_name  = $order->get_billing_last_name();
-                $address_1  = $order->get_billing_address_1();
-                $address_2  = $order->get_billing_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'billing_comuna', true);
-                $state      = $order->get_billing_state();
-                $phone      = $order->get_billing_phone();
-                $email      = $order->get_billing_email();
-            } else {
-                $first_name = $order->get_shipping_first_name();
-                $last_name  = $order->get_shipping_last_name();
-                $address_1  = $order->get_shipping_address_1();
-                $address_2  = $order->get_shipping_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'shipping_comuna', true);
-                $state      = $order->get_shipping_state();
-                $phone      = $order->get_shipping_phone();
-                $email      = '';
-            }
-
-            $full_name = trim(trim((string) $first_name) . ' ' . trim((string) $last_name));
+            $full_name = trim(trim((string) $address_data['first_name']) . ' ' . trim((string) $address_data['last_name']));
             if (!empty($full_name)) {
                 $lines[] = esc_html($full_name);
             }
 
-            $address_line = trim((string) $address_1);
-            if (!empty($address_2)) {
-                $address_line .= ', ' . trim((string) $address_2);
+            $address_line = trim((string) $address_data['address_1']);
+            if (!empty($address_data['address_2'])) {
+                $address_line .= ', ' . trim((string) $address_data['address_2']);
             }
             if (!empty($address_line)) {
                 $lines[] = esc_html($address_line);
             }
 
-            if (!empty($comuna)) {
-                $lines[] = esc_html((string) $comuna);
+            if (!empty($address_data['comuna'])) {
+                $lines[] = esc_html((string) $address_data['comuna']);
             }
 
-            if (!empty($state)) {
-                $lines[] = esc_html((string) $state);
+            if (!empty($address_data['state'])) {
+                $lines[] = esc_html((string) $address_data['state']);
             }
 
-            if (!empty($phone)) {
-                $lines[] = wc_make_phone_clickable($phone);
+            if (!empty($address_data['phone'])) {
+                $lines[] = wc_make_phone_clickable($address_data['phone']);
             }
 
-            if (!empty($email)) {
+            if (!empty($address_data['email'])) {
+                $email = (string) $address_data['email'];
                 $lines[] = sprintf(
                     '<a href="mailto:%1$s">%2$s</a>',
                     esc_attr($email),
@@ -130,16 +175,8 @@ $order = wc_get_order($order_id);
             return implode('<br>', $lines);
         };
 
-        $billing_address_content  = $format_address_block('billing');
-        $shipping_address_content = $format_address_block('shipping');
-
-        if (empty($billing_address_content) && !empty($shipping_address_content)) {
-            $billing_address_content = $shipping_address_content;
-        }
-
-        if (empty($shipping_address_content) && !empty($billing_address_content)) {
-            $shipping_address_content = $billing_address_content;
-        }
+        $billing_address_content  = $format_address_block($billing_address_data);
+        $shipping_address_content = $format_address_block($shipping_address_data);
 
         $has_address_information = !empty($billing_address_content) || !empty($shipping_address_content);
     ?>
@@ -270,7 +307,7 @@ $order = wc_get_order($order_id);
         <div class="<?php echo esc_attr($order_summary_classes); ?>">
             <div class="order-summary-primary">
                 <div id="order-header" class="order-header">
-                <p class="titulo-seccion">Número de orden: <?php echo esc_html($order->get_id()); ?></p>
+                <p class="titulo-seccion">Número de orden: <?php echo esc_html($order_number_display); ?></p>
                 <?php
                 $tracking_provider_raw = get_post_meta($order->get_id(), '_tracking_provider', true);
 
@@ -414,7 +451,7 @@ $order = wc_get_order($order_id);
                 <?php endif; ?>
                 </div>
                 <?php if ($has_address_information) : ?>
-                    <div class="order-address-flip-card">
+                    <div id="order-address-<?php echo esc_attr($order_number_attribute); ?>" class="order-address-flip-card" data-order-number="<?php echo esc_attr($order_number_display); ?>">
                         <div class="flip-card" tabindex="0" role="button" aria-label="<?php esc_attr_e('Ver direcciones de facturación y envío', 'woocommerce'); ?>" aria-pressed="false">
                             <div class="flip-card-inner">
                                 <div class="flip-card-face flip-card-front">
@@ -607,7 +644,8 @@ $order = wc_get_order($order_id);
 <?php if ($order): ?>
     <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const flipCard = document.querySelector('.order-address-flip-card .flip-card');
+        const flipCardContainer = document.getElementById('order-address-<?php echo esc_js($order_number_attribute); ?>');
+        const flipCard = flipCardContainer ? flipCardContainer.querySelector('.flip-card') : null;
         if (flipCard) {
             const supportsHover = window.matchMedia('(hover: hover)').matches;
             const updatePressedState = function () {
