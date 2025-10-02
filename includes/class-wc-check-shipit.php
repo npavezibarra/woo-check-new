@@ -431,6 +431,12 @@ class WC_Check_Shipit {
             return $result;
         }
 
+        $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
+
+        if ( '' !== $stored_courier ) {
+            $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
+        }
+
         $tracking_reference = trim( (string) $order->get_meta( '_shipit_tracking', true ) );
 
         if ( '' === $tracking_reference ) {
@@ -438,16 +444,17 @@ class WC_Check_Shipit {
         }
 
         if ( '' === $tracking_reference ) {
-            $tracking_reference = $order_id . 'N';
+            if ( 'recibelo' === strtolower( $stored_courier ) ) {
+                $result['tracking_number'] = '';
+                $result['message']         = __( 'Esperando tracking number...', 'woo-check' );
+
+                return $result;
+            }
+
+            $tracking_reference = $order_id ? $order_id . 'N' : '';
         }
 
         $result['tracking_number'] = sanitize_text_field( $tracking_reference );
-
-        $stored_courier = trim( (string) $order->get_meta( '_tracking_provider', true ) );
-
-        if ( '' !== $stored_courier ) {
-            $result['courier'] = sanitize_text_field( self::format_courier_label( $stored_courier ) );
-        }
 
         $credentials = self::get_api_credentials();
 
