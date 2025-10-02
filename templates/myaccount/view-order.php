@@ -41,6 +41,10 @@ if ( ! $order ) {
             <li><?php esc_html_e( 'Tax:', 'woo-check' ); ?> <?php echo wp_kses_post( wc_price( $order->get_total_tax() ) ); ?></li>
             <li><strong><?php esc_html_e( 'Total:', 'woo-check' ); ?> <?php echo wp_kses_post( $order->get_formatted_order_total() ); ?></strong></li>
         </ul>
+
+        <p class="woocommerce-order-payment-method">
+            <strong><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?>
+        </p>
     </div>
 
     <!-- Right Column -->
@@ -63,4 +67,3 @@ if ( ! $order ) {
     </div>
 
 </div>
-<?php do_action( 'woocommerce_view_order', $order->get_id() ); ?>
