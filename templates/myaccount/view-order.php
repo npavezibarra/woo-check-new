@@ -269,38 +269,57 @@ if ( '' !== $tracking_provider_label ) {
         </div>
 
         <?php
-        $tax_totals      = $order->get_tax_totals();
-        $tax_total_label = __( 'IVA', 'woo-check' );
+        $tax_totals           = $order->get_tax_totals();
+        $tax_total_label_base = __( 'IVA', 'woo-check' );
+        $tax_rate_percent     = '';
 
         if ( ! empty( $tax_totals ) ) {
             $first_tax_total = reset( $tax_totals );
 
             if ( is_object( $first_tax_total ) ) {
                 if ( method_exists( $first_tax_total, 'get_label' ) ) {
-                    $tax_total_label = $first_tax_total->get_label();
+                    $tax_total_label_base = $first_tax_total->get_label();
                 } elseif ( isset( $first_tax_total->label ) && '' !== $first_tax_total->label ) {
-                    $tax_total_label = $first_tax_total->label;
+                    $tax_total_label_base = $first_tax_total->label;
                 }
 
-                $rate_percent = '';
                 if ( method_exists( $first_tax_total, 'get_rate_percent' ) ) {
-                    $rate_percent = $first_tax_total->get_rate_percent();
+                    $tax_rate_percent = $first_tax_total->get_rate_percent();
                 } elseif ( isset( $first_tax_total->rate_percent ) ) {
-                    $rate_percent = $first_tax_total->rate_percent;
+                    $tax_rate_percent = $first_tax_total->rate_percent;
                 }
 
-                if ( '' !== $rate_percent && ! is_wp_error( $rate_percent ) ) {
-                    $rate_percent = wc_trim_zeros( wc_format_decimal( $rate_percent, 2 ) );
+                if ( '' !== $tax_rate_percent && ! is_wp_error( $tax_rate_percent ) ) {
+                    $tax_rate_percent = wc_trim_zeros( wc_format_decimal( $tax_rate_percent, 2 ) );
 
-                    if ( 0 === (float) $rate_percent || '' === $rate_percent ) {
-                        $rate_percent = '';
+                    if ( 0 === (float) $tax_rate_percent || '' === $tax_rate_percent ) {
+                        $tax_rate_percent = '';
                     }
                 }
-
-                if ( '' !== $rate_percent ) {
-                    $tax_total_label = sprintf( '%s (%s%%)', $tax_total_label, $rate_percent );
-                }
             }
+        }
+
+        $tax_total_amount = (float) $order->get_total_tax();
+
+        if ( $tax_total_amount <= 0 ) {
+            $subtotal_for_tax = (float) $order->get_subtotal();
+
+            if ( $subtotal_for_tax <= 0 ) {
+                $subtotal_for_tax = (float) $order->get_total() - (float) $order->get_shipping_total() - (float) $order->get_shipping_tax();
+            }
+
+            if ( $subtotal_for_tax < 0 ) {
+                $subtotal_for_tax = 0;
+            }
+
+            $tax_rate_percent = '19';
+            $tax_total_amount = $subtotal_for_tax * ( (float) $tax_rate_percent / 100 );
+        }
+
+        $tax_total_label = $tax_total_label_base;
+
+        if ( '' !== $tax_rate_percent ) {
+            $tax_total_label = sprintf( '%s (%s%%)', $tax_total_label_base, $tax_rate_percent );
         }
         ?>
 
@@ -331,7 +350,7 @@ if ( '' !== $tracking_provider_label ) {
                 <div class="info-extra-item" role="listitem">
                     <span class="info-extra-icon" aria-hidden="true">🕵️‍♂️</span>
                     <span class="info-extra-label"><?php echo esc_html( $tax_total_label ); ?></span>
-                    <span class="info-extra-value"><?php echo wp_kses_post( wc_price( (float) $order->get_total_tax() ) ); ?></span>
+                    <span class="info-extra-value"><?php echo wp_kses_post( wc_price( $tax_total_amount ) ); ?></span>
                 </div>
                 <div class="info-extra-item" role="listitem">
                     <span class="info-extra-icon" aria-hidden="true">💵</span>

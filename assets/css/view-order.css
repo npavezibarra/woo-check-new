@@ -80,6 +80,15 @@
   color: #ffffff;
 }
 
+.tracking-courier a {
+  color: #ffffff;
+}
+
+.tracking-courier a:focus,
+.tracking-courier a:hover {
+  color: #ffffff;
+}
+
 .order-address-flip-card {
   margin-top: 1.5rem;
   perspective: 1000px;
