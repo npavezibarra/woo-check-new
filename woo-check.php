@@ -377,6 +377,8 @@ function wc_check_handle_processing_order( $order_id ) {
         $courier = wc_check_order_targets_recibelo( $order ) ? 'recibelo' : 'shipit';
     }
 
+    error_log( sprintf( 'WooCheck: Order #%d selected courier %s', $order->get_id(), $courier ) );
+
     /**
      * Filter the courier selected for the order.
      */
@@ -390,7 +392,14 @@ function wc_check_handle_processing_order( $order_id ) {
             return;
         }
 
-        WooCheck_Shipit::send( $order );
+        $response = WooCheck_Shipit::send( $order );
+
+        if ( is_wp_error( $response ) ) {
+            error_log( 'WooCheck: Shipit send failed for order #' . $order->get_id() . ' - ' . $response->get_error_message() );
+        } else {
+            error_log( 'WooCheck: Shipit send success for order #' . $order->get_id() );
+        }
+
         return;
     }
 
@@ -401,14 +410,11 @@ function wc_check_handle_processing_order( $order_id ) {
     $response = WooCheck_Recibelo::send( $order );
 
     if ( is_wp_error( $response ) ) {
-        error_log(
-            sprintf(
-                'WooCheck: Recibelo sync failed for order #%d - %s',
-                $order->get_id(),
-                $response->get_error_message()
-            )
-        );
+        error_log( 'WooCheck: Recibelo send failed for order #' . $order->get_id() . ' - ' . $response->get_error_message() );
+        return;
     }
+
+    error_log( 'WooCheck: Recibelo send success for order #' . $order->get_id() );
 }
 
 add_filter( 'woocommerce_order_actions', 'wc_check_add_recibelo_order_action', 10, 2 );
