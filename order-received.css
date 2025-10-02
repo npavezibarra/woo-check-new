@@ -94,6 +94,10 @@ div#order-information {
     margin-bottom: 20px;
 }
 
+.tracking-heading .tracking-courier a {
+    color: #ffffff;
+}
+
 .order-address-flip-card {
     display: flex;
     justify-content: center;
