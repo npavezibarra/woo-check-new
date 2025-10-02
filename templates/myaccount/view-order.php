@@ -285,10 +285,6 @@ if ( '' !== $tracking_provider_label ) {
             </div>
         <?php endif; ?>
 
-        <p class="woocommerce-order-status">
-            <strong><?php esc_html_e( 'Estado del pedido:', 'woo-check' ); ?></strong> <?php echo esc_html( wc_get_order_status_name( $order->get_status() ) ); ?>
-        </p>
-
         <p class="woocommerce-order-payment-method">
             <strong><?php esc_html_e( 'Payment method:', 'woo-check' ); ?></strong> <?php echo esc_html( $order->get_payment_method_title() ); ?>
         </p>
@@ -296,7 +292,7 @@ if ( '' !== $tracking_provider_label ) {
 
     <!-- Right Column -->
     <div class="woocommerce-order-column woocommerce-order-column--right">
-        <h3><?php esc_html_e( 'Your Items', 'woo-check' ); ?></h3>
+        <h3><?php esc_html_e( 'Tu compra', 'woo-check' ); ?></h3>
         <ul class="order_items">
             <?php foreach ( $order->get_items() as $item_id => $item ) : ?>
                 <?php

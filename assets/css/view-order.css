@@ -96,12 +96,14 @@
 .woocommerce-order-column--right > h3 {
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
   margin-top: 0;
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .order-address-flip-card .flip-card-inner {
   position: relative;
   width: 100%;
-  min-height: 200px;
+  min-height: 280px;
   transition: transform 0.6s ease;
   transform-style: preserve-3d;
 }
