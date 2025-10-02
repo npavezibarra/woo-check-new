@@ -2,62 +2,122 @@ jQuery(document).ready(function($) {
     var FALLBACK_MESSAGE = (typeof WooCheckAjax !== 'undefined' && WooCheckAjax.fallback_message)
         ? WooCheckAjax.fallback_message
         : 'Estamos consultando el estado de este envío...';
+    var WAITING_COPY = 'Esperando tracking number...';
+    var RECIBELO_TRACKING_URL = 'https://recibelo.cl/seguimiento';
+
+    function setTrackingNumber($container, value) {
+        $container.find('.tracking-number').text(value || '');
+    }
+
+    function updateCourierDisplay($container, courierName, options) {
+        options = options || {};
+
+        var $courier = $container.find('.tracking-courier');
+        if ($courier.length === 0) {
+            return;
+        }
+
+        var isRecibelo = !!options.isRecibelo;
+        var providerLabel = options.providerLabel || '';
+        var trackingUrl = options.trackingUrl || '';
+
+        var displayName = courierName || '';
+        if (!displayName && isRecibelo) {
+            displayName = 'Recíbelo';
+        }
+
+        if (!displayName && providerLabel) {
+            displayName = providerLabel;
+        }
+
+        $courier.empty();
+
+        if (!displayName) {
+            return;
+        }
+
+        var href = '';
+        if (isRecibelo) {
+            href = RECIBELO_TRACKING_URL;
+        } else if (trackingUrl) {
+            href = trackingUrl;
+        }
+
+        if (href) {
+            var $anchor = $('<a/>', {
+                text: displayName,
+                href: href,
+                target: '_blank',
+                rel: 'noopener noreferrer'
+            });
+
+            $courier.append('(').append($anchor).append(')');
+        } else {
+            $courier.text('(' + displayName + ')');
+        }
+    }
+
+    function setTrackingMessage($container, message, shouldShow) {
+        var $message = $container.find('.tracking-message');
+        if ($message.length === 0) {
+            return;
+        }
+
+        var text = message || FALLBACK_MESSAGE;
+        $message.text(text);
+
+        if (shouldShow) {
+            $message.show();
+        } else {
+            $message.hide();
+        }
+    }
+
+    function shouldShowTrackingMessage($container) {
+        var hasTrackingNumber = $.trim($container.find('.tracking-number').text()) !== '';
+        var hasCourier = $.trim($container.find('.tracking-courier').text()) !== '';
+
+        return !hasTrackingNumber && !hasCourier;
+    }
+
+    function hideLegacyTrackingLink($container) {
+        var $linkWrapper = $container.find('.tracking-link');
+        if ($linkWrapper.length === 0) {
+            return;
+        }
+
+        $linkWrapper.hide().empty();
+    }
 
     function applyTrackingData($container, data) {
         if (!data) {
             return;
         }
 
-        var courierSlug = data.courier ? data.courier.toLowerCase() : '';
-        if (!courierSlug) {
-            var providerSlug = ($container.data('tracking-provider') || '').toString().toLowerCase();
-            if (providerSlug) {
-                courierSlug = providerSlug;
-            }
-        }
+        var providerSlug = ($container.data('tracking-provider') || '').toString().toLowerCase();
+        var providerLabel = ($container.data('tracking-provider-label') || '').toString();
+        var isRecibelo = providerSlug === 'recibelo';
 
-        var waitingCopy = 'Esperando tracking number...';
-
-        if (!data.tracking_number && courierSlug === 'recibelo') {
-            var courierLabel = data.courier ? '(' + data.courier + ')' : '(Recíbelo)';
-            $container.find('.tracking-courier').text(courierLabel);
-            $container.find('.tracking-number').text('');
-            $container.find('.tracking-message').text(waitingCopy);
-            return;
-        }
-
-        if (data.tracking_number) {
-            $container.find('.tracking-number').text(data.tracking_number);
-        }
-
-        if (data.courier) {
-            $container.find('.tracking-courier').text('(' + data.courier + ')');
-        } else {
-            $container.find('.tracking-courier').text('(Shipit)');
-        }
-
+        var trackingNumber = data.tracking_number ? data.tracking_number.toString() : '';
+        var courierName = data.courier ? data.courier.toString() : '';
+        var trackingUrl = data.tracking_url ? data.tracking_url.toString() : '';
         var message = data.message ? data.message : FALLBACK_MESSAGE;
 
-        $container.find('.tracking-message').text(message);
-
-        var $linkWrapper = $container.find('.tracking-link');
-        var $anchor = $linkWrapper.find('a');
-
-        if (data.tracking_url) {
-            if ($anchor.length === 0) {
-                $anchor = $('<a/>', {
-                    target: '_blank',
-                    rel: 'noopener noreferrer'
-                }).appendTo($linkWrapper.empty());
-            }
-
-            var linkLabel = data.courier ? 'Ver seguimiento en ' + data.courier : 'Ver seguimiento';
-            $anchor.attr('href', data.tracking_url).text(linkLabel);
-            $linkWrapper.show();
+        if (!trackingNumber && isRecibelo) {
+            setTrackingNumber($container, WAITING_COPY);
         } else {
-            $linkWrapper.hide();
-            $anchor.remove();
+            setTrackingNumber($container, trackingNumber);
         }
+
+        updateCourierDisplay($container, courierName, {
+            isRecibelo: isRecibelo,
+            providerLabel: providerLabel,
+            trackingUrl: trackingUrl
+        });
+
+        hideLegacyTrackingLink($container);
+
+        setTrackingMessage($container, message, shouldShowTrackingMessage($container));
     }
 
     function refreshTracking() {
@@ -84,10 +144,10 @@ jQuery(document).ready(function($) {
             if (response && response.success) {
                 applyTrackingData($container, response.data);
             } else {
-                $container.find('.tracking-message').text(FALLBACK_MESSAGE);
+                setTrackingMessage($container, FALLBACK_MESSAGE, shouldShowTrackingMessage($container));
             }
         }).fail(function() {
-            $container.find('.tracking-message').text(FALLBACK_MESSAGE);
+            setTrackingMessage($container, FALLBACK_MESSAGE, shouldShowTrackingMessage($container));
         });
     }
 
