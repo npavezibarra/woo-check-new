@@ -67,59 +67,82 @@ $order = wc_get_order($order_id);
             $order_datetime_display = $order->get_date_created()->date_i18n('d-m-Y H:i:s');
         }
 
-        $format_address_block = function ($type) use ($order) {
+        $billing_address_data = [
+            'first_name' => $order->get_billing_first_name(),
+            'last_name'  => $order->get_billing_last_name(),
+            'address_1'  => $order->get_billing_address_1(),
+            'address_2'  => $order->get_billing_address_2(),
+            'comuna'     => get_post_meta($order->get_id(), 'billing_comuna', true),
+            'state'      => $order->get_billing_state(),
+            'phone'      => $order->get_billing_phone(),
+            'email'      => $order->get_billing_email(),
+        ];
+
+        $shipping_address_data = [
+            'first_name' => $order->get_shipping_first_name(),
+            'last_name'  => $order->get_shipping_last_name(),
+            'address_1'  => $order->get_shipping_address_1(),
+            'address_2'  => $order->get_shipping_address_2(),
+            'comuna'     => get_post_meta($order->get_id(), 'shipping_comuna', true),
+            'state'      => $order->get_shipping_state(),
+            'phone'      => $order->get_shipping_phone(),
+            'email'      => '',
+        ];
+
+        $shipping_presence_values = [
+            'name'      => trim(trim((string) $shipping_address_data['first_name']) . ' ' . trim((string) $shipping_address_data['last_name'])),
+            'address_1' => trim((string) $shipping_address_data['address_1']),
+            'comuna'    => trim((string) $shipping_address_data['comuna']),
+            'state'     => trim((string) $shipping_address_data['state']),
+        ];
+
+        $shipping_presence_values = array_filter($shipping_presence_values, static function ($value) {
+            return $value !== '' && $value !== null;
+        });
+
+        $shipping_has_core_fields = (
+            !empty($shipping_presence_values)
+            && trim((string) $shipping_address_data['address_1']) !== ''
+            && trim((string) $shipping_address_data['comuna']) !== ''
+        );
+
+        if (!$shipping_has_core_fields) {
+            $shipping_address_data = $billing_address_data;
+        }
+
+        $format_address_block = static function ($address_data) {
             $lines = [];
 
-            if ($type === 'billing') {
-                $first_name = $order->get_billing_first_name();
-                $last_name  = $order->get_billing_last_name();
-                $address_1  = $order->get_billing_address_1();
-                $address_2  = $order->get_billing_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'billing_comuna', true);
-                $state      = $order->get_billing_state();
-                $phone      = $order->get_billing_phone();
-                $email      = $order->get_billing_email();
-            } else {
-                $first_name = $order->get_shipping_first_name();
-                $last_name  = $order->get_shipping_last_name();
-                $address_1  = $order->get_shipping_address_1();
-                $address_2  = $order->get_shipping_address_2();
-                $comuna     = get_post_meta($order->get_id(), 'shipping_comuna', true);
-                $state      = $order->get_shipping_state();
-                $phone      = $order->get_shipping_phone();
-                $email      = '';
-            }
-
-            $full_name = trim(trim((string) $first_name) . ' ' . trim((string) $last_name));
-            if (!empty($full_name)) {
+            $full_name = trim(trim((string) $address_data['first_name']) . ' ' . trim((string) $address_data['last_name']));
+            if ($full_name !== '') {
                 $lines[] = esc_html($full_name);
             }
 
-            $address_line = trim((string) $address_1);
-            if (!empty($address_2)) {
-                $address_line .= ', ' . trim((string) $address_2);
+            $address_line = trim((string) $address_data['address_1']);
+            if (!empty($address_data['address_2'])) {
+                $address_line .= ', ' . trim((string) $address_data['address_2']);
             }
-            if (!empty($address_line)) {
+            if ($address_line !== '') {
                 $lines[] = esc_html($address_line);
             }
 
-            if (!empty($comuna)) {
-                $lines[] = esc_html((string) $comuna);
+            if (!empty($address_data['comuna'])) {
+                $lines[] = esc_html((string) $address_data['comuna']);
             }
 
-            if (!empty($state)) {
-                $lines[] = esc_html((string) $state);
+            if (!empty($address_data['state'])) {
+                $lines[] = esc_html((string) $address_data['state']);
             }
 
-            if (!empty($phone)) {
-                $lines[] = wc_make_phone_clickable($phone);
+            if (!empty($address_data['phone'])) {
+                $lines[] = wc_make_phone_clickable($address_data['phone']);
             }
 
-            if (!empty($email)) {
+            if (!empty($address_data['email'])) {
                 $lines[] = sprintf(
                     '<a href="mailto:%1$s">%2$s</a>',
-                    esc_attr($email),
-                    esc_html($email)
+                    esc_attr($address_data['email']),
+                    esc_html($address_data['email'])
                 );
             }
 
@@ -130,8 +153,8 @@ $order = wc_get_order($order_id);
             return implode('<br>', $lines);
         };
 
-        $billing_address_content  = $format_address_block('billing');
-        $shipping_address_content = $format_address_block('shipping');
+        $billing_address_content  = $format_address_block($billing_address_data);
+        $shipping_address_content = $format_address_block($shipping_address_data);
 
         if (empty($billing_address_content) && !empty($shipping_address_content)) {
             $billing_address_content = $shipping_address_content;
