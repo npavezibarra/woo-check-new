@@ -379,6 +379,10 @@ p.titulo-seccion {
     position: relative; /* To position the dividing line */
 }
 
+.woocommerce-order-received header {
+    background: #f9f9f9;
+}
+
 p.fecha-hora-orden {
     color: #ffffff;
     margin-top: 0px;
@@ -441,7 +445,8 @@ div#info-extra-envio {
     }
 
     .info-extra-item {
-        align-items: flex-start;
+        align-items: center;
+        gap: 2px;
         padding: 0;
     }
 
@@ -450,6 +455,10 @@ div#info-extra-envio {
         border-top: 1px solid #d9d9d9;
         padding-top: 16px;
         margin-top: 16px;
+    }
+
+    #order-thank-you-heading {
+        font-size: 28px;
     }
 }
 
