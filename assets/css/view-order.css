@@ -6,9 +6,9 @@
 
 .woocommerce-order-column {
   background: #fff;
-  padding: 1.5rem;
+  /* padding: 1.5rem; */
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); */
 }
 
 .order_items {
@@ -86,4 +86,81 @@
 .tracking-link a:focus,
 .tracking-link a:hover {
   color: #ffffff;
+}
+
+.order-address-flip-card {
+  margin-top: 1.5rem;
+  perspective: 1000px;
+}
+
+.order-address-flip-card .flip-card {
+  position: relative;
+  width: 100%;
+  outline: none;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.order-address-flip-card .flip-card-inner {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  transition: transform 0.6s ease;
+  transform-style: preserve-3d;
+}
+
+.order-address-flip-card .flip-card:hover .flip-card-inner,
+.order-address-flip-card .flip-card:focus .flip-card-inner,
+.order-address-flip-card .flip-card:focus-within .flip-card-inner,
+.order-address-flip-card .flip-card.is-flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.order-address-flip-card .flip-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem;
+  backface-visibility: hidden;
+  border-radius: 12px;
+  background: #f7f7f7;
+  border: 1px solid #e3e3e3;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.order-address-flip-card .flip-card-front {
+  transform: rotateY(0deg);
+}
+
+.order-address-flip-card .flip-card-face.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+.order-address-flip-card h4 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.order-address-flip-card address {
+  margin: 0;
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.order-address-flip-card .flip-card a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.order-address-flip-card .flip-card:focus {
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 767px) {
+  .order-address-flip-card .flip-card-inner {
+    min-height: 240px;
+  }
 }
