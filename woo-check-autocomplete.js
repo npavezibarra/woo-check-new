@@ -3,6 +3,19 @@
 console.log("✅ WooCheck JS file LOADED at top of script");
 
 jQuery(document).ready(function ($) {
+    // Ensure billing_country exists and is set to Chile
+    if (!jQuery('#billing_country').length) {
+        jQuery('<input>', {
+            type: 'hidden',
+            id: 'billing_country',
+            name: 'billing_country',
+            value: 'CL'
+        }).appendTo('form.checkout');
+        console.log("✅ billing_country field added automatically: CL");
+    } else {
+        jQuery('#billing_country').val('CL').trigger('change');
+    }
+
     console.log("✅ jQuery(document).ready() is running");
     console.log("jQuery version:", $.fn.jquery);
     console.log("billing_city exists?", $('#billing_city').length > 0);
