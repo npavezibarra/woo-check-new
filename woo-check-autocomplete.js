@@ -44,6 +44,44 @@ jQuery(document).ready(function ($) {
         entry.comunas.forEach(comuna => comunaList.push(comuna));
     });
 
+    // --- REGION CODE MAP ---
+    const regionCodeMap = {
+        'arica y parinacota': 'CL-AP',
+        'tarapaca': 'CL-TA',
+        'antofagasta': 'CL-AN',
+        'atacama': 'CL-AT',
+        'coquimbo': 'CL-CO',
+        'valparaiso': 'CL-VS',
+        'metropolitana de santiago': 'CL-RM',
+        'region metropolitana': 'CL-RM',
+        'región metropolitana': 'CL-RM',
+        'libertador general bernardo ohiggins': 'CL-LI',
+        'libertador general bernardo o higgins': 'CL-LI',
+        'maule': 'CL-ML',
+        'nuble': 'CL-NB',
+        'ñuble': 'CL-NB',
+        'biobio': 'CL-BI',
+        'bío-bío': 'CL-BI',
+        'araucania': 'CL-AR',
+        'la araucania': 'CL-AR',
+        'los rios': 'CL-LR',
+        'los lagos': 'CL-LL',
+        'aysen': 'CL-AI',
+        'aysén': 'CL-AI',
+        'magallanes': 'CL-MA'
+    };
+
+    function handleInvalidComuna(comunaInput, regionSelect) {
+        const $input = comunaInput instanceof jQuery ? comunaInput : $(comunaInput);
+        const $region = regionSelect instanceof jQuery ? regionSelect : $(regionSelect);
+
+        console.warn('⚠️ handleInvalidComuna invoked for:', $input.val());
+        $region.val('').trigger('change');
+        setTimeout(() => {
+            $('body').trigger('update_checkout');
+        }, 300);
+    }
+
     // --- LEVENSHTEIN DISTANCE FUNCTION ---
     function levenshteinDistance(a, b) {
         const matrix = [];
@@ -91,69 +129,117 @@ jQuery(document).ready(function ($) {
 
     // --- REGION SYNC ---
     function syncRegionWithComuna(comunaInput, regionSelect) {
-        const normalized = normalizeString($(comunaInput).val());
-        const region = comunaToRegionMap[normalized];
+        const $comunaInput = comunaInput instanceof jQuery ? comunaInput : $(comunaInput);
+        const $regionSelect = regionSelect instanceof jQuery ? regionSelect : $(regionSelect);
+        const normalized = normalizeString($comunaInput.val());
+        const associatedRegion = comunaToRegionMap[normalized];
 
-        console.log("syncRegionWithComuna called for:", $(comunaInput).val(), "→ region:", region);
+        console.log("📍 syncRegionWithComuna called for:", $comunaInput.val(), "→ Region:", associatedRegion);
 
-        if (!region) {
-            console.warn("No region found for:", normalized);
+        if (!associatedRegion) {
+            console.warn("⚠️ No region found for:", normalized);
+            handleInvalidComuna($comunaInput, $regionSelect);
             return;
         }
 
-        const normalizedRegion = normalizeString(region);
-        const option = $(`${regionSelect} option`).filter(function () {
-            return normalizeString($(this).text()) === normalizedRegion;
+        const normalizedRegion = normalizeString(associatedRegion);
+        const regionOption = $regionSelect.find('option').filter(function () {
+            const optionText = normalizeString($(this).text());
+            return optionText === normalizedRegion || optionText.includes(normalizedRegion) || normalizedRegion.includes(optionText);
         });
 
-        if (option.length > 0) {
-            const regionValue = option.val();
-            $(regionSelect).val(regionValue).trigger('change');
+        let regionValue = null;
+
+        if (regionOption.length > 0) {
+            regionValue = regionOption.first().val();
+        } else if (regionCodeMap[normalizedRegion]) {
+            regionValue = regionCodeMap[normalizedRegion];
+        }
+
+        if (regionValue) {
+            $regionSelect.val(regionValue).trigger('change');
             console.log("✅ Region set to:", regionValue);
-            $('body').trigger('update_checkout');
+
+            if ($regionSelect.attr('id') === 'billing_state') {
+                $('#shipping_state').val(regionValue).trigger('change');
+            }
+
+            setTimeout(() => {
+                console.log("🔁 Triggering WooCommerce update_checkout from syncRegionWithComuna");
+                $('body').trigger('update_checkout');
+            }, 300);
         } else {
-            console.warn("⚠️ No matching region option found in select for:", normalizedRegion);
+            console.warn("⚠️ No matching region option found for:", normalizedRegion);
+            handleInvalidComuna($comunaInput, $regionSelect);
         }
     }
 
+    const comunaFieldSelector = '#billing_comuna, #shipping_comuna, #billing_city, #shipping_city';
+
     // --- AUTOCOMPLETE INITIALIZATION ---
-    $('#billing_city, #shipping_city').autocomplete({
+    $(comunaFieldSelector).autocomplete({
         source: function(request, response) {
             const term = request.term;
             const regex = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
-            const matches = comunaList.filter(c => regex.test(c));
+            const matches = comunaList.filter(function(comuna) {
+                return regex.test(comuna);
+            });
             response(matches);
         },
         minLength: 1,
         select: function (event, ui) {
-            const input = $(this);
-            const regionSelect = input.attr('id') === 'billing_city' ? '#billing_state' : '#shipping_state';
-            input.val(ui.item.value);
-            syncRegionWithComuna(input, regionSelect);
+            const comunaInput = $(this);
+            const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
+            const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
+            const selectedComuna = ui.item.value;
+
+            console.log("🟢 Commune selected:", selectedComuna);
+
+            comunaInput.val(selectedComuna);
+            comunaInput.trigger('change').trigger('input');
+            if (comunaInput[0]) {
+                comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+            }
+
+            syncRegionWithComuna(comunaInput, regionSelect);
+
+            setTimeout(() => {
+                console.log("🔄 Triggering WooCommerce update_checkout");
+                $('body').trigger('update_checkout');
+            }, 500);
         },
         change: function(event, ui) {
-            const input = $(this);
-            const regionSelect = input.attr('id') === 'billing_city' ? '#billing_state' : '#shipping_state';
-            const normalized = normalizeString(input.val());
+            const comunaInput = $(this);
+            const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
+            const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
+            const normalized = normalizeString(comunaInput.val());
+            const associatedRegion = comunaToRegionMap[normalized];
 
-            if (comunaToRegionMap.hasOwnProperty(normalized)) {
-                const exact = comunaExactMap[normalized];
-                input.val(exact);
-                syncRegionWithComuna(input, regionSelect);
+            if (associatedRegion) {
+                console.log("🟢 Commune recognized:", comunaInput.val(), "→ Region:", associatedRegion);
+                const exact = comunaExactMap[normalized] || comunaInput.val();
+                comunaInput.val(exact);
+                syncRegionWithComuna(comunaInput, regionSelect);
             } else {
-                const closest = findClosestComuna(input.val());
+                const closest = findClosestComuna(comunaInput.val());
+
                 if (closest) {
-                    input.val(closest);
-                    syncRegionWithComuna(input, regionSelect);
+                    console.log("ℹ️ Using closest comuna match:", closest, "for input:", comunaInput.val());
+                    comunaInput.val(closest);
+                    syncRegionWithComuna(comunaInput, regionSelect);
+                } else {
+                    console.warn("⚠️ Unknown comuna:", comunaInput.val());
+                    handleInvalidComuna(comunaInput, regionSelect);
                 }
             }
         }
     });
 
     // --- REGION SYNC ON BLUR ---
-    $('#billing_city, #shipping_city').on('blur', function () {
+    $(comunaFieldSelector).on('blur', function () {
         const input = $(this);
-        const regionSelect = input.attr('id') === 'billing_city' ? '#billing_state' : '#shipping_state';
+        const isBillingField = input.attr('id') === 'billing_comuna' || input.attr('id') === 'billing_city';
+        const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
         syncRegionWithComuna(input, regionSelect);
     });
 
@@ -164,10 +250,8 @@ jQuery(document).ready(function ($) {
 
     // --- STYLE REGION FIELDS ---
     $('#billing_state, #shipping_state').css({
-        'background-color': '#f9f9f9',
-        'pointer-events': 'none',
-        'cursor': 'not-allowed'
+        'background-color': '#f9f9f9'
     });
-
-    console.log("✅ WooCheck autocomplete fully initialized.");
 });
+
+console.log("✅ WooCheck autocomplete fully initialized and listening for commune input.");
