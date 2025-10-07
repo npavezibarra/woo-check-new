@@ -190,14 +190,19 @@ jQuery(document).ready(function ($) {
     function syncRegionWithComuna(comunaInput, regionSelect) {
         const selectedComunaNormalized = normalizeString($(comunaInput).val());
         const associatedRegion = comunaToRegionMap[selectedComunaNormalized];
+        console.log("Comuna entered:", $(comunaInput).val());
+        console.log("Normalized comuna:", selectedComunaNormalized);
+        console.log("Associated region:", associatedRegion);
 
         if (!associatedRegion) {
+            console.warn("No associated region found for:", selectedComunaNormalized);
             handleInvalidComuna(comunaInput, regionSelect);
             return;
         }
 
         const normalizedRegion = normalizeString(associatedRegion);
         const regionCode = regionCodeMap[normalizedRegion] || null;
+        console.log("Normalized region:", normalizedRegion, "Code:", regionCode);
 
         let matched = false;
 
@@ -211,24 +216,34 @@ jQuery(document).ready(function ($) {
                 normalizedRegion.includes(optionText) ||
                 (regionCode && optionValue === regionCode)
             ) {
+                console.log("Found matching region option:", optionText, "Value:", optionValue);
                 $(regionSelect).val(optionValue).trigger('change');
-                $('body').trigger('update_checkout');
                 matched = true;
                 clearComunaSuggestion(comunaInput);
-                return false;
+                return false; // break
             }
         });
 
         if (!matched && regionCode) {
+            console.log("No match found in options, setting manually:", regionCode);
             $(regionSelect).val(regionCode).trigger('change');
-            $('body').trigger('update_checkout');
-            clearComunaSuggestion(comunaInput);
             matched = true;
         }
 
-        if (!matched) {
+        if (matched) {
+            console.log("Region successfully set to:", $(regionSelect).val());
+            // Force WooCommerce recalculation
+            setTimeout(() => {
+                console.log("Triggering WooCommerce update_checkout()");
+                $('body').trigger('update_checkout');
+            }, 500);
+        } else {
+            console.warn("Failed to match any region for:", associatedRegion);
             handleInvalidComuna(comunaInput, regionSelect);
         }
+
+        // Sync shipping state too
+        $('#shipping_state').val($('#billing_state').val()).trigger('change');
     }
 
     // Inicializar el autocompletado con una función personalizada
