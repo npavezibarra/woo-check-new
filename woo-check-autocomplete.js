@@ -188,15 +188,17 @@ jQuery(document).ready(function ($) {
 
     // Sincronizar la región con la comuna seleccionada
     function syncRegionWithComuna(comunaInput, regionSelect) {
-        const selectedComunaNormalized = normalizeString($(comunaInput).val());
+        const $comunaInput = $(comunaInput);
+        const $regionSelect = $(regionSelect);
+        const selectedComunaNormalized = normalizeString($comunaInput.val());
         const associatedRegion = comunaToRegionMap[selectedComunaNormalized];
-        console.log("Comuna entered:", $(comunaInput).val());
+        console.log("Comuna entered:", $comunaInput.val());
         console.log("Normalized comuna:", selectedComunaNormalized);
         console.log("Associated region:", associatedRegion);
 
         if (!associatedRegion) {
             console.warn("No associated region found for:", selectedComunaNormalized);
-            handleInvalidComuna(comunaInput, regionSelect);
+            handleInvalidComuna($comunaInput, regionSelect);
             return;
         }
 
@@ -206,7 +208,7 @@ jQuery(document).ready(function ($) {
 
         let matched = false;
 
-        $(`${regionSelect} option`).each(function () {
+        $regionSelect.find('option').each(function () {
             const optionText = normalizeString($(this).text());
             const optionValue = $(this).val().toUpperCase();
 
@@ -217,21 +219,22 @@ jQuery(document).ready(function ($) {
                 (regionCode && optionValue === regionCode)
             ) {
                 console.log("Found matching region option:", optionText, "Value:", optionValue);
-                $(regionSelect).val(optionValue).trigger('change');
+                $regionSelect.val(optionValue).trigger('change');
                 matched = true;
-                clearComunaSuggestion(comunaInput);
+                clearComunaSuggestion($comunaInput);
                 return false; // break
             }
         });
 
         if (!matched && regionCode) {
             console.log("No match found in options, setting manually:", regionCode);
-            $(regionSelect).val(regionCode).trigger('change');
+            $regionSelect.val(regionCode).trigger('change');
             matched = true;
         }
 
         if (matched) {
-            console.log("Region successfully set to:", $(regionSelect).val());
+            console.log("Region successfully set to:", $regionSelect.val());
+            console.log("Region field value now:", $regionSelect.val());
             // Force WooCommerce recalculation
             setTimeout(() => {
                 console.log("Triggering WooCommerce update_checkout()");
@@ -239,7 +242,7 @@ jQuery(document).ready(function ($) {
             }, 500);
         } else {
             console.warn("Failed to match any region for:", associatedRegion);
-            handleInvalidComuna(comunaInput, regionSelect);
+            handleInvalidComuna($comunaInput, regionSelect);
         }
 
         // Sync shipping state too
@@ -313,12 +316,6 @@ jQuery(document).ready(function ($) {
     styleRegionFields();
 
     // Sincronizar la región al perder el foco del campo comuna
-    $('#billing_comuna, #shipping_comuna').on('blur', function () {
-        const comunaInput = $(this);
-        const regionSelect = comunaInput.attr('id') === 'billing_comuna' ? '#billing_state' : '#shipping_state';
-        syncRegionWithComuna(comunaInput, regionSelect);
-    });
-
     // Asegurarse de que los campos de región estén habilitados al enviar el formulario
     $('form.checkout, form.woocommerce-address-form').on('submit', function () {
         $('#billing_state, #shipping_state').prop('disabled', false);
@@ -326,5 +323,34 @@ jQuery(document).ready(function ($) {
 
     $(document.body).on('change', '#billing_state, #shipping_state', function () {
         $('body').trigger('update_checkout');
+    });
+
+    function bindCheckoutComunaEvents() {
+        const comunaSelectors = [
+            { input: '#billing_city', region: '#billing_state', label: 'Billing' },
+            { input: '#billing_comuna', region: '#billing_state', label: 'Billing' },
+            { input: '#shipping_city', region: '#shipping_state', label: 'Shipping' },
+            { input: '#shipping_comuna', region: '#shipping_state', label: 'Shipping' },
+        ];
+
+        comunaSelectors.forEach(({ input, region, label }) => {
+            const $field = $(input);
+
+            if ($field.length) {
+                $field.off('input.wooCheck change.wooCheck blur.wooCheck');
+                $field.on('input.wooCheck change.wooCheck blur.wooCheck', function () {
+                    console.log(`${label} comuna input changed:`, $(this).val());
+                    syncRegionWithComuna($(this), region);
+                });
+            }
+        });
+    }
+
+    console.log("WooCheck Autocomplete initialized");
+    bindCheckoutComunaEvents();
+
+    $(document.body).on('updated_checkout', function () {
+        console.log("WooCommerce checkout updated, re-binding commune events if needed");
+        bindCheckoutComunaEvents();
     });
 });
