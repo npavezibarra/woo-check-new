@@ -334,13 +334,99 @@ function woo_check_apply_commune_to_order(WC_Order $order, $type, array $commune
         $order->set_shipping_city($name);
 
         if (!empty($commune_data['region_code'])) {
-            $order->set_shipping_state($commune_data['region_code']);
+        $order->set_shipping_state($commune_data['region_code']);
         }
     } else {
         $order->set_billing_city($name);
 
         if (!empty($commune_data['region_code'])) {
             $order->set_billing_state($commune_data['region_code']);
+        }
+    }
+}
+
+add_filter('woocommerce_checkout_posted_data', 'woo_check_sync_checkout_commune_fields');
+function woo_check_sync_checkout_commune_fields($data) {
+    if (!is_array($data)) {
+        return $data;
+    }
+
+    $billing_comuna = isset($data['billing_comuna']) ? sanitize_text_field($data['billing_comuna']) : '';
+    $shipping_comuna = isset($data['shipping_comuna']) ? sanitize_text_field($data['shipping_comuna']) : '';
+
+    $billing_commune_details = null;
+
+    if ('' !== $billing_comuna) {
+        $data['billing_comuna'] = $billing_comuna;
+        $data['billing_city']   = $billing_comuna;
+
+        $billing_commune_details = woo_check_validate_commune_input($billing_comuna);
+
+        if ($billing_commune_details && !empty($billing_commune_details['region_code'])) {
+            $data['billing_state'] = $billing_commune_details['region_code'];
+        }
+    }
+
+    $ship_to_different = !empty($data['ship_to_different_address']) && '1' === (string) $data['ship_to_different_address'];
+
+    if ('' !== $shipping_comuna) {
+        $data['shipping_comuna'] = $shipping_comuna;
+        $data['shipping_city']   = $shipping_comuna;
+
+        $shipping_commune_details = woo_check_validate_commune_input($shipping_comuna);
+
+        if ($shipping_commune_details && !empty($shipping_commune_details['region_code'])) {
+            $data['shipping_state'] = $shipping_commune_details['region_code'];
+        }
+    } elseif ('' !== $billing_comuna && !$ship_to_different) {
+        $data['shipping_city'] = $billing_comuna;
+
+        if (empty($data['shipping_comuna'])) {
+            $data['shipping_comuna'] = $billing_comuna;
+        }
+
+        if (!empty($data['billing_state'])) {
+            $data['shipping_state'] = $data['billing_state'];
+        } elseif ($billing_commune_details && !empty($billing_commune_details['region_code'])) {
+            $data['shipping_state'] = $billing_commune_details['region_code'];
+        }
+    }
+
+    return $data;
+}
+
+add_action('woocommerce_checkout_create_order', 'woo_check_apply_checkout_communes_to_order', 20, 2);
+function woo_check_apply_checkout_communes_to_order($order, $data) {
+    if (!$order instanceof WC_Order) {
+        return;
+    }
+
+    $commune_fields = array(
+        'billing'  => isset($data['billing_comuna']) ? $data['billing_comuna'] : '',
+        'shipping' => isset($data['shipping_comuna']) ? $data['shipping_comuna'] : '',
+    );
+
+    foreach ($commune_fields as $type => $raw_value) {
+        $raw_value = sanitize_text_field($raw_value);
+
+        if ('' === $raw_value) {
+            continue;
+        }
+
+        $commune_data = woo_check_validate_commune_input($raw_value);
+
+        if ($commune_data) {
+            woo_check_apply_commune_to_order($order, $type, $commune_data);
+            continue;
+        }
+
+        $order->update_meta_data(sprintf('%s_comuna', $type), $raw_value);
+        $order->update_meta_data(sprintf('_%s_comuna', $type), $raw_value);
+
+        if ('billing' === $type) {
+            $order->set_billing_city($raw_value);
+        } else {
+            $order->set_shipping_city($raw_value);
         }
     }
 }
