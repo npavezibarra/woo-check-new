@@ -16,6 +16,25 @@ jQuery(document).ready(function ($) {
 
     // Crear el mapa comuna -> región utilizando la normalización
     const comunaToRegionMap = {};
+    const regionCodeMap = {
+        'arica y parinacota': 'CL-AP',
+        'tarapaca': 'CL-TA',
+        'antofagasta': 'CL-AN',
+        'atacama': 'CL-AT',
+        'coquimbo': 'CL-CO',
+        'valparaiso': 'CL-VS',
+        'metropolitana de santiago': 'CL-RM',
+        'region metropolitana': 'CL-RM',
+        'libertador general bernardo ohiggins': 'CL-LI',
+        'maule': 'CL-ML',
+        'nuble': 'CL-NB',
+        'biobio': 'CL-BI',
+        'araucania': 'CL-AR',
+        'los rios': 'CL-LR',
+        'los lagos': 'CL-LL',
+        'aysen': 'CL-AI',
+        'magallanes': 'CL-MA'
+    };
     const comunaExactMap = {}; // Mapa para obtener el nombre exacto de la comuna
     comunasChile.forEach(entry => {
         entry.comunas.forEach(comuna => {
@@ -177,7 +196,9 @@ jQuery(document).ready(function ($) {
             return;
         }
 
-        const normalizedAssociatedRegion = normalizeString(associatedRegion);
+        const normalizedRegion = normalizeString(associatedRegion);
+        const regionCode = regionCodeMap[normalizedRegion] || null;
+
         let matched = false;
 
         $(`${regionSelect} option`).each(function () {
@@ -185,9 +206,10 @@ jQuery(document).ready(function ($) {
             const optionValue = $(this).val().toUpperCase();
 
             if (
-                optionText === normalizedAssociatedRegion ||
-                optionText.includes(normalizedAssociatedRegion) ||
-                normalizedAssociatedRegion.includes(optionText)
+                optionText === normalizedRegion ||
+                optionText.includes(normalizedRegion) ||
+                normalizedRegion.includes(optionText) ||
+                (regionCode && optionValue === regionCode)
             ) {
                 $(regionSelect).val(optionValue).trigger('change');
                 $('body').trigger('update_checkout');
@@ -197,8 +219,8 @@ jQuery(document).ready(function ($) {
             }
         });
 
-        if (!matched && normalizedAssociatedRegion.includes('metropolitana')) {
-            $(regionSelect).val('CL-RM').trigger('change');
+        if (!matched && regionCode) {
+            $(regionSelect).val(regionCode).trigger('change');
             $('body').trigger('update_checkout');
             clearComunaSuggestion(comunaInput);
             matched = true;
