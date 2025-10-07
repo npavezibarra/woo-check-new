@@ -170,25 +170,41 @@ jQuery(document).ready(function ($) {
     // Sincronizar la región con la comuna seleccionada
     function syncRegionWithComuna(comunaInput, regionSelect) {
         const selectedComunaNormalized = normalizeString($(comunaInput).val());
-
         const associatedRegion = comunaToRegionMap[selectedComunaNormalized];
 
-        if (associatedRegion) {
-            const normalizedAssociatedRegion = normalizeString(associatedRegion);
+        if (!associatedRegion) {
+            handleInvalidComuna(comunaInput, regionSelect);
+            return;
+        }
 
-            const regionOption = $(`${regionSelect} option`).filter(function () {
-                return normalizeString($(this).text()) === normalizedAssociatedRegion;
-            });
+        const normalizedAssociatedRegion = normalizeString(associatedRegion);
+        let matched = false;
 
-            if (regionOption.length > 0) {
-                const regionValue = regionOption.val();
-                $(regionSelect).val(regionValue).trigger('change');
+        $(`${regionSelect} option`).each(function () {
+            const optionText = normalizeString($(this).text());
+            const optionValue = $(this).val().toUpperCase();
+
+            if (
+                optionText === normalizedAssociatedRegion ||
+                optionText.includes(normalizedAssociatedRegion) ||
+                normalizedAssociatedRegion.includes(optionText)
+            ) {
+                $(regionSelect).val(optionValue).trigger('change');
                 $('body').trigger('update_checkout');
+                matched = true;
                 clearComunaSuggestion(comunaInput);
-            } else {
-                showComunaSuggestion(comunaInput, null, regionSelect);
+                return false;
             }
-        } else {
+        });
+
+        if (!matched && normalizedAssociatedRegion.includes('metropolitana')) {
+            $(regionSelect).val('CL-RM').trigger('change');
+            $('body').trigger('update_checkout');
+            clearComunaSuggestion(comunaInput);
+            matched = true;
+        }
+
+        if (!matched) {
             handleInvalidComuna(comunaInput, regionSelect);
         }
     }
@@ -247,9 +263,7 @@ jQuery(document).ready(function ($) {
     // Estilizar los campos de región para que no sean editables
     function styleRegionFields() {
         $('#billing_state, #shipping_state').css({
-            'background-color': '#f9f9f9',
-            'pointer-events': 'none',
-            'cursor': 'not-allowed'
+            'background-color': '#f9f9f9'
         });
     }
 
@@ -271,5 +285,9 @@ jQuery(document).ready(function ($) {
     // Asegurarse de que los campos de región estén habilitados al enviar el formulario
     $('form.checkout, form.woocommerce-address-form').on('submit', function () {
         $('#billing_state, #shipping_state').prop('disabled', false);
+    });
+
+    $(document.body).on('change', '#billing_state, #shipping_state', function () {
+        $('body').trigger('update_checkout');
     });
 });
