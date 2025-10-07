@@ -354,17 +354,9 @@ function woo_check_sync_checkout_commune_fields($data) {
     $billing_comuna = isset($data['billing_comuna']) ? sanitize_text_field($data['billing_comuna']) : '';
     $shipping_comuna = isset($data['shipping_comuna']) ? sanitize_text_field($data['shipping_comuna']) : '';
 
-    $billing_commune_details = null;
-
     if ('' !== $billing_comuna) {
         $data['billing_comuna'] = $billing_comuna;
         $data['billing_city']   = $billing_comuna;
-
-        $billing_commune_details = woo_check_validate_commune_input($billing_comuna);
-
-        if ($billing_commune_details && !empty($billing_commune_details['region_code'])) {
-            $data['billing_state'] = $billing_commune_details['region_code'];
-        }
     }
 
     $ship_to_different = !empty($data['ship_to_different_address']) && '1' === (string) $data['ship_to_different_address'];
@@ -372,23 +364,11 @@ function woo_check_sync_checkout_commune_fields($data) {
     if ('' !== $shipping_comuna) {
         $data['shipping_comuna'] = $shipping_comuna;
         $data['shipping_city']   = $shipping_comuna;
-
-        $shipping_commune_details = woo_check_validate_commune_input($shipping_comuna);
-
-        if ($shipping_commune_details && !empty($shipping_commune_details['region_code'])) {
-            $data['shipping_state'] = $shipping_commune_details['region_code'];
-        }
     } elseif ('' !== $billing_comuna && !$ship_to_different) {
         $data['shipping_city'] = $billing_comuna;
 
         if (empty($data['shipping_comuna'])) {
             $data['shipping_comuna'] = $billing_comuna;
-        }
-
-        if (!empty($data['billing_state'])) {
-            $data['shipping_state'] = $data['billing_state'];
-        } elseif ($billing_commune_details && !empty($billing_commune_details['region_code'])) {
-            $data['shipping_state'] = $billing_commune_details['region_code'];
         }
     }
 
