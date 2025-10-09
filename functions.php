@@ -79,10 +79,61 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ob_start();
+
+    static $packing_assets_printed = false;
+
+    if ( ! $packing_assets_printed ) {
+        $packing_assets_printed = true;
+        ?>
+        <style>
+            .villegas-packing-list {
+                border: 1px solid #ccc;
+                border-collapse: collapse;
+                width: 100%;
+            }
+
+            .villegas-packing-list th,
+            .villegas-packing-list td {
+                border: 1px solid #ccc;
+                padding: 8px;
+                vertical-align: top;
+            }
+
+            .villegas-packing-list tr.is-checked {
+                background-color: #fff9c4;
+            }
+        </style>
+        <script>
+            ( function () {
+                document.addEventListener( 'change', function ( event ) {
+                    if ( ! event.target.matches( '.packing-checkbox' ) ) {
+                        return;
+                    }
+
+                    var row = event.target.closest( 'tr' );
+
+                    if ( ! row ) {
+                        return;
+                    }
+
+                    if ( event.target.checked ) {
+                        row.classList.add( 'is-checked' );
+                    } else {
+                        row.classList.remove( 'is-checked' );
+                    }
+                } );
+            } )();
+        </script>
+        <?php
+    }
+
     ?>
     <table class="villegas-packing-list">
         <thead>
             <tr>
+                <th class="packing-select">
+                    <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
+                </th>
                 <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
                 <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
             </tr>
@@ -91,6 +142,14 @@ function villegas_packing_list_shortcode( $atts ) {
             <?php foreach ( $orders as $order ) : ?>
                 <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
                 <tr>
+                    <td>
+                        <input
+                            type="checkbox"
+                            class="packing-checkbox"
+                            data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
+                            aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
+                        />
+                    </td>
                     <td><?php echo esc_html( $order->get_id() ); ?></td>
                     <td>
                         <?php
