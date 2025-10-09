@@ -39,7 +39,7 @@ function villegas_packing_list_shortcode( $atts ) {
 
     $atts = shortcode_atts(
         [
-            'per_page' => 10,
+            'per_page' => 100,
         ],
         $atts,
         'villegas-packing-list'
@@ -47,52 +47,6 @@ function villegas_packing_list_shortcode( $atts ) {
 
     $per_page = max( 1, (int) $atts['per_page'] );
     $page     = isset( $_GET['packing_page'] ) ? max( 1, (int) $_GET['packing_page'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-    $start_date = '';
-
-    if ( isset( $_GET['packing_start'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_start = wp_unslash( $_GET['packing_start'] );
-
-        if ( is_array( $raw_start ) ) {
-            $raw_start = reset( $raw_start );
-        }
-
-        if ( is_string( $raw_start ) ) {
-            $raw_start = sanitize_text_field( $raw_start );
-
-            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) {
-                $start_date = $raw_start;
-            }
-        }
-    }
-
-    $end_date = '';
-
-    if ( isset( $_GET['packing_end'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_end = wp_unslash( $_GET['packing_end'] );
-
-        if ( is_array( $raw_end ) ) {
-            $raw_end = reset( $raw_end );
-        }
-
-        if ( is_string( $raw_end ) ) {
-            $raw_end = sanitize_text_field( $raw_end );
-
-            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_end ) ) {
-                $end_date = $raw_end;
-            }
-        }
-    }
-
-    $date_filter = [];
-
-    if ( $start_date ) {
-        $date_filter['after'] = $start_date;
-    }
-
-    if ( $end_date ) {
-        $date_filter['before'] = $end_date;
-    }
 
     $orders_args = [
         'status'   => 'processing',
@@ -103,10 +57,6 @@ function villegas_packing_list_shortcode( $atts ) {
         'paginate' => true,
         'return'   => 'objects',
     ];
-
-    if ( $date_filter ) {
-        $orders_args['date_created'] = array_merge( $date_filter, [ 'inclusive' => true ] );
-    }
 
     $orders_query = wc_get_orders( $orders_args );
 
@@ -156,31 +106,10 @@ function villegas_packing_list_shortcode( $atts ) {
             .villegas-packing-toolbar {
                 display: flex;
                 align-items: center;
-                justify-content: space-between;
+                justify-content: flex-end;
                 flex-wrap: wrap;
                 gap: 12px;
                 margin-bottom: 12px;
-            }
-
-            .villegas-packing-filters {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 8px;
-            }
-
-            .villegas-packing-filters label {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                font-weight: 600;
-            }
-
-            .villegas-packing-filters input[type="date"] {
-                padding: 4px 8px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background-color: #fff;
             }
 
             .villegas-packing-pagination {
@@ -235,16 +164,6 @@ function villegas_packing_list_shortcode( $atts ) {
         <?php
     }
 
-    $date_query_args = [];
-
-    if ( $start_date ) {
-        $date_query_args['packing_start'] = $start_date;
-    }
-
-    if ( $end_date ) {
-        $date_query_args['packing_end'] = $end_date;
-    }
-
     $pagination_markup = '';
 
     if ( $total_pages > 1 ) {
@@ -252,7 +171,7 @@ function villegas_packing_list_shortcode( $atts ) {
         ?>
         <nav class="villegas-packing-pagination" aria-label="<?php esc_attr_e( 'Packing list pagination', 'woo-check' ); ?>">
             <?php if ( $page > 1 ) : ?>
-                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( array_merge( $date_query_args, [ 'packing_page' => $page - 1 ] ) ) ); ?>">
+                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page - 1 ) ); ?>">
                     <?php esc_html_e( 'Previous', 'woo-check' ); ?>
                 </a>
             <?php endif; ?>
@@ -269,7 +188,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 ?>
             </span>
             <?php if ( $page < $total_pages ) : ?>
-                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( array_merge( $date_query_args, [ 'packing_page' => $page + 1 ] ) ) ); ?>">
+                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page + 1 ) ); ?>">
                     <?php esc_html_e( 'Next', 'woo-check' ); ?>
                 </a>
             <?php endif; ?>
@@ -278,44 +197,13 @@ function villegas_packing_list_shortcode( $atts ) {
         $pagination_markup = ob_get_clean();
     }
 
-    ob_start();
-    ?>
-    <form class="villegas-packing-filters" method="get">
-        <?php foreach ( $_GET as $key => $value ) : // phpcs:ignore WordPress.Security.NonceVerification.Recommended ?>
-            <?php
-            if ( in_array( $key, [ 'packing_start', 'packing_end', 'packing_page' ], true ) ) {
-                continue;
-            }
-
-            if ( is_array( $value ) ) {
-                continue;
-            }
-
-            $sanitized_value = sanitize_text_field( wp_unslash( $value ) );
-            ?>
-            <input type="hidden" name="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $sanitized_value ); ?>" />
-        <?php endforeach; ?>
-        <label>
-            <?php esc_html_e( 'From', 'woo-check' ); ?>
-            <input type="date" name="packing_start" value="<?php echo esc_attr( $start_date ); ?>" />
-        </label>
-        <label>
-            <?php esc_html_e( 'To', 'woo-check' ); ?>
-            <input type="date" name="packing_end" value="<?php echo esc_attr( $end_date ); ?>" />
-        </label>
-        <button type="submit" class="villegas-packing-pagination__button">
-            <?php esc_html_e( 'Filter', 'woo-check' ); ?>
-        </button>
-    </form>
-    <?php
-    $filters_markup = ob_get_clean();
-
-    ?>
-    <div class="villegas-packing-toolbar">
-        <?php echo $filters_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </div>
-    <?php
+    if ( $pagination_markup ) {
+        ?>
+        <div class="villegas-packing-toolbar">
+            <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+        </div>
+        <?php
+    }
 
     ?>
     <table class="villegas-packing-list">
