@@ -102,6 +102,39 @@ function villegas_packing_list_shortcode( $atts ) {
             .villegas-packing-list tr.is-checked {
                 background-color: #fff9c4;
             }
+
+            .villegas-packing-pagination {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 12px;
+            }
+
+            .villegas-packing-pagination--bottom {
+                margin-top: 12px;
+                margin-bottom: 0;
+            }
+
+            .villegas-packing-pagination__button {
+                display: inline-block;
+                padding: 6px 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background: #f3f4f6;
+                color: inherit;
+                text-decoration: none;
+                transition: background-color 0.2s ease;
+            }
+
+            .villegas-packing-pagination__button:hover,
+            .villegas-packing-pagination__button:focus {
+                background: #e5e7eb;
+            }
+
+            .villegas-packing-pagination__status {
+                font-weight: 600;
+            }
         </style>
         <script>
             ( function () {
@@ -126,6 +159,41 @@ function villegas_packing_list_shortcode( $atts ) {
         </script>
         <?php
     }
+
+    $pagination_markup = '';
+
+    if ( $total_pages > 1 ) {
+        ob_start();
+        ?>
+        <nav class="villegas-packing-pagination" aria-label="<?php esc_attr_e( 'Packing list pagination', 'woo-check' ); ?>">
+            <?php if ( $page > 1 ) : ?>
+                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page - 1 ) ); ?>">
+                    <?php esc_html_e( 'Previous', 'woo-check' ); ?>
+                </a>
+            <?php endif; ?>
+            <span class="villegas-packing-pagination__status">
+                <?php
+                echo esc_html(
+                    sprintf(
+                        /* translators: 1: current page number. 2: total pages. */
+                        __( 'Page %1$d of %2$d', 'woo-check' ),
+                        $page,
+                        $total_pages
+                    )
+                );
+                ?>
+            </span>
+            <?php if ( $page < $total_pages ) : ?>
+                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page + 1 ) ); ?>">
+                    <?php esc_html_e( 'Next', 'woo-check' ); ?>
+                </a>
+            <?php endif; ?>
+        </nav>
+        <?php
+        $pagination_markup = ob_get_clean();
+    }
+
+    echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 
     ?>
     <table class="villegas-packing-list">
@@ -172,35 +240,11 @@ function villegas_packing_list_shortcode( $atts ) {
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ( $total_pages > 1 ) : ?>
-        <nav class="villegas-packing-pagination">
-            <ul>
-                <?php if ( $page > 1 ) : ?>
-                    <li class="prev">
-                        <a href="<?php echo esc_url( add_query_arg( 'packing_page', $page - 1 ) ); ?>"><?php esc_html_e( 'Previous', 'woo-check' ); ?></a>
-                    </li>
-                <?php endif; ?>
-                <li class="current">
-                    <?php
-                    echo esc_html(
-                        sprintf(
-                            /* translators: 1: current page number. 2: total pages. */
-                            __( 'Page %1$d of %2$d', 'woo-check' ),
-                            $page,
-                            $total_pages
-                        )
-                    );
-                    ?>
-                </li>
-                <?php if ( $page < $total_pages ) : ?>
-                    <li class="next">
-                        <a href="<?php echo esc_url( add_query_arg( 'packing_page', $page + 1 ) ); ?>"><?php esc_html_e( 'Next', 'woo-check' ); ?></a>
-                    </li>
-                <?php endif; ?>
-            </ul>
-        </nav>
-    <?php endif; ?>
     <?php
+
+    if ( $pagination_markup ) {
+        echo str_replace( 'villegas-packing-pagination"', 'villegas-packing-pagination villegas-packing-pagination--bottom"', $pagination_markup ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
 
     return trim( ob_get_clean() );
 }
