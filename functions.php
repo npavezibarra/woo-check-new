@@ -51,20 +51,36 @@ function villegas_packing_list_shortcode( $atts ) {
     $start_date = '';
 
     if ( isset( $_GET['packing_start'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_start = sanitize_text_field( wp_unslash( $_GET['packing_start'] ) );
+        $raw_start = wp_unslash( $_GET['packing_start'] );
 
-        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) {
-            $start_date = $raw_start;
+        if ( is_array( $raw_start ) ) {
+            $raw_start = reset( $raw_start );
+        }
+
+        if ( is_string( $raw_start ) ) {
+            $raw_start = sanitize_text_field( $raw_start );
+
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) {
+                $start_date = $raw_start;
+            }
         }
     }
 
     $end_date = '';
 
     if ( isset( $_GET['packing_end'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $raw_end = sanitize_text_field( wp_unslash( $_GET['packing_end'] ) );
+        $raw_end = wp_unslash( $_GET['packing_end'] );
 
-        if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_end ) ) {
-            $end_date = $raw_end;
+        if ( is_array( $raw_end ) ) {
+            $raw_end = reset( $raw_end );
+        }
+
+        if ( is_string( $raw_end ) ) {
+            $raw_end = sanitize_text_field( $raw_end );
+
+            if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_end ) ) {
+                $end_date = $raw_end;
+            }
         }
     }
 
