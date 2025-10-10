@@ -213,6 +213,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
                 </th>
                 <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
+                <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
                 <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
             </tr>
         </thead>
@@ -229,6 +230,25 @@ function villegas_packing_list_shortcode( $atts ) {
                         />
                     </td>
                     <td><?php echo esc_html( $order->get_id() ); ?></td>
+                    <td>
+                        <?php
+                        $region_name = '';
+
+                        if ( function_exists( 'wc_check_determine_commune_region_data' ) ) {
+                            $location = wc_check_determine_commune_region_data( $order );
+
+                            if ( ! empty( $location['region_name'] ) ) {
+                                $region_name = $location['region_name'];
+                            }
+                        }
+
+                        if ( '' === $region_name ) {
+                            $region_name = $order->get_shipping_state() ?: $order->get_billing_state();
+                        }
+
+                        echo esc_html( $region_name );
+                        ?>
+                    </td>
                     <td>
                         <?php
                         $item_lines = [];
