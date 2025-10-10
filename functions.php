@@ -131,6 +131,11 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => 0,
     ];
 
+    $hourly_region_counts = [
+        'region_metropolitana' => array_fill( 0, 24, 0 ),
+        'other_regions'        => array_fill( 0, 24, 0 ),
+    ];
+
     $order_region_cache = [];
 
     $summary_orders = wc_get_orders(
@@ -181,10 +186,22 @@ function villegas_packing_list_shortcode( $atts ) {
             }
 
             if ( $is_today ) {
+                $order_hour = 0;
+
+                if ( $date_created instanceof WC_DateTime ) {
+                    $offset_timestamp = method_exists( $date_created, 'getOffsetTimestamp' )
+                        ? $date_created->getOffsetTimestamp()
+                        : $order_timestamp + (int) $date_created->getOffset();
+
+                    $order_hour = (int) gmdate( 'G', $offset_timestamp );
+                }
+
                 if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
                     $summary_counts['region_metropolitana']++;
+                    $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
                 } else {
                     $summary_counts['other_regions']++;
+                    $hourly_region_counts['other_regions'][ $order_hour ]++;
                 }
             }
         }
@@ -261,6 +278,13 @@ function villegas_packing_list_shortcode( $atts ) {
                 font-weight: 600;
             }
 
+            #villegas-packing-overview .packing-stats__metrics {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                max-width: 280px;
+            }
+
             .villegas-packing-pagination {
                 display: flex;
                 align-items: center;
@@ -289,27 +313,19 @@ function villegas_packing_list_shortcode( $atts ) {
                 font-weight: 600;
             }
 
-            #villegas-packing-summary {
-                border: 1px solid #ccc;
-                padding: 12px;
-                margin-bottom: 12px;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 16px;
-                background: #fff;
+            #villegas-packing-overview .packing-stats__chart {
+                position: relative;
+                width: 100%;
+                height: 300px;
+                max-height: 300px;
             }
 
-            #villegas-packing-summary .villegas-packing-summary__item {
-                display: flex;
-                align-items: baseline;
-                gap: 6px;
-                font-size: 14px;
-            }
-
-            #villegas-packing-summary .villegas-packing-summary__label {
-                font-weight: 600;
+            #villegas-packing-overview .packing-stats__chart canvas {
+                width: 100% !important;
+                height: 100% !important;
             }
         </style>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
         <script>
             ( function () {
                 document.addEventListener( 'change', function ( event ) {
@@ -336,58 +352,146 @@ function villegas_packing_list_shortcode( $atts ) {
 
     ?>
     <div id="packing-stats">
-        <div id="villegas-packing-summary" class="packing-stats__widget">
-            <p class="packing-stats__widget-title"><?php esc_html_e( 'Today\'s Orders', 'woo-check' ); ?></p>
-            <div class="villegas-packing-summary__item">
-                <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
-                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
-            </div>
-            <div class="villegas-packing-summary__item">
-                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
-                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
-            </div>
-            <div class="villegas-packing-summary__item">
-                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
-                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
-            </div>
-            <?php if ( $undetermined_regions_today > 0 ) : ?>
-                <div class="villegas-packing-summary__item">
-                    <span class="villegas-packing-summary__label"><?php esc_html_e( 'Unassigned Region Orders Today', 'woo-check' ); ?>:</span>
-                    <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $undetermined_regions_today ) ); ?></span>
-                </div>
-            <?php endif; ?>
-        </div>
+        <?php
+        $villegas_overview_chart_payload = [
+            'labels'       => array_map(
+                static function ( $hour ) {
+                    return sprintf( '%02d:00', $hour );
+                },
+                range( 0, 23 )
+            ),
+            'rm'           => array_map( 'intval', $hourly_region_counts['region_metropolitana'] ),
+            'not_rm'       => array_map( 'intval', $hourly_region_counts['other_regions'] ),
+        ];
+        ?>
         <div id="villegas-packing-overview" class="packing-stats__widget">
             <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Processing Orders', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $total_processing_orders ) ); ?></span>
+            <div class="packing-stats__metrics">
+                <div class="packing-stats__stat">
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
+                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+                </div>
+                <div class="packing-stats__stat">
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
+                </div>
+                <div class="packing-stats__stat">
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
+                </div>
+                <?php if ( $undetermined_regions_today > 0 ) : ?>
+                    <div class="packing-stats__stat">
+                        <span class="packing-stats__stat-label"><?php esc_html_e( 'Unassigned Region Orders Today', 'woo-check' ); ?>:</span>
+                        <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $undetermined_regions_today ) ); ?></span>
+                    </div>
+                <?php endif; ?>
             </div>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Orders on This Page', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $displayed_orders_count ) ); ?></span>
-            </div>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Current Page', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( sprintf( __( '%1$d of %2$d', 'woo-check' ), $page, $total_pages ) ); ?></span>
-            </div>
-        </div>
-        <div id="villegas-packing-regional-share" class="packing-stats__widget">
-            <p class="packing-stats__widget-title"><?php esc_html_e( 'Today\'s Regional Split', 'woo-check' ); ?></p>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Región Metropolitana', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $metropolitana_share ) ); ?>%</span>
-            </div>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $other_regions_share ) ); ?>%</span>
-            </div>
-            <div class="packing-stats__stat">
-                <span class="packing-stats__stat-label"><?php esc_html_e( 'Tracked Orders Today', 'woo-check' ); ?>:</span>
-                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $today_tracked_regions ) ); ?></span>
+            <div class="packing-stats__chart">
+                <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php esc_attr_e( 'Stacked hourly orders by region', 'woo-check' ); ?>"></canvas>
             </div>
         </div>
     </div>
+
+    <script>
+        ( function () {
+            if ( 'undefined' === typeof Chart ) {
+                return;
+            }
+
+            var chartCanvas = document.getElementById( 'villegasPackingOverviewChart' );
+
+            if ( ! chartCanvas || chartCanvas.dataset.chartRendered ) {
+                return;
+            }
+
+            chartCanvas.dataset.chartRendered = '1';
+
+            var chartData = <?php echo wp_json_encode( $villegas_overview_chart_payload ); ?>;
+
+            var datasets = [
+                {
+                    label: '<?php echo esc_js( __( 'RM Orders', 'woo-check' ) ); ?>',
+                    data: chartData.rm,
+                    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'orders',
+                },
+                {
+                    label: '<?php echo esc_js( __( 'Not RM Orders', 'woo-check' ) ); ?>',
+                    data: chartData.not_rm,
+                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    stack: 'orders',
+                }
+            ];
+
+            var config = {
+                type: 'bar',
+                data: {
+                    labels: chartData.labels,
+                    datasets: datasets,
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 20,
+                            },
+                        },
+                        tooltip: {
+                            callbacks: {
+                                footer: function ( tooltipItems ) {
+                                    var total = tooltipItems.reduce( function ( sum, item ) {
+                                        return sum + ( item.parsed.y || 0 );
+                                    }, 0 );
+
+                                    return '<?php echo esc_js( __( 'Total Orders:', 'woo-check' ) ); ?> ' + total;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: '<?php echo esc_js( __( 'Hour of Day (24hr Clock)', 'woo-check' ) ); ?>',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                display: false,
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            new Chart( chartCanvas.getContext( '2d' ), config );
+        } )();
+    </script>
 
     <?php
     $pagination_markup = '';
@@ -432,21 +536,6 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div id="villegas-packing-summary">
-        <div class="villegas-packing-summary__item">
-            <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
-            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
-        </div>
-        <div class="villegas-packing-summary__item">
-            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
-            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
-        </div>
-        <div class="villegas-packing-summary__item">
-            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
-            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
-        </div>
-    </div>
-
     <table class="villegas-packing-list">
         <thead>
             <tr>
