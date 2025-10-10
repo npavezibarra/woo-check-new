@@ -37,6 +37,10 @@ function villegas_packing_list_shortcode( $atts ) {
         return '';
     }
 
+    if ( ! current_user_can( 'manage_options' ) ) {
+        return '<p>' . esc_html__( 'Información Confidencial', 'woo-check' ) . '</p>';
+    }
+
     $atts = shortcode_atts(
         [
             'per_page' => 100,
