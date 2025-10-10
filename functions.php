@@ -140,13 +140,7 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => array_fill( 0, 24, 0 ),
     ];
 
-    $hourly_region_order_ids = [
-        'region_metropolitana' => array_fill( 0, 24, [] ),
-        'other_regions'        => array_fill( 0, 24, [] ),
-    ];
-
-    $order_region_cache        = [];
-    $undetermined_regions_today = 0;
+    $order_region_cache = [];
 
     $summary_orders = wc_get_orders(
         [
@@ -206,20 +200,12 @@ function villegas_packing_list_shortcode( $atts ) {
                     $order_hour = (int) gmdate( 'G', $offset_timestamp );
                 }
 
-                $has_region_label = '' !== trim( (string) $region_label );
-
-                if ( ! $has_region_label ) {
-                    $undetermined_regions_today++;
-                }
-
                 if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
                     $summary_counts['region_metropolitana']++;
                     $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
-                    $hourly_region_order_ids['region_metropolitana'][ $order_hour ][] = (int) $order_id;
                 } else {
                     $summary_counts['other_regions']++;
                     $hourly_region_counts['other_regions'][ $order_hour ]++;
-                    $hourly_region_order_ids['other_regions'][ $order_hour ][] = (int) $order_id;
                 }
             }
         }
@@ -379,19 +365,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 range( 0, 23 )
             ),
             'rm'           => array_map( 'intval', $hourly_region_counts['region_metropolitana'] ),
-            'rm_order_ids' => array_map(
-                static function ( $ids ) {
-                    return array_values( array_map( 'intval', (array) $ids ) );
-                },
-                $hourly_region_order_ids['region_metropolitana']
-            ),
-            'not_rm'           => array_map( 'intval', $hourly_region_counts['other_regions'] ),
-            'not_rm_order_ids' => array_map(
-                static function ( $ids ) {
-                    return array_values( array_map( 'intval', (array) $ids ) );
-                },
-                $hourly_region_order_ids['other_regions']
-            ),
+            'not_rm'       => array_map( 'intval', $hourly_region_counts['other_regions'] ),
         ];
         ?>
         <div id="villegas-packing-overview" class="packing-stats__widget">
@@ -448,7 +422,6 @@ function villegas_packing_list_shortcode( $atts ) {
                     borderRadius: 6,
                     borderSkipped: false,
                     stack: 'orders',
-                    orderIds: chartData.rm_order_ids,
                 },
                 {
                     label: '<?php echo esc_js( __( 'Not RM Orders', 'woo-check' ) ); ?>',
@@ -459,7 +432,6 @@ function villegas_packing_list_shortcode( $atts ) {
                     borderRadius: 6,
                     borderSkipped: false,
                     stack: 'orders',
-                    orderIds: chartData.not_rm_order_ids,
                 }
             ];
 
@@ -482,25 +454,6 @@ function villegas_packing_list_shortcode( $atts ) {
                         },
                         tooltip: {
                             callbacks: {
-                                label: function ( context ) {
-                                    var datasetLabel = context.dataset.label || '';
-                                    var value = context.parsed.y || 0;
-
-                                    return datasetLabel + ': ' + value;
-                                },
-                                afterLabel: function ( context ) {
-                                    var ids = [];
-
-                                    if ( context.dataset.orderIds && context.dataset.orderIds[ context.dataIndex ] ) {
-                                        ids = context.dataset.orderIds[ context.dataIndex ];
-                                    }
-
-                                    if ( ! ids.length ) {
-                                        return '<?php echo esc_js( __( 'Order IDs: none', 'woo-check' ) ); ?>';
-                                    }
-
-                                    return '<?php echo esc_js( __( 'Order IDs:', 'woo-check' ) ); ?> ' + ids.join( ', ' );
-                                },
                                 footer: function ( tooltipItems ) {
                                     var total = tooltipItems.reduce( function ( sum, item ) {
                                         return sum + ( item.parsed.y || 0 );
