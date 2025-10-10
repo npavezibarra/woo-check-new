@@ -78,6 +78,118 @@ function villegas_packing_list_shortcode( $atts ) {
         return '<p>' . esc_html__( 'There are no processing orders at the moment.', 'woo-check' ) . '</p>';
     }
 
+    $determine_region_label = static function ( WC_Order $order ) {
+        $region_name = '';
+
+        if ( function_exists( 'wc_check_determine_commune_region_data' ) ) {
+            $location = wc_check_determine_commune_region_data( $order );
+
+            if ( ! empty( $location['region_name'] ) ) {
+                $region_name = $location['region_name'];
+            }
+        }
+
+        if ( '' === $region_name ) {
+            $region_name = $order->get_shipping_state() ?: $order->get_billing_state();
+        }
+
+        return $region_name;
+    };
+
+    $normalize_region_name = static function ( $region_name ) {
+        $region_name = (string) $region_name;
+
+        if ( class_exists( 'WooCheck_Shipit_Validator' ) && method_exists( 'WooCheck_Shipit_Validator', 'normalize_commune' ) ) {
+            return WooCheck_Shipit_Validator::normalize_commune( $region_name );
+        }
+
+        if ( function_exists( 'remove_accents' ) ) {
+            $region_name = remove_accents( $region_name );
+        }
+
+        return strtoupper( trim( $region_name ) );
+    };
+
+    $is_metropolitana_order = static function ( WC_Order $order, $region_label ) use ( $normalize_region_name ) {
+        $normalized_region = '' !== $region_label ? $normalize_region_name( $region_label ) : '';
+
+        if ( '' !== $normalized_region && false !== strpos( $normalized_region, 'METROPOLITANA' ) ) {
+            return true;
+        }
+
+        $shipping_state = strtoupper( (string) $order->get_shipping_state() );
+        $billing_state  = strtoupper( (string) $order->get_billing_state() );
+
+        $metropolitana_states = [ 'RM', 'CL-RM' ];
+
+        return in_array( $shipping_state, $metropolitana_states, true ) || in_array( $billing_state, $metropolitana_states, true );
+    };
+
+    $summary_counts = [
+        'new_orders_today'     => 0,
+        'region_metropolitana' => 0,
+        'other_regions'        => 0,
+    ];
+
+    $order_region_cache = [];
+
+    $summary_orders = wc_get_orders(
+        [
+            'status' => 'processing',
+            'limit'  => -1,
+            'return' => 'objects',
+        ]
+    );
+
+    if ( is_array( $summary_orders ) ) {
+        $current_timestamp = current_time( 'timestamp' );
+        $today_start_ts    = strtotime( 'today', $current_timestamp );
+        $today_end_ts      = strtotime( 'tomorrow', $today_start_ts );
+
+        if ( false === $today_start_ts ) {
+            $today_start_ts = strtotime( 'today' );
+        }
+
+        if ( false === $today_start_ts ) {
+            $today_start_ts = (int) $current_timestamp;
+        }
+
+        if ( false === $today_end_ts ) {
+            $day_in_seconds = defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400;
+            $today_end_ts   = (int) $today_start_ts + $day_in_seconds;
+        }
+
+        foreach ( $summary_orders as $summary_order ) {
+            if ( ! $summary_order instanceof WC_Order ) {
+                continue;
+            }
+
+            $order_id                = $summary_order->get_id();
+            $region_label            = $determine_region_label( $summary_order );
+            $order_region_cache[ $order_id ] = $region_label;
+
+            $date_created = $summary_order->get_date_created();
+            $is_today     = false;
+
+            if ( $date_created instanceof WC_DateTime ) {
+                $order_timestamp = $date_created->getTimestamp();
+
+                if ( $order_timestamp >= $today_start_ts && $order_timestamp < $today_end_ts ) {
+                    $summary_counts['new_orders_today']++;
+                    $is_today = true;
+                }
+            }
+
+            if ( $is_today ) {
+                if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
+                    $summary_counts['region_metropolitana']++;
+                } else {
+                    $summary_counts['other_regions']++;
+                }
+            }
+        }
+    }
+
     ob_start();
 
     static $packing_assets_printed = false;
@@ -112,6 +224,18 @@ function villegas_packing_list_shortcode( $atts ) {
                 margin-bottom: 12px;
             }
 
+            #packing-stats {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin-bottom: 12px;
+            }
+
+            #packing-stats .packing-stats__widget {
+                flex: 1 1 calc((100% - 40px) / 3);
+                min-width: 220px;
+            }
+
             .villegas-packing-pagination {
                 display: flex;
                 align-items: center;
@@ -139,6 +263,26 @@ function villegas_packing_list_shortcode( $atts ) {
             .villegas-packing-pagination__status {
                 font-weight: 600;
             }
+
+            #villegas-packing-summary {
+                border: 1px solid #ccc;
+                padding: 12px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 16px;
+                background: #fff;
+            }
+
+            #villegas-packing-summary .villegas-packing-summary__item {
+                display: flex;
+                align-items: baseline;
+                gap: 6px;
+                font-size: 14px;
+            }
+
+            #villegas-packing-summary .villegas-packing-summary__label {
+                font-weight: 600;
+            }
         </style>
         <script>
             ( function () {
@@ -164,6 +308,25 @@ function villegas_packing_list_shortcode( $atts ) {
         <?php
     }
 
+    ?>
+    <div id="packing-stats">
+        <div id="villegas-packing-summary" class="packing-stats__widget">
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+            </div>
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
+            </div>
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
+            </div>
+        </div>
+    </div>
+
+    <?php
     $pagination_markup = '';
 
     if ( $total_pages > 1 ) {
@@ -214,6 +377,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 </th>
                 <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
                 <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
+                <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -244,6 +408,14 @@ function villegas_packing_list_shortcode( $atts ) {
                         }
 
                         echo wp_kses_post( implode( '<br />', $item_lines ) );
+                        ?>
+                    </td>
+                    <td>
+                        <?php
+                        $order_id    = $order->get_id();
+                        $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
+
+                        echo esc_html( $region_name );
                         ?>
                     </td>
                 </tr>
