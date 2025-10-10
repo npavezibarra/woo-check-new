@@ -141,10 +141,7 @@ function villegas_packing_list_shortcode( $atts ) {
         ]
     );
 
-    $total_processing_orders = 0;
-
     if ( is_array( $summary_orders ) ) {
-        $total_processing_orders = count( $summary_orders );
         $current_timestamp = current_time( 'timestamp' );
         $today_start_ts    = strtotime( 'today', $current_timestamp );
         $today_end_ts      = strtotime( 'tomorrow', $today_start_ts );
@@ -192,12 +189,6 @@ function villegas_packing_list_shortcode( $atts ) {
             }
         }
     }
-
-    $displayed_orders_count      = count( $orders );
-    $today_tracked_regions       = $summary_counts['region_metropolitana'] + $summary_counts['other_regions'];
-    $undetermined_regions_today  = max( 0, $summary_counts['new_orders_today'] - $today_tracked_regions );
-    $metropolitana_share         = $today_tracked_regions > 0 ? round( ( $summary_counts['region_metropolitana'] / $today_tracked_regions ) * 100 ) : 0;
-    $other_regions_share         = $today_tracked_regions > 0 ? 100 - $metropolitana_share : 0;
 
     ob_start();
 
@@ -298,16 +289,21 @@ function villegas_packing_list_shortcode( $atts ) {
                 font-weight: 600;
             }
 
+            #villegas-packing-summary {
+                border: 1px solid #ccc;
+                padding: 12px;
+                margin-bottom: 12px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 16px;
+                background: #fff;
+            }
+
             #villegas-packing-summary .villegas-packing-summary__item {
                 display: flex;
                 align-items: baseline;
                 gap: 6px;
                 font-size: 14px;
-            }
-
-            #villegas-packing-summary {
-                flex-direction: column;
-                align-items: flex-start;
             }
 
             #villegas-packing-summary .villegas-packing-summary__label {
@@ -436,6 +432,21 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
+    <div id="villegas-packing-summary">
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+        </div>
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
+        </div>
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
+        </div>
+    </div>
+
     <table class="villegas-packing-list">
         <thead>
             <tr>
