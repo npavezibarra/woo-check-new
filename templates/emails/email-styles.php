@@ -70,14 +70,19 @@ body {
 }
 
 #template_header {
-	background-color: <?php echo esc_attr( $base ); ?>;
-	border-radius: 3px 3px 0 0 !important;
-	color: <?php echo esc_attr( $base_text ); ?>;
-	border-bottom: 0;
-	font-weight: bold;
-	line-height: 100%;
-	vertical-align: middle;
-	font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
+        background-color: <?php echo esc_attr( $base ); ?>;
+        border-radius: 3px 3px 0 0 !important;
+        color: <?php echo esc_attr( $base_text ); ?>;
+        border-bottom: 0;
+        font-weight: bold;
+        line-height: 100%;
+        vertical-align: middle;
+        font-family: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
+}
+
+.villegas-email-encabezado {
+        border-radius: 10px 10px 0 0 !important;
+        overflow: hidden;
 }
 
 #template_header h1,

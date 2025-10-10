@@ -49,7 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<tr>
 											<td align="center" valign="top">
 												<!-- Header -->
-												<table border="0" cellpadding="0" cellspacing="0" width="100%" id="template_header">
+                                                                                                <table border="0" cellpadding="0" cellspacing="0" width="100%" id="template_header" class="villegas-email-encabezado">
 													<tr>
 														<td id="header_wrapper">
 															<h1><?php echo esc_html( $email_heading ); ?></h1>
