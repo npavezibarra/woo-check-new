@@ -13,6 +13,8 @@ if (!defined('ABSPATH')) {
 
 // Include email customizations
 require_once plugin_dir_path( __FILE__ ) . 'includes/email-customizations.php';
+require_once plugin_dir_path( __FILE__ ) . 'emails/first-quiz-email.php';
+require_once plugin_dir_path( __FILE__ ) . 'includes/polis-average-quiz-result.php';
 // Include the plugin's functions.php file
 require_once plugin_dir_path(__FILE__) . 'functions.php';
 // Load WooCheck logistics dependencies
