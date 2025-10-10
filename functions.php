@@ -224,6 +224,43 @@ function villegas_packing_list_shortcode( $atts ) {
                 margin-bottom: 12px;
             }
 
+            #packing-stats {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 20px;
+                margin-bottom: 12px;
+            }
+
+            #packing-stats .packing-stats__widget {
+                flex: 1 1 calc((100% - 40px) / 3);
+                min-width: 220px;
+                border: 1px solid #000;
+                border-radius: 6px;
+                background: #fff;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .packing-stats__widget-title {
+                font-weight: 700;
+                font-size: 16px;
+                margin: 0;
+            }
+
+            .packing-stats__stat {
+                display: flex;
+                align-items: baseline;
+                justify-content: space-between;
+                gap: 8px;
+                font-size: 14px;
+            }
+
+            .packing-stats__stat-label {
+                font-weight: 600;
+            }
+
             .villegas-packing-pagination {
                 display: flex;
                 align-items: center;
@@ -297,6 +334,62 @@ function villegas_packing_list_shortcode( $atts ) {
         <?php
     }
 
+    ?>
+    <div id="packing-stats">
+        <div id="villegas-packing-summary" class="packing-stats__widget">
+            <p class="packing-stats__widget-title"><?php esc_html_e( 'Today\'s Orders', 'woo-check' ); ?></p>
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+            </div>
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
+            </div>
+            <div class="villegas-packing-summary__item">
+                <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
+            </div>
+            <?php if ( $undetermined_regions_today > 0 ) : ?>
+                <div class="villegas-packing-summary__item">
+                    <span class="villegas-packing-summary__label"><?php esc_html_e( 'Unassigned Region Orders Today', 'woo-check' ); ?>:</span>
+                    <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $undetermined_regions_today ) ); ?></span>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div id="villegas-packing-overview" class="packing-stats__widget">
+            <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Processing Orders', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $total_processing_orders ) ); ?></span>
+            </div>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Orders on This Page', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $displayed_orders_count ) ); ?></span>
+            </div>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Current Page', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( sprintf( __( '%1$d of %2$d', 'woo-check' ), $page, $total_pages ) ); ?></span>
+            </div>
+        </div>
+        <div id="villegas-packing-regional-share" class="packing-stats__widget">
+            <p class="packing-stats__widget-title"><?php esc_html_e( 'Today\'s Regional Split', 'woo-check' ); ?></p>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Región Metropolitana', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $metropolitana_share ) ); ?>%</span>
+            </div>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $other_regions_share ) ); ?>%</span>
+            </div>
+            <div class="packing-stats__stat">
+                <span class="packing-stats__stat-label"><?php esc_html_e( 'Tracked Orders Today', 'woo-check' ); ?>:</span>
+                <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $today_tracked_regions ) ); ?></span>
+            </div>
+        </div>
+    </div>
+
+    <?php
     $pagination_markup = '';
 
     if ( $total_pages > 1 ) {
