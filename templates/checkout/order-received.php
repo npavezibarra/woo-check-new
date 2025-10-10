@@ -195,7 +195,7 @@ $order = wc_get_order($order_id);
                                 <?php if ($course_url) : ?>
                                     <!-- Show only the product name without quantity for courses -->
                                     <span><?php echo esc_html($product_name); ?></span>
-                                    <br><a href="<?php echo esc_url($course_url); ?>" class="button" style="display: inline-block; margin-top: 10px; padding: 5px 10px; background-color: black; color: #fff; text-decoration: none; border-radius: 3px; font-size: 12px;">Ir al Curso</a>
+                                    <br><a href="<?php echo esc_url($course_url); ?>" class="button" style="display: inline-block; margin-top: 10px; padding: 5px 10px; background-color: black; color: #fff; text-decoration: none; border-radius: 3px; font-size: 13px;">Ir al Curso</a>
                                 <?php else : ?>
                                     <!-- Show product name with quantity for non-courses -->
                                     <span><?php echo esc_html($product_quantity); ?> - <?php echo esc_html($product_name); ?></span>
