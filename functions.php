@@ -169,19 +169,23 @@ function villegas_packing_list_shortcode( $atts ) {
             $order_region_cache[ $order_id ] = $region_label;
 
             $date_created = $summary_order->get_date_created();
+            $is_today     = false;
 
             if ( $date_created instanceof WC_DateTime ) {
                 $order_timestamp = $date_created->getTimestamp();
 
                 if ( $order_timestamp >= $today_start_ts && $order_timestamp < $today_end_ts ) {
                     $summary_counts['new_orders_today']++;
+                    $is_today = true;
                 }
             }
 
-            if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
-                $summary_counts['region_metropolitana']++;
-            } else {
-                $summary_counts['other_regions']++;
+            if ( $is_today ) {
+                if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
+                    $summary_counts['region_metropolitana']++;
+                } else {
+                    $summary_counts['other_regions']++;
+                }
             }
         }
     }
