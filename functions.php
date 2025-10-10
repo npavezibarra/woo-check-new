@@ -267,6 +267,7 @@ function villegas_packing_list_shortcode( $atts ) {
             #villegas-packing-summary {
                 border: 1px solid #ccc;
                 padding: 12px;
+                margin-bottom: 12px;
                 display: flex;
                 flex-wrap: wrap;
                 gap: 16px;
@@ -369,6 +370,21 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
+    <div id="villegas-packing-summary">
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+        </div>
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
+        </div>
+        <div class="villegas-packing-summary__item">
+            <span class="villegas-packing-summary__label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+            <span class="villegas-packing-summary__value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
+        </div>
+    </div>
+
     <table class="villegas-packing-list">
         <thead>
             <tr>
