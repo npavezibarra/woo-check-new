@@ -1031,6 +1031,19 @@ function woo_check_enqueue_assets() {
         '1.0'
     );
 
+    if ( ! is_user_logged_in() ) {
+        $login_modal_script_path = plugin_dir_path(__FILE__) . 'assets/js/woo-check-login-modal.js';
+        $login_modal_script_ver  = file_exists( $login_modal_script_path ) ? filemtime( $login_modal_script_path ) : '1.0';
+
+        wp_enqueue_script(
+            'woo-check-login-modal',
+            plugin_dir_url(__FILE__) . 'assets/js/woo-check-login-modal.js',
+            array(),
+            $login_modal_script_ver,
+            true
+        );
+    }
+
     if ( function_exists( 'is_account_page' ) && is_account_page() ) {
         wp_enqueue_style(
             'woo-check-view-order',
