@@ -511,6 +511,16 @@ function villegas_packing_list_shortcode( $atts ) {
                 max-width: 247px;
             }
 
+            #villegas-packing-overview .packing-stats__stat--recibelo .packing-stats__stat-label,
+            #villegas-packing-overview .packing-stats__stat--recibelo .packing-stats__stat-value {
+                color: #ed1c24;
+            }
+
+            #villegas-packing-overview .packing-stats__stat--shipit .packing-stats__stat-label,
+            #villegas-packing-overview .packing-stats__stat--shipit .packing-stats__stat-value {
+                color: #1e90ff;
+            }
+
             .villegas-packing-pagination {
                 display: flex;
                 align-items: center;
@@ -710,11 +720,11 @@ function villegas_packing_list_shortcode( $atts ) {
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Orders', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
                 </div>
-                <div class="packing-stats__stat">
+                <div class="packing-stats__stat packing-stats__stat--recibelo">
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'RECIBELO', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
                 </div>
-                <div class="packing-stats__stat">
+                <div class="packing-stats__stat packing-stats__stat--shipit">
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'SHIPIT', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
                 </div>
