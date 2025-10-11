@@ -305,36 +305,24 @@ function villegas_packing_list_shortcode( $atts ) {
         $packing_assets_printed = true;
         ?>
         <style>
-            .packing-stats-nav {
-                display: flex;
-                gap: 12px;
+            .villegas-toolbar-switch {
+                text-align: center;
                 margin-bottom: 20px;
-            }
-
-            .packing-stats-nav__link {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                padding: 8px 20px;
-                border: 1px solid #d0d5dd;
-                border-radius: 999px;
-                background: #fff;
-                color: #1f2937;
                 font-weight: 600;
+                font-size: 1.1rem;
+            }
+
+            .villegas-toolbar-switch a {
+                color: #555;
                 text-decoration: none;
-                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+                margin: 0 10px;
+                padding-bottom: 3px;
+                border-bottom: 2px solid transparent;
             }
 
-            .packing-stats-nav__link:hover,
-            .packing-stats-nav__link:focus {
-                background: #f8fafc;
-            }
-
-            .packing-stats-nav__link.is-active {
-                background: #1f2937;
-                border-color: #1f2937;
-                color: #fff;
-                box-shadow: 0 0 0 1px rgba(31, 41, 55, 0.15);
+            .villegas-toolbar-switch a.active {
+                color: black;
+                border-bottom: 2px solid black;
             }
 
             .villegas-packing-list {
@@ -675,9 +663,9 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div class="packing-stats-nav">
-        <a href="#" class="packing-stats-nav__link is-active" data-target="packing-stats-page"><?php esc_html_e( 'PACKING', 'woo-check' ); ?></a>
-        <a href="#" class="packing-stats-nav__link" data-target="inventory-stats-page"><?php esc_html_e( 'INVENTORY', 'woo-check' ); ?></a>
+    <div class="villegas-toolbar-switch">
+        <a href="#" id="show-packing" class="active"><?php esc_html_e( 'PACKING', 'woo-check' ); ?></a> |
+        <a href="#" id="show-inventory"><?php esc_html_e( 'INVENTORY', 'woo-check' ); ?></a>
     </div>
     <div id="packing-stats-page">
         <div id="packing-stats">
@@ -997,7 +985,7 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-        <div class="villegas-packing-toolbar">
+        <div id="villegas-packing-toolbar" class="villegas-packing-toolbar">
             <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
                 <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
                     <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
@@ -1011,109 +999,92 @@ function villegas_packing_list_shortcode( $atts ) {
             </div>
             <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
-        <table class="villegas-packing-list">
-            <thead>
-                <tr>
-                    <th class="packing-select">
-                    <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
-                </th>
-                <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ( $orders as $order ) : ?>
-                <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
-                <?php
-                $order_id    = $order->get_id();
-                $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
-                $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
-                ?>
-                <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
-                    <td>
-                        <input
-                            type="checkbox"
-                            class="packing-checkbox"
-                            data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
-                            aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
-                        />
-                    </td>
-                    <td><?php echo esc_html( $order->get_id() ); ?></td>
-                    <td>
-                        <?php
-                        $item_lines = [];
-
-                        foreach ( $order->get_items() as $item ) {
-                            $line = sprintf(
-                                '%s - %s',
-                                $item->get_name(),
-                                wc_stock_amount( $item->get_quantity() )
-                            );
-
-                            $item_lines[] = esc_html( $line );
-                        }
-
-                        echo wp_kses_post( implode( '<br />', $item_lines ) );
-                        ?>
-                    </td>
-                    <td>
-                        <?php echo esc_html( $region_name ); ?>
-                    </td>
+        <div id="villegas-packing-list">
+            <table class="villegas-packing-list">
+                <thead>
+                    <tr>
+                        <th class="packing-select">
+                        <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
+                    </th>
+                    <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
+                    <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
+                    <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
                 </tr>
-            <?php endforeach; ?>
-        </tbody>
-        </table>
-    </div>
-    <div id="inventory-stats-page" hidden></div>
-    <script>
-        ( function () {
-            var navLinks = document.querySelectorAll( '.packing-stats-nav__link' );
+            </thead>
+            <tbody>
+                <?php foreach ( $orders as $order ) : ?>
+                    <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
+                    <?php
+                    $order_id    = $order->get_id();
+                    $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
+                    $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
+                    ?>
+                    <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
+                        <td>
+                            <input
+                                type="checkbox"
+                                class="packing-checkbox"
+                                data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
+                                aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
+                            />
+                        </td>
+                        <td><?php echo esc_html( $order->get_id() ); ?></td>
+                        <td>
+                            <?php
+                            $item_lines = [];
 
-            if ( ! navLinks.length ) {
+                            foreach ( $order->get_items() as $item ) {
+                                $line = sprintf(
+                                    '%s - %s',
+                                    $item->get_name(),
+                                    wc_stock_amount( $item->get_quantity() )
+                                );
+
+                                $item_lines[] = esc_html( $line );
+                            }
+
+                            echo wp_kses_post( implode( '<br />', $item_lines ) );
+                            ?>
+                        </td>
+                        <td>
+                            <?php echo esc_html( $region_name ); ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+            </table>
+        </div>
+    </div>
+    <div id="inventory-stats-page" style="display:none;">
+        <!-- Inventory stats placeholder -->
+    </div>
+    <script>
+        document.addEventListener( 'DOMContentLoaded', function () {
+            var packingPage = document.getElementById( 'packing-stats-page' );
+            var inventoryPage = document.getElementById( 'inventory-stats-page' );
+            var showPacking = document.getElementById( 'show-packing' );
+            var showInventory = document.getElementById( 'show-inventory' );
+
+            if ( ! packingPage || ! inventoryPage || ! showPacking || ! showInventory ) {
                 return;
             }
 
-            var sections = {
-                'packing-stats-page': document.getElementById( 'packing-stats-page' ),
-                'inventory-stats-page': document.getElementById( 'inventory-stats-page' )
-            };
-
-            var setActiveSection = function ( targetId, activeLink ) {
-                if ( ! targetId || ! sections[ targetId ] ) {
-                    return;
-                }
-
-                navLinks.forEach( function ( navLink ) {
-                    navLink.classList.toggle( 'is-active', navLink === activeLink );
-                } );
-
-                Object.keys( sections ).forEach( function ( sectionId ) {
-                    if ( ! sections[ sectionId ] ) {
-                        return;
-                    }
-
-                    if ( sectionId === targetId ) {
-                        sections[ sectionId ].removeAttribute( 'hidden' );
-                    } else {
-                        sections[ sectionId ].setAttribute( 'hidden', 'hidden' );
-                    }
-                } );
-            };
-
-            navLinks.forEach( function ( link ) {
-                link.addEventListener( 'click', function ( event ) {
-                    event.preventDefault();
-                    setActiveSection( link.getAttribute( 'data-target' ), link );
-                } );
+            showPacking.addEventListener( 'click', function ( event ) {
+                event.preventDefault();
+                packingPage.style.display = 'block';
+                inventoryPage.style.display = 'none';
+                showPacking.classList.add( 'active' );
+                showInventory.classList.remove( 'active' );
             } );
 
-            var defaultLink = document.querySelector( '.packing-stats-nav__link.is-active' ) || navLinks[ 0 ];
-
-            if ( defaultLink ) {
-                setActiveSection( defaultLink.getAttribute( 'data-target' ), defaultLink );
-            }
-        } )();
+            showInventory.addEventListener( 'click', function ( event ) {
+                event.preventDefault();
+                packingPage.style.display = 'none';
+                inventoryPage.style.display = 'block';
+                showInventory.classList.add( 'active' );
+                showPacking.classList.remove( 'active' );
+            } );
+        } );
     </script>
     <?php
 
