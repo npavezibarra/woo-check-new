@@ -305,6 +305,38 @@ function villegas_packing_list_shortcode( $atts ) {
         $packing_assets_printed = true;
         ?>
         <style>
+            .packing-stats-nav {
+                display: flex;
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+
+            .packing-stats-nav__link {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 8px 20px;
+                border: 1px solid #d0d5dd;
+                border-radius: 999px;
+                background: #fff;
+                color: #1f2937;
+                font-weight: 600;
+                text-decoration: none;
+                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .packing-stats-nav__link:hover,
+            .packing-stats-nav__link:focus {
+                background: #f8fafc;
+            }
+
+            .packing-stats-nav__link.is-active {
+                background: #1f2937;
+                border-color: #1f2937;
+                color: #fff;
+                box-shadow: 0 0 0 1px rgba(31, 41, 55, 0.15);
+            }
+
             .villegas-packing-list {
                 border: 1px solid #ccc;
                 border-collapse: collapse;
@@ -643,12 +675,17 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div id="packing-stats">
-        <?php
-        $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
+    <div class="packing-stats-nav">
+        <a href="#" class="packing-stats-nav__link is-active" data-target="packing-stats-page"><?php esc_html_e( 'PACKING', 'woo-check' ); ?></a>
+        <a href="#" class="packing-stats-nav__link" data-target="inventory-stats-page"><?php esc_html_e( 'INVENTORY', 'woo-check' ); ?></a>
+    </div>
+    <div id="packing-stats-page">
+        <div id="packing-stats">
+            <?php
+            $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
 
-        $villegas_overview_chart_payload = [
-            'labels'       => [],
+            $villegas_overview_chart_payload = [
+                'labels'       => [],
             'rm'           => [],
             'not_rm'       => [],
             'mode'         => $is_single_day_range ? 'hourly' : 'daily',
@@ -743,7 +780,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php echo esc_attr( $chart_aria_label ); ?>"></canvas>
             </div>
         </div>
-    </div>
+        </div>
 
     <script>
         ( function () {
@@ -960,27 +997,24 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div class="villegas-packing-toolbar">
-        <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
-            <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
-                <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
-            </button>
-            <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
-                <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
-            </button>
-            <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
-                <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
-            </button>
+        <div class="villegas-packing-toolbar">
+            <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
+                <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
+                    <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
+                </button>
+                <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
+                    <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
+                </button>
+                <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
+                    <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
+                </button>
+            </div>
+            <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
         </div>
-        <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-    </div>
-    <?php
-
-    ?>
-    <table class="villegas-packing-list">
-        <thead>
-            <tr>
-                <th class="packing-select">
+        <table class="villegas-packing-list">
+            <thead>
+                <tr>
+                    <th class="packing-select">
                     <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
                 </th>
                 <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
@@ -1029,7 +1063,58 @@ function villegas_packing_list_shortcode( $atts ) {
                 </tr>
             <?php endforeach; ?>
         </tbody>
-    </table>
+        </table>
+    </div>
+    <div id="inventory-stats-page" hidden></div>
+    <script>
+        ( function () {
+            var navLinks = document.querySelectorAll( '.packing-stats-nav__link' );
+
+            if ( ! navLinks.length ) {
+                return;
+            }
+
+            var sections = {
+                'packing-stats-page': document.getElementById( 'packing-stats-page' ),
+                'inventory-stats-page': document.getElementById( 'inventory-stats-page' )
+            };
+
+            var setActiveSection = function ( targetId, activeLink ) {
+                if ( ! targetId || ! sections[ targetId ] ) {
+                    return;
+                }
+
+                navLinks.forEach( function ( navLink ) {
+                    navLink.classList.toggle( 'is-active', navLink === activeLink );
+                } );
+
+                Object.keys( sections ).forEach( function ( sectionId ) {
+                    if ( ! sections[ sectionId ] ) {
+                        return;
+                    }
+
+                    if ( sectionId === targetId ) {
+                        sections[ sectionId ].removeAttribute( 'hidden' );
+                    } else {
+                        sections[ sectionId ].setAttribute( 'hidden', 'hidden' );
+                    }
+                } );
+            };
+
+            navLinks.forEach( function ( link ) {
+                link.addEventListener( 'click', function ( event ) {
+                    event.preventDefault();
+                    setActiveSection( link.getAttribute( 'data-target' ), link );
+                } );
+            } );
+
+            var defaultLink = document.querySelector( '.packing-stats-nav__link.is-active' ) || navLinks[ 0 ];
+
+            if ( defaultLink ) {
+                setActiveSection( defaultLink.getAttribute( 'data-target' ), defaultLink );
+            }
+        } )();
+    </script>
     <?php
 
     return trim( ob_get_clean() );
