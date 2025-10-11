@@ -231,11 +231,6 @@ function villegas_packing_list_shortcode( $atts ) {
         ]
     );
 
-    $anomalous_order_ids_by_hour = [
-        21 => [],
-        22 => [],
-    ];
-
     if ( is_array( $summary_orders ) ) {
         foreach ( $summary_orders as $summary_order ) {
             if ( ! $summary_order instanceof WC_Order ) {
@@ -297,10 +292,6 @@ function villegas_packing_list_shortcode( $atts ) {
 
                 if ( '' === trim( (string) $region_label ) ) {
                     $undetermined_regions_in_range++;
-                }
-
-                if ( isset( $anomalous_order_ids_by_hour[ $order_hour ] ) ) {
-                    $anomalous_order_ids_by_hour[ $order_hour ][] = $order_id;
                 }
             }
         }
@@ -558,14 +549,6 @@ function villegas_packing_list_shortcode( $atts ) {
         $chart_aria_label   = $is_single_day_range
             ? __( 'Stacked hourly orders by region', 'woo-check' )
             : __( 'Stacked daily orders by region', 'woo-check' );
-        $anomalous_order_ids_by_hour = array_filter(
-            array_map(
-                static function ( $ids ) {
-                    return array_map( 'absint', $ids );
-                },
-                $anomalous_order_ids_by_hour
-            )
-        );
         ?>
         <div id="villegas-packing-overview" class="packing-stats__widget">
             <div class="packing-stats__header">
@@ -615,19 +598,6 @@ function villegas_packing_list_shortcode( $atts ) {
                     </div>
                 <?php endif; ?>
             </div>
-            <?php if ( ! empty( $anomalous_order_ids_by_hour ) ) : ?>
-                <div class="packing-stats__anomalies">
-                    <p class="packing-stats__stat-label"><?php esc_html_e( 'Orders at 21:00 or later', 'woo-check' ); ?>:</p>
-                    <ul>
-                        <?php foreach ( $anomalous_order_ids_by_hour as $hour => $order_ids ) : ?>
-                            <li>
-                                <strong><?php echo esc_html( sprintf( '%02d:00', (int) $hour ) ); ?>:</strong>
-                                <?php echo esc_html( implode( ', ', $order_ids ) ); ?>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
             <div class="packing-stats__chart">
                 <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php echo esc_attr( $chart_aria_label ); ?>"></canvas>
             </div>
