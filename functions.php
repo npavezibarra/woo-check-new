@@ -152,12 +152,21 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     $default_range_date = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
+    $default_start_time = '00:00';
 
-    $range_start_input = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $range_end_input   = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_start_input      = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_start_hour_input = isset( $_GET['packing_start_hour'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_hour'] ) ) : $default_start_time; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_end_input        = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_start_input, $site_timezone );
     $range_end_obj   = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_end_input, $site_timezone );
+
+    if ( ! preg_match( '/^(?:[01]\d|2[0-3]):[0-5]\d$/', $range_start_hour_input ) ) {
+        $range_start_hour_input = $default_start_time;
+    }
+
+    $range_start_hour   = (int) substr( $range_start_hour_input, 0, 2 );
+    $range_start_minute = (int) substr( $range_start_hour_input, 3, 2 );
 
     if ( false === $range_start_obj ) {
         $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
@@ -171,10 +180,19 @@ function villegas_packing_list_shortcode( $atts ) {
         $tmp             = $range_start_obj;
         $range_start_obj = $range_end_obj;
         $range_end_obj   = $tmp;
+
+        $range_start_hour_input = $default_start_time;
+        $range_start_hour       = 0;
+        $range_start_minute     = 0;
     }
 
-    $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
-    $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    $range_start_day      = $range_start_obj->setTime( 0, 0, 0 );
+    $range_start_boundary = $range_start_obj->setTime( $range_start_hour, $range_start_minute, 0 );
+    $range_end_day        = $range_end_obj->setTime( 23, 59, 59 );
+
+    if ( false === $range_start_boundary ) {
+        $range_start_boundary = $range_start_day;
+    }
 
     $is_single_day_range = $range_start_day->format( 'Y-m-d' ) === $range_end_day->format( 'Y-m-d' );
 
@@ -211,7 +229,7 @@ function villegas_packing_list_shortcode( $atts ) {
 
     if ( isset( $_GET ) && is_array( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         foreach ( $_GET as $key => $value ) {
-            if ( in_array( $key, [ 'packing_start_date', 'packing_end_date' ], true ) ) {
+            if ( in_array( $key, [ 'packing_start_date', 'packing_start_hour', 'packing_end_date' ], true ) ) {
                 continue;
             }
 
@@ -249,7 +267,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 $localized_date = clone $date_created;
                 $localized_date->setTimezone( $site_timezone );
 
-                if ( $localized_date >= $range_start_day && $localized_date <= $range_end_day ) {
+                if ( $localized_date >= $range_start_boundary && $localized_date <= $range_end_day ) {
                     $summary_counts['orders_in_range']++;
                     $is_in_range_day = true;
                 }
@@ -472,7 +490,8 @@ function villegas_packing_list_shortcode( $atts ) {
                 gap: 4px;
             }
 
-            #villegas-packing-overview .packing-stats__control input[type="date"] {
+            #villegas-packing-overview .packing-stats__control input[type="date"],
+            #villegas-packing-overview .packing-stats__control input[type="time"] {
                 padding: 6px 8px;
                 border: 1px solid #d1d5db;
                 border-radius: 4px;
@@ -705,6 +724,15 @@ function villegas_packing_list_shortcode( $atts ) {
                             name="packing_start_date"
                             value="<?php echo esc_attr( $range_start_obj->format( 'Y-m-d' ) ); ?>"
                             max="<?php echo esc_attr( $range_end_obj->format( 'Y-m-d' ) ); ?>"
+                        />
+                    </label>
+                    <label class="packing-stats__control">
+                        <span><?php esc_html_e( 'Start time', 'woo-check' ); ?></span>
+                        <input
+                            type="time"
+                            name="packing_start_hour"
+                            value="<?php echo esc_attr( $range_start_hour_input ); ?>"
+                            step="3600"
                         />
                     </label>
                     <label class="packing-stats__control">
