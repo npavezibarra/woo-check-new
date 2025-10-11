@@ -23,8 +23,6 @@ $data       = [];
 $max_sales  = 0;
 $max_stock  = 0;
 
-$today_start = wp_date( 'Y-m-d' ) . ' 00:00:00';
-
 global $wpdb;
 
 foreach ( $books as $book ) {
@@ -51,10 +49,8 @@ foreach ( $books as $book ) {
                 AND qty_meta.meta_key = '_qty'
                 AND posts.post_type = 'shop_order'
                 AND posts.post_status IN ( 'wc-processing', 'wc-completed' )
-                AND posts.post_date >= %s
             ",
-            $book_id,
-            $today_start
+            $book_id
         )
     );
 
