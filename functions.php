@@ -663,12 +663,7 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div class="villegas-toolbar-switch">
-        <a href="#" id="show-packing" class="active"><?php esc_html_e( 'PACKING', 'woo-check' ); ?></a> |
-        <a href="#" id="show-inventory"><?php esc_html_e( 'INVENTORY', 'woo-check' ); ?></a>
-    </div>
-    <div id="packing-stats-page">
-        <div id="packing-stats">
+    <div id="packing-stats">
             <?php
             $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
 
@@ -948,7 +943,8 @@ function villegas_packing_list_shortcode( $atts ) {
 
             new Chart( chartCanvas.getContext( '2d' ), config );
         } )();
-    </script>
+        </script>
+    </div>
 
     <?php
     $pagination_markup = '';
@@ -1054,66 +1050,6 @@ function villegas_packing_list_shortcode( $atts ) {
             </tbody>
             </table>
         </div>
-    </div>
-    <div id="inventory-stats-page" style="display:none;">
-        <?php
-        $inventory_view = __DIR__ . '/views/inventory.php';
-
-        if ( file_exists( $inventory_view ) ) {
-            include $inventory_view;
-        }
-        ?>
-    </div>
-    <script>
-        document.addEventListener( 'DOMContentLoaded', function () {
-            var packingPage = document.getElementById( 'packing-stats-page' );
-            var inventoryPage = document.getElementById( 'inventory-stats-page' );
-            var showPacking = document.getElementById( 'show-packing' );
-            var showInventory = document.getElementById( 'show-inventory' );
-
-            if ( ! packingPage || ! inventoryPage || ! showPacking || ! showInventory ) {
-                return;
-            }
-
-            var activatePacking = function () {
-                packingPage.style.display = 'block';
-                inventoryPage.style.display = 'none';
-                showPacking.classList.add( 'active' );
-                showInventory.classList.remove( 'active' );
-            };
-
-            var activateInventory = function () {
-                packingPage.style.display = 'none';
-                inventoryPage.style.display = 'block';
-                showInventory.classList.add( 'active' );
-                showPacking.classList.remove( 'active' );
-            };
-
-            showPacking.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
-                activatePacking();
-            } );
-
-            showInventory.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
-                activateInventory();
-            } );
-
-            var shouldShowInventory = false;
-
-            try {
-                shouldShowInventory = ( new URLSearchParams( window.location.search ) ).has( 'start_date' );
-            } catch ( error ) {
-                shouldShowInventory = window.location.search.indexOf( 'start_date=' ) !== -1;
-            }
-
-            if ( shouldShowInventory ) {
-                activateInventory();
-            } else {
-                activatePacking();
-            }
-        } );
-    </script>
     <?php
 
     return trim( ob_get_clean() );
