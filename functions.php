@@ -311,6 +311,10 @@ function villegas_packing_list_shortcode( $atts ) {
                 width: 100%;
             }
 
+            .villegas-packing-list thead {
+                background: #e1e1e1;
+            }
+
             .villegas-packing-list th,
             .villegas-packing-list td {
                 border: 1px solid #ccc;
@@ -800,12 +804,59 @@ function villegas_packing_list_shortcode( $atts ) {
                 yAxisMax = highestTotal > 20 ? highestTotal : 20;
             }
 
+            var elevenAmMarkerPlugin = {
+                id: 'elevenAmMarker',
+                afterDraw: function ( chart ) {
+                    if ( chartData.mode !== 'hourly' ) {
+                        return;
+                    }
+
+                    var labels = [];
+
+                    if ( chart.data && Array.isArray( chart.data.labels ) ) {
+                        labels = chart.data.labels;
+                    }
+                    var targetLabel = '11:00';
+                    var labelIndex = labels.indexOf( targetLabel );
+
+                    if ( labelIndex === -1 ) {
+                        return;
+                    }
+
+                    var xScale = chart.scales && chart.scales.x ? chart.scales.x : null;
+                    var yScale = chart.scales && chart.scales.y ? chart.scales.y : null;
+
+                    if ( ! xScale || ! yScale ) {
+                        return;
+                    }
+
+                    var xPosition = xScale.getPixelForValue( labelIndex );
+
+                    if ( ! isFinite( xPosition ) ) {
+                        return;
+                    }
+
+                    var ctx = chart.ctx;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash( [ 6, 6 ] );
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(237, 28, 36, 1)';
+                    ctx.moveTo( xPosition, yScale.top );
+                    ctx.lineTo( xPosition, yScale.bottom );
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            };
+
             var config = {
                 type: 'bar',
                 data: {
                     labels: chartData.labels,
                     datasets: datasets,
                 },
+                plugins: [ elevenAmMarkerPlugin ],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
