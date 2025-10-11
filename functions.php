@@ -515,14 +515,6 @@ function villegas_packing_list_shortcode( $atts ) {
         <?php
         $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
 
-        if ( function_exists( 'wp_date' ) ) {
-            $range_start_display = wp_date( $range_display_format, $range_start_day->getTimestamp(), $site_timezone );
-            $range_end_display   = wp_date( $range_display_format, $range_end_day->getTimestamp(), $site_timezone );
-        } else {
-            $range_start_display = $range_start_day->format( $range_display_format );
-            $range_end_display   = $range_end_day->format( $range_display_format );
-        }
-
         $villegas_overview_chart_payload = [
             'labels'       => [],
             'rm'           => [],
@@ -563,11 +555,6 @@ function villegas_packing_list_shortcode( $atts ) {
             $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', array_values( $daily_region_counts['other_regions'] ) );
         }
 
-        $orders_range_label = $is_single_day_range
-            /* translators: %s: formatted date. */
-            ? sprintf( __( 'Orders on %s', 'woo-check' ), $range_start_display )
-            /* translators: 1: range start date. 2: range end date. */
-            : sprintf( __( 'Orders from %1$s to %2$s', 'woo-check' ), $range_start_display, $range_end_display );
         $chart_aria_label   = $is_single_day_range
             ? __( 'Stacked hourly orders by region', 'woo-check' )
             : __( 'Stacked daily orders by region', 'woo-check' );
@@ -610,7 +597,7 @@ function villegas_packing_list_shortcode( $atts ) {
             </div>
             <div class="packing-stats__metrics">
                 <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php echo esc_html( $orders_range_label ); ?>:</span>
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Orders', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
                 </div>
                 <div class="packing-stats__stat">
