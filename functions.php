@@ -311,6 +311,10 @@ function villegas_packing_list_shortcode( $atts ) {
                 width: 100%;
             }
 
+            .villegas-packing-list thead {
+                background: #e1e1e1;
+            }
+
             .villegas-packing-list th,
             .villegas-packing-list td {
                 border: 1px solid #ccc;
@@ -509,6 +513,16 @@ function villegas_packing_list_shortcode( $atts ) {
                 flex-direction: column;
                 gap: 0;
                 max-width: 247px;
+            }
+
+            #villegas-packing-overview .packing-stats__stat--recibelo .packing-stats__stat-label,
+            #villegas-packing-overview .packing-stats__stat--recibelo .packing-stats__stat-value {
+                color: #ed1c24;
+            }
+
+            #villegas-packing-overview .packing-stats__stat--shipit .packing-stats__stat-label,
+            #villegas-packing-overview .packing-stats__stat--shipit .packing-stats__stat-value {
+                color: #1e90ff;
             }
 
             .villegas-packing-pagination {
@@ -710,12 +724,12 @@ function villegas_packing_list_shortcode( $atts ) {
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Orders', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
                 </div>
-                <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+                <div class="packing-stats__stat packing-stats__stat--recibelo">
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'RECIBELO', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
                 </div>
-                <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                <div class="packing-stats__stat packing-stats__stat--shipit">
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'SHIPIT', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
                 </div>
                 <?php if ( $undetermined_regions_in_range > 0 ) : ?>
@@ -749,7 +763,7 @@ function villegas_packing_list_shortcode( $atts ) {
 
             var datasets = [
                 {
-                    label: '<?php echo esc_js( __( 'RM Orders', 'woo-check' ) ); ?>',
+                    label: '<?php echo esc_js( __( 'RECIBELO Orders', 'woo-check' ) ); ?>',
                     data: chartData.rm,
                     backgroundColor: 'rgba(237, 28, 36, 0.85)',
                     borderColor: 'rgba(237, 28, 36, 1)',
@@ -759,7 +773,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     stack: 'orders',
                 },
                 {
-                    label: '<?php echo esc_js( __( 'Not RM Orders', 'woo-check' ) ); ?>',
+                    label: '<?php echo esc_js( __( 'SHIPIT Orders', 'woo-check' ) ); ?>',
                     data: chartData.not_rm,
                     backgroundColor: 'rgba(30, 144, 255, 0.85)',
                     borderColor: 'rgba(30, 144, 255, 1)',
@@ -770,12 +784,79 @@ function villegas_packing_list_shortcode( $atts ) {
                 }
             ];
 
+            var yAxisMax = null;
+
+            if ( chartData.mode === 'hourly' ) {
+                var dataLength = Math.max(
+                    Array.isArray( chartData.rm ) ? chartData.rm.length : 0,
+                    Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : 0
+                );
+
+                var highestTotal = 0;
+
+                for ( var i = 0; i < dataLength; i++ ) {
+                    var rmValue = Array.isArray( chartData.rm ) ? Number( chartData.rm[ i ] || 0 ) : 0;
+                    var notRmValue = Array.isArray( chartData.not_rm ) ? Number( chartData.not_rm[ i ] || 0 ) : 0;
+
+                    highestTotal = Math.max( highestTotal, rmValue + notRmValue );
+                }
+
+                yAxisMax = highestTotal > 20 ? highestTotal : 20;
+            }
+
+            var elevenAmMarkerPlugin = {
+                id: 'elevenAmMarker',
+                afterDraw: function ( chart ) {
+                    if ( chartData.mode !== 'hourly' ) {
+                        return;
+                    }
+
+                    var labels = [];
+
+                    if ( chart.data && Array.isArray( chart.data.labels ) ) {
+                        labels = chart.data.labels;
+                    }
+                    var targetLabel = '11:00';
+                    var labelIndex = labels.indexOf( targetLabel );
+
+                    if ( labelIndex === -1 ) {
+                        return;
+                    }
+
+                    var xScale = chart.scales && chart.scales.x ? chart.scales.x : null;
+                    var yScale = chart.scales && chart.scales.y ? chart.scales.y : null;
+
+                    if ( ! xScale || ! yScale ) {
+                        return;
+                    }
+
+                    var xPosition = xScale.getPixelForValue( labelIndex );
+
+                    if ( ! isFinite( xPosition ) ) {
+                        return;
+                    }
+
+                    var ctx = chart.ctx;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.setLineDash( [ 6, 6 ] );
+                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(237, 28, 36, 1)';
+                    ctx.moveTo( xPosition, yScale.top );
+                    ctx.lineTo( xPosition, yScale.bottom );
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            };
+
             var config = {
                 type: 'bar',
                 data: {
                     labels: chartData.labels,
                     datasets: datasets,
                 },
+                plugins: [ elevenAmMarkerPlugin ],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -817,17 +898,25 @@ function villegas_packing_list_shortcode( $atts ) {
                                 minRotation: 0,
                             }
                         },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
-                                font: {
-                                    weight: 'bold'
+                        y: ( function () {
+                            var options = {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
+                                    font: {
+                                        weight: 'bold'
+                                    }
                                 }
+                            };
+
+                            if ( yAxisMax !== null ) {
+                                options.max = yAxisMax;
                             }
-                        }
+
+                            return options;
+                        }() )
                     }
                 }
             };
