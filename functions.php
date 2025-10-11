@@ -135,10 +135,34 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => 0,
     ];
 
+    $undetermined_regions_today = 0;
+
     $hourly_region_counts = [
         'region_metropolitana' => array_fill( 0, 24, 0 ),
         'other_regions'        => array_fill( 0, 24, 0 ),
     ];
+
+    $site_timezone = null;
+
+    if ( function_exists( 'wp_timezone' ) ) {
+        $site_timezone = wp_timezone();
+    } elseif ( function_exists( 'wp_timezone_string' ) ) {
+        $timezone_string = wp_timezone_string();
+
+        if ( $timezone_string ) {
+            $site_timezone = timezone_open( $timezone_string );
+        }
+    }
+
+    if ( ! $site_timezone instanceof DateTimeZone ) {
+        $fallback_timezone = timezone_open( date_default_timezone_get() );
+
+        if ( $fallback_timezone instanceof DateTimeZone ) {
+            $site_timezone = $fallback_timezone;
+        } else {
+            $site_timezone = new DateTimeZone( 'UTC' );
+        }
+    }
 
     $order_region_cache = [];
 
@@ -150,23 +174,13 @@ function villegas_packing_list_shortcode( $atts ) {
         ]
     );
 
+    $anomalous_order_ids_by_hour = [
+        21 => [],
+        22 => [],
+    ];
+
     if ( is_array( $summary_orders ) ) {
-        $current_timestamp = current_time( 'timestamp' );
-        $today_start_ts    = strtotime( 'today', $current_timestamp );
-        $today_end_ts      = strtotime( 'tomorrow', $today_start_ts );
-
-        if ( false === $today_start_ts ) {
-            $today_start_ts = strtotime( 'today' );
-        }
-
-        if ( false === $today_start_ts ) {
-            $today_start_ts = (int) $current_timestamp;
-        }
-
-        if ( false === $today_end_ts ) {
-            $day_in_seconds = defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400;
-            $today_end_ts   = (int) $today_start_ts + $day_in_seconds;
-        }
+        $today_local_str = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
 
         foreach ( $summary_orders as $summary_order ) {
             if ( ! $summary_order instanceof WC_Order ) {
@@ -179,11 +193,13 @@ function villegas_packing_list_shortcode( $atts ) {
 
             $date_created = $summary_order->get_date_created();
             $is_today     = false;
+            $localized_date = null;
 
             if ( $date_created instanceof WC_DateTime ) {
-                $order_timestamp = $date_created->getTimestamp();
+                $localized_date = clone $date_created;
+                $localized_date->setTimezone( $site_timezone );
 
-                if ( $order_timestamp >= $today_start_ts && $order_timestamp < $today_end_ts ) {
+                if ( $localized_date->format( 'Y-m-d' ) === $today_local_str ) {
                     $summary_counts['new_orders_today']++;
                     $is_today = true;
                 }
@@ -192,13 +208,11 @@ function villegas_packing_list_shortcode( $atts ) {
             if ( $is_today ) {
                 $order_hour = 0;
 
-                if ( $date_created instanceof WC_DateTime ) {
-                    $offset_timestamp = method_exists( $date_created, 'getOffsetTimestamp' )
-                        ? $date_created->getOffsetTimestamp()
-                        : $order_timestamp + (int) $date_created->getOffset();
-
-                    $order_hour = (int) gmdate( 'G', $offset_timestamp );
+                if ( isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
+                    $order_hour = (int) $localized_date->format( 'G' );
                 }
+
+                $order_hour = max( 0, min( 23, $order_hour ) );
 
                 if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
                     $summary_counts['region_metropolitana']++;
@@ -206,6 +220,14 @@ function villegas_packing_list_shortcode( $atts ) {
                 } else {
                     $summary_counts['other_regions']++;
                     $hourly_region_counts['other_regions'][ $order_hour ]++;
+                }
+
+                if ( '' === trim( (string) $region_label ) ) {
+                    $undetermined_regions_today++;
+                }
+
+                if ( isset( $anomalous_order_ids_by_hour[ $order_hour ] ) ) {
+                    $anomalous_order_ids_by_hour[ $order_hour ][] = $order_id;
                 }
             }
         }
@@ -275,7 +297,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 align-items: baseline;
                 justify-content: space-between;
                 gap: 8px;
-                font-size: 14px;
+                font-size: 20px;
             }
 
             .packing-stats__stat-label {
@@ -285,8 +307,8 @@ function villegas_packing_list_shortcode( $atts ) {
             #villegas-packing-overview .packing-stats__metrics {
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
-                max-width: 280px;
+                gap: 0;
+                max-width: 247px;
             }
 
             .villegas-packing-pagination {
@@ -367,6 +389,14 @@ function villegas_packing_list_shortcode( $atts ) {
             'rm'           => array_map( 'intval', $hourly_region_counts['region_metropolitana'] ),
             'not_rm'       => array_map( 'intval', $hourly_region_counts['other_regions'] ),
         ];
+        $anomalous_order_ids_by_hour = array_filter(
+            array_map(
+                static function ( $ids ) {
+                    return array_map( 'absint', $ids );
+                },
+                $anomalous_order_ids_by_hour
+            )
+        );
         ?>
         <div id="villegas-packing-overview" class="packing-stats__widget">
             <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
@@ -390,6 +420,19 @@ function villegas_packing_list_shortcode( $atts ) {
                     </div>
                 <?php endif; ?>
             </div>
+            <?php if ( ! empty( $anomalous_order_ids_by_hour ) ) : ?>
+                <div class="packing-stats__anomalies">
+                    <p class="packing-stats__stat-label"><?php esc_html_e( 'Orders at 21:00 or later', 'woo-check' ); ?>:</p>
+                    <ul>
+                        <?php foreach ( $anomalous_order_ids_by_hour as $hour => $order_ids ) : ?>
+                            <li>
+                                <strong><?php echo esc_html( sprintf( '%02d:00', (int) $hour ) ); ?>:</strong>
+                                <?php echo esc_html( implode( ', ', $order_ids ) ); ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
             <div class="packing-stats__chart">
                 <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php esc_attr_e( 'Stacked hourly orders by region', 'woo-check' ); ?>"></canvas>
             </div>
@@ -419,7 +462,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     backgroundColor: 'rgba(239, 68, 68, 0.85)',
                     borderColor: 'rgba(239, 68, 68, 1)',
                     borderWidth: 1,
-                    borderRadius: 6,
+                    borderRadius: 3,
                     borderSkipped: false,
                     stack: 'orders',
                 },
@@ -429,7 +472,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     backgroundColor: 'rgba(59, 130, 246, 0.85)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1,
-                    borderRadius: 6,
+                    borderRadius: 3,
                     borderSkipped: false,
                     stack: 'orders',
                 }
