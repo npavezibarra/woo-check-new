@@ -325,6 +325,11 @@ function villegas_packing_list_shortcode( $atts ) {
                 border-bottom: 2px solid black;
             }
 
+            #villegas-packing-container {
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
             .villegas-packing-list {
                 border: 1px solid #ccc;
                 border-collapse: collapse;
@@ -663,12 +668,7 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div class="villegas-toolbar-switch">
-        <a href="#" id="show-packing" class="active"><?php esc_html_e( 'PACKING', 'woo-check' ); ?></a> |
-        <a href="#" id="show-inventory"><?php esc_html_e( 'INVENTORY', 'woo-check' ); ?></a>
-    </div>
-    <div id="packing-stats-page">
-        <div id="packing-stats">
+    <div id="packing-stats">
             <?php
             $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
 
@@ -948,7 +948,8 @@ function villegas_packing_list_shortcode( $atts ) {
 
             new Chart( chartCanvas.getContext( '2d' ), config );
         } )();
-    </script>
+        </script>
+    </div>
 
     <?php
     $pagination_markup = '';
@@ -985,135 +986,77 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-        <div id="villegas-packing-toolbar" class="villegas-packing-toolbar">
-            <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
-                <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
-                    <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
-                </button>
-                <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
-                    <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
-                </button>
-                <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
-                    <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
-                </button>
+        <div id="villegas-packing-container">
+            <div id="villegas-packing-toolbar" class="villegas-packing-toolbar">
+                <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
+                    <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
+                        <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
+                    </button>
+                    <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
+                        <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
+                    </button>
+                    <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
+                        <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
+                    </button>
+                </div>
+                <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
             </div>
-            <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-        </div>
-        <div id="villegas-packing-list">
-            <table class="villegas-packing-list">
-                <thead>
-                    <tr>
-                        <th class="packing-select">
-                        <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
-                    </th>
-                    <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
-                    <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
-                    <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ( $orders as $order ) : ?>
-                    <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
-                    <?php
-                    $order_id    = $order->get_id();
-                    $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
-                    $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
-                    ?>
-                    <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
-                        <td>
-                            <input
-                                type="checkbox"
-                                class="packing-checkbox"
-                                data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
-                                aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
-                            />
-                        </td>
-                        <td><?php echo esc_html( $order->get_id() ); ?></td>
-                        <td>
-                            <?php
-                            $item_lines = [];
-
-                            foreach ( $order->get_items() as $item ) {
-                                $line = sprintf(
-                                    '%s - %s',
-                                    $item->get_name(),
-                                    wc_stock_amount( $item->get_quantity() )
-                                );
-
-                                $item_lines[] = esc_html( $line );
-                            }
-
-                            echo wp_kses_post( implode( '<br />', $item_lines ) );
-                            ?>
-                        </td>
-                        <td>
-                            <?php echo esc_html( $region_name ); ?>
-                        </td>
+            <div id="villegas-packing-list">
+                <table class="villegas-packing-list">
+                    <thead>
+                        <tr>
+                            <th class="packing-select">
+                            <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
+                        </th>
+                        <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
+                        <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
+                        <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-            </table>
+                </thead>
+                <tbody>
+                    <?php foreach ( $orders as $order ) : ?>
+                        <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
+                        <?php
+                        $order_id    = $order->get_id();
+                        $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
+                        $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
+                        ?>
+                        <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    class="packing-checkbox"
+                                    data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
+                                    aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
+                                />
+                            </td>
+                            <td><?php echo esc_html( $order->get_id() ); ?></td>
+                            <td>
+                                <?php
+                                $item_lines = [];
+
+                                foreach ( $order->get_items() as $item ) {
+                                    $line = sprintf(
+                                        '%s - %s',
+                                        $item->get_name(),
+                                        wc_stock_amount( $item->get_quantity() )
+                                    );
+
+                                    $item_lines[] = esc_html( $line );
+                                }
+
+                                echo wp_kses_post( implode( '<br />', $item_lines ) );
+                                ?>
+                            </td>
+                            <td>
+                                <?php echo esc_html( $region_name ); ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-    <div id="inventory-stats-page" style="display:none;">
-        <?php
-        $inventory_view = __DIR__ . '/views/inventory.php';
-
-        if ( file_exists( $inventory_view ) ) {
-            include $inventory_view;
-        }
-        ?>
-    </div>
-    <script>
-        document.addEventListener( 'DOMContentLoaded', function () {
-            var packingPage = document.getElementById( 'packing-stats-page' );
-            var inventoryPage = document.getElementById( 'inventory-stats-page' );
-            var showPacking = document.getElementById( 'show-packing' );
-            var showInventory = document.getElementById( 'show-inventory' );
-
-            if ( ! packingPage || ! inventoryPage || ! showPacking || ! showInventory ) {
-                return;
-            }
-
-            var activatePacking = function () {
-                packingPage.style.display = 'block';
-                inventoryPage.style.display = 'none';
-                showPacking.classList.add( 'active' );
-                showInventory.classList.remove( 'active' );
-            };
-
-            var activateInventory = function () {
-                packingPage.style.display = 'none';
-                inventoryPage.style.display = 'block';
-                showInventory.classList.add( 'active' );
-                showPacking.classList.remove( 'active' );
-            };
-
-            showPacking.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
-                activatePacking();
-            } );
-
-            showInventory.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
-                activateInventory();
-            } );
-
-            var shouldShowInventory = false;
-
-            try {
-                shouldShowInventory = ( new URLSearchParams( window.location.search ) ).has( 'start_date' );
-            } catch ( error ) {
-                shouldShowInventory = window.location.search.indexOf( 'start_date=' ) !== -1;
-            }
-
-            if ( shouldShowInventory ) {
-                activateInventory();
-            } else {
-                activatePacking();
-            }
-        } );
-    </script>
     <?php
 
     return trim( ob_get_clean() );
