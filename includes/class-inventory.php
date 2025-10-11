@@ -78,7 +78,11 @@ class Woo_Check_Inventory {
      * @return array{string|null,string|null}
      */
     protected static function get_utc_range( $start_date, $end_date ) {
-        $timezone = wp_timezone();
+        $timezone = self::resolve_timezone();
+
+        if ( ! $timezone instanceof DateTimeZone ) {
+            return [ null, null ];
+        }
 
         try {
             $start = new DateTimeImmutable( $start_date . ' 00:00:00', $timezone );
@@ -87,8 +91,10 @@ class Woo_Check_Inventory {
             return [ null, null ];
         }
 
-        $start_utc = $start->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
-        $end_utc   = $end->modify( '+1 day' )->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+        $utc_zone = new DateTimeZone( 'UTC' );
+
+        $start_utc = $start->setTimezone( $utc_zone )->format( 'Y-m-d H:i:s' );
+        $end_utc   = $end->modify( '+1 day' )->setTimezone( $utc_zone )->format( 'Y-m-d H:i:s' );
 
         return [ $start_utc, $end_utc ];
     }
@@ -187,5 +193,44 @@ class Woo_Check_Inventory {
         $pack_map = $normalized;
 
         return $pack_map;
+    }
+
+    /**
+     * Determine the most appropriate timezone for calculations.
+     *
+     * @return DateTimeZone|null
+     */
+    protected static function resolve_timezone() {
+        if ( function_exists( 'wp_timezone' ) ) {
+            $timezone = wp_timezone();
+
+            if ( $timezone instanceof DateTimeZone ) {
+                return $timezone;
+            }
+        }
+
+        if ( function_exists( 'wp_timezone_string' ) ) {
+            $timezone_string = wp_timezone_string();
+
+            if ( $timezone_string ) {
+                $timezone = @timezone_open( $timezone_string ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+
+                if ( $timezone instanceof DateTimeZone ) {
+                    return $timezone;
+                }
+            }
+        }
+
+        try {
+            $timezone = new DateTimeZone( date_default_timezone_get() );
+        } catch ( Exception $e ) {
+            $timezone = null;
+        }
+
+        if ( $timezone instanceof DateTimeZone ) {
+            return $timezone;
+        }
+
+        return timezone_open( 'UTC' );
     }
 }
