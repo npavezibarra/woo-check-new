@@ -747,9 +747,24 @@ function villegas_packing_list_shortcode( $atts ) {
         ];
 
         if ( $is_single_day_range ) {
-            $villegas_overview_chart_payload['labels'] = $hourly_slot_labels;
-            $villegas_overview_chart_payload['rm']     = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
-            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', $hourly_region_counts['other_regions'] );
+            $hourly_axis_labels = $hourly_slot_labels;
+            $hourly_rm_values   = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
+            $hourly_non_rm      = array_map( 'intval', $hourly_region_counts['other_regions'] );
+
+            if ( $using_default_range ) {
+                $final_axis_label = $range_end_day->format( 'H:i' );
+
+                if ( empty( $hourly_axis_labels ) || end( $hourly_axis_labels ) !== $final_axis_label ) {
+                    $hourly_axis_labels[] = $final_axis_label;
+                }
+
+                $hourly_rm_values[]  = null;
+                $hourly_non_rm[]     = null;
+            }
+
+            $villegas_overview_chart_payload['labels'] = $hourly_axis_labels;
+            $villegas_overview_chart_payload['rm']     = $hourly_rm_values;
+            $villegas_overview_chart_payload['not_rm'] = $hourly_non_rm;
             $villegas_overview_chart_payload['range_start_iso'] = $range_start_day->format( DateTimeInterface::ATOM );
             $villegas_overview_chart_payload['range_end_iso']   = $range_end_day->format( DateTimeInterface::ATOM );
         } else {
@@ -880,8 +895,15 @@ function villegas_packing_list_shortcode( $atts ) {
                 var highestTotal = 0;
 
                 for ( var i = 0; i < dataLength; i++ ) {
-                    var rmValue = Array.isArray( chartData.rm ) ? Number( chartData.rm[ i ] || 0 ) : 0;
-                    var notRmValue = Array.isArray( chartData.not_rm ) ? Number( chartData.not_rm[ i ] || 0 ) : 0;
+                    var rmRaw = Array.isArray( chartData.rm ) ? chartData.rm[ i ] : undefined;
+                    var notRmRaw = Array.isArray( chartData.not_rm ) ? chartData.not_rm[ i ] : undefined;
+
+                    if ( rmRaw === null && notRmRaw === null ) {
+                        continue;
+                    }
+
+                    var rmValue = Number( rmRaw || 0 );
+                    var notRmValue = Number( notRmRaw || 0 );
 
                     highestTotal = Math.max( highestTotal, rmValue + notRmValue );
                 }
@@ -902,7 +924,7 @@ function villegas_packing_list_shortcode( $atts ) {
                         labels = chart.data.labels;
                     }
                     var targetLabel = '11:00';
-                    var labelIndex = labels.indexOf( targetLabel );
+                    var labelIndex = labels.lastIndexOf( targetLabel );
 
                     if ( labelIndex === -1 ) {
                         return;
