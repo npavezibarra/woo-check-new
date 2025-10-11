@@ -72,7 +72,7 @@ $stock_label_suffix = $stock_is_active ? ( 'asc' === $sort_order ? ' â†‘' : ' â†
     </div>
     <div class="inventory-summary">
         <div class="inventory-total-card">
-            <span class="inventory-total-label"><?php esc_html_e( 'TOTAL BOOKS', 'woo-check' ); ?></span>
+            <span class="inventory-total-label"><?php esc_html_e( 'TOTAL STOCK', 'woo-check' ); ?></span>
             <span class="inventory-total-value"><?php echo esc_html( number_format_i18n( $total_stock ) ); ?></span>
         </div>
     </div>
