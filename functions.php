@@ -1056,7 +1056,13 @@ function villegas_packing_list_shortcode( $atts ) {
         </div>
     </div>
     <div id="inventory-stats-page" style="display:none;">
-        <!-- Inventory stats placeholder -->
+        <?php
+        $inventory_view = __DIR__ . '/views/inventory.php';
+
+        if ( file_exists( $inventory_view ) ) {
+            include $inventory_view;
+        }
+        ?>
     </div>
     <script>
         document.addEventListener( 'DOMContentLoaded', function () {
