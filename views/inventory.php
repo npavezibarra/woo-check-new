@@ -33,7 +33,9 @@ $data      = [];
 $max_sales = 0;
 $max_stock = 0;
 
-global $wpdb;
+$sales_counts = class_exists( 'Woo_Check_Inventory' )
+    ? Woo_Check_Inventory::get_sales_counts( $start_date, $end_date )
+    : [];
 
 foreach ( $books as $book ) {
     if ( ! $book instanceof WC_Product ) {
@@ -43,32 +45,7 @@ foreach ( $books as $book ) {
     $book_id = $book->get_id();
     $stock   = $book->get_stock_quantity();
 
-    $sales = $wpdb->get_var(
-        $wpdb->prepare(
-            "
-    SELECT SUM(qty.meta_value + 0)
-    FROM {$wpdb->prefix}wc_orders o
-    JOIN {$wpdb->prefix}woocommerce_order_items oi 
-        ON o.id = oi.order_id
-    JOIN {$wpdb->prefix}woocommerce_order_itemmeta pid 
-        ON oi.order_item_id = pid.order_item_id
-    JOIN {$wpdb->prefix}woocommerce_order_itemmeta qty 
-        ON oi.order_item_id = qty.order_item_id
-    WHERE pid.meta_key = '_product_id'
-      AND pid.meta_value = %d
-      AND qty.meta_key = '_qty'
-      AND o.status IN ('wc-processing', 'wc-completed')
-      -- Adjust UTC timestamps by -3h for Chile local time
-      AND o.date_created_gmt >= DATE_SUB(%s, INTERVAL 3 HOUR)
-      AND o.date_created_gmt <  DATE_ADD(%s, INTERVAL 21 HOUR)
-",
-            $book_id,
-            $start_date . ' 00:00:00',
-            date( 'Y-m-d', strtotime( $end_date . ' +1 day' ) ) . ' 00:00:00'
-        )
-    );
-
-    $sales_value = $sales ? (int) $sales : 0;
+    $sales_value = isset( $sales_counts[ $book_id ] ) ? (int) $sales_counts[ $book_id ] : 0;
     $stock_value = null !== $stock ? (int) $stock : null;
 
     $data[] = [
