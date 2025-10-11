@@ -129,19 +129,6 @@ function villegas_packing_list_shortcode( $atts ) {
         return in_array( $shipping_state, $metropolitana_states, true ) || in_array( $billing_state, $metropolitana_states, true );
     };
 
-    $summary_counts = [
-        'new_orders_today'     => 0,
-        'region_metropolitana' => 0,
-        'other_regions'        => 0,
-    ];
-
-    $undetermined_regions_today = 0;
-
-    $hourly_region_counts = [
-        'region_metropolitana' => array_fill( 0, 24, 0 ),
-        'other_regions'        => array_fill( 0, 24, 0 ),
-    ];
-
     $site_timezone = null;
 
     if ( function_exists( 'wp_timezone' ) ) {
@@ -164,6 +151,76 @@ function villegas_packing_list_shortcode( $atts ) {
         }
     }
 
+    $default_range_date = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
+
+    $range_start_input = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_end_input   = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
+    $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_start_input, $site_timezone );
+    $range_end_obj   = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_end_input, $site_timezone );
+
+    if ( false === $range_start_obj ) {
+        $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+    }
+
+    if ( false === $range_end_obj ) {
+        $range_end_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+    }
+
+    if ( $range_end_obj < $range_start_obj ) {
+        $tmp             = $range_start_obj;
+        $range_start_obj = $range_end_obj;
+        $range_end_obj   = $tmp;
+    }
+
+    $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
+    $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+
+    $is_single_day_range = $range_start_day->format( 'Y-m-d' ) === $range_end_day->format( 'Y-m-d' );
+
+    $summary_counts = [
+        'orders_in_range'      => 0,
+        'region_metropolitana' => 0,
+        'other_regions'        => 0,
+    ];
+
+    $undetermined_regions_in_range = 0;
+
+    $hourly_region_counts = [
+        'region_metropolitana' => array_fill( 0, 24, 0 ),
+        'other_regions'        => array_fill( 0, 24, 0 ),
+    ];
+
+    $daily_region_counts = [
+        'region_metropolitana' => [],
+        'other_regions'        => [],
+    ];
+
+    if ( ! $is_single_day_range ) {
+        $current_day = $range_start_day;
+
+        while ( $current_day <= $range_end_day ) {
+            $day_key                                  = $current_day->format( 'Y-m-d' );
+            $daily_region_counts['region_metropolitana'][ $day_key ] = 0;
+            $daily_region_counts['other_regions'][ $day_key ]        = 0;
+            $current_day                              = $current_day->modify( '+1 day' );
+        }
+    }
+
+    $current_query_args = [];
+
+    if ( isset( $_GET ) && is_array( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        foreach ( $_GET as $key => $value ) {
+            if ( in_array( $key, [ 'packing_start_date', 'packing_end_date' ], true ) ) {
+                continue;
+            }
+
+            if ( is_scalar( $value ) ) {
+                $current_query_args[ $key ] = (string) $value;
+            }
+        }
+    }
+
     $order_region_cache = [];
 
     $summary_orders = wc_get_orders(
@@ -180,8 +237,6 @@ function villegas_packing_list_shortcode( $atts ) {
     ];
 
     if ( is_array( $summary_orders ) ) {
-        $today_local_str = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
-
         foreach ( $summary_orders as $summary_order ) {
             if ( ! $summary_order instanceof WC_Order ) {
                 continue;
@@ -191,21 +246,21 @@ function villegas_packing_list_shortcode( $atts ) {
             $region_label            = $determine_region_label( $summary_order );
             $order_region_cache[ $order_id ] = $region_label;
 
-            $date_created = $summary_order->get_date_created();
-            $is_today     = false;
-            $localized_date = null;
+            $date_created    = $summary_order->get_date_created();
+            $localized_date  = null;
+            $is_in_range_day = false;
 
             if ( $date_created instanceof WC_DateTime ) {
                 $localized_date = clone $date_created;
                 $localized_date->setTimezone( $site_timezone );
 
-                if ( $localized_date->format( 'Y-m-d' ) === $today_local_str ) {
-                    $summary_counts['new_orders_today']++;
-                    $is_today = true;
+                if ( $localized_date >= $range_start_day && $localized_date <= $range_end_day ) {
+                    $summary_counts['orders_in_range']++;
+                    $is_in_range_day = true;
                 }
             }
 
-            if ( $is_today ) {
+            if ( $is_in_range_day ) {
                 $order_hour = 0;
 
                 if ( isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
@@ -216,14 +271,32 @@ function villegas_packing_list_shortcode( $atts ) {
 
                 if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
                     $summary_counts['region_metropolitana']++;
-                    $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
+
+                    if ( $is_single_day_range ) {
+                        $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
+                    } else {
+                        $day_key = $localized_date->format( 'Y-m-d' );
+
+                        if ( isset( $daily_region_counts['region_metropolitana'][ $day_key ] ) ) {
+                            $daily_region_counts['region_metropolitana'][ $day_key ]++;
+                        }
+                    }
                 } else {
                     $summary_counts['other_regions']++;
-                    $hourly_region_counts['other_regions'][ $order_hour ]++;
+
+                    if ( $is_single_day_range ) {
+                        $hourly_region_counts['other_regions'][ $order_hour ]++;
+                    } else {
+                        $day_key = $localized_date->format( 'Y-m-d' );
+
+                        if ( isset( $daily_region_counts['other_regions'][ $day_key ] ) ) {
+                            $daily_region_counts['other_regions'][ $day_key ]++;
+                        }
+                    }
                 }
 
                 if ( '' === trim( (string) $region_label ) ) {
-                    $undetermined_regions_today++;
+                    $undetermined_regions_in_range++;
                 }
 
                 if ( isset( $anomalous_order_ids_by_hour[ $order_hour ] ) ) {
@@ -304,6 +377,67 @@ function villegas_packing_list_shortcode( $atts ) {
                 font-weight: 600;
             }
 
+            #villegas-packing-overview .packing-stats__header {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 16px;
+            }
+
+            #villegas-packing-overview .packing-stats__controls {
+                margin-left: auto;
+                display: flex;
+                align-items: flex-end;
+                gap: 12px;
+                flex-wrap: wrap;
+            }
+
+            #villegas-packing-overview .packing-stats__control {
+                display: flex;
+                flex-direction: column;
+                font-size: 12px;
+                font-weight: 600;
+                text-transform: uppercase;
+                color: #4b5563;
+                gap: 4px;
+            }
+
+            #villegas-packing-overview .packing-stats__control input[type="date"] {
+                padding: 6px 8px;
+                border: 1px solid #d1d5db;
+                border-radius: 4px;
+                font-size: 13px;
+                color: #111827;
+            }
+
+            #villegas-packing-overview .packing-stats__apply-button {
+                padding: 7px 14px;
+                border: 1px solid #2563eb;
+                border-radius: 4px;
+                background-color: #2563eb;
+                color: #ffffff;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: background-color 0.2s ease, border-color 0.2s ease;
+            }
+
+            #villegas-packing-overview .packing-stats__apply-button:hover,
+            #villegas-packing-overview .packing-stats__apply-button:focus {
+                background-color: #1d4ed8;
+                border-color: #1d4ed8;
+            }
+
+            #villegas-packing-overview .packing-stats__header + .packing-stats__metrics {
+                margin-top: 12px;
+            }
+
+            @media (max-width: 600px) {
+                #villegas-packing-overview .packing-stats__controls {
+                    margin-left: 0;
+                }
+            }
+
             #villegas-packing-overview .packing-stats__metrics {
                 display: flex;
                 flex-direction: column;
@@ -379,16 +513,64 @@ function villegas_packing_list_shortcode( $atts ) {
     ?>
     <div id="packing-stats">
         <?php
+        $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
+
+        if ( function_exists( 'wp_date' ) ) {
+            $range_start_display = wp_date( $range_display_format, $range_start_day->getTimestamp(), $site_timezone );
+            $range_end_display   = wp_date( $range_display_format, $range_end_day->getTimestamp(), $site_timezone );
+        } else {
+            $range_start_display = $range_start_day->format( $range_display_format );
+            $range_end_display   = $range_end_day->format( $range_display_format );
+        }
+
         $villegas_overview_chart_payload = [
-            'labels'       => array_map(
+            'labels'       => [],
+            'rm'           => [],
+            'not_rm'       => [],
+            'mode'         => $is_single_day_range ? 'hourly' : 'daily',
+            'x_axis_label' => $is_single_day_range
+                ? __( 'Hour of Day (24hr Clock)', 'woo-check' )
+                : __( 'Order Date', 'woo-check' ),
+        ];
+
+        if ( $is_single_day_range ) {
+            $villegas_overview_chart_payload['labels'] = array_map(
                 static function ( $hour ) {
                     return sprintf( '%02d:00', $hour );
                 },
                 range( 0, 23 )
-            ),
-            'rm'           => array_map( 'intval', $hourly_region_counts['region_metropolitana'] ),
-            'not_rm'       => array_map( 'intval', $hourly_region_counts['other_regions'] ),
-        ];
+            );
+
+            $villegas_overview_chart_payload['rm']     = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
+            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', $hourly_region_counts['other_regions'] );
+        } else {
+            $chart_day_keys = array_keys( $daily_region_counts['region_metropolitana'] );
+
+            $villegas_overview_chart_payload['labels'] = array_map(
+                static function ( $date_str ) use ( $range_display_format, $site_timezone ) {
+                    $date_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $date_str, $site_timezone );
+
+                    if ( $date_obj instanceof DateTimeImmutable ) {
+                        return $date_obj->format( $range_display_format );
+                    }
+
+                    return $date_str;
+                },
+                $chart_day_keys
+            );
+
+            $villegas_overview_chart_payload['rm']     = array_map( 'intval', array_values( $daily_region_counts['region_metropolitana'] ) );
+            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', array_values( $daily_region_counts['other_regions'] ) );
+        }
+
+        $orders_range_label = $is_single_day_range
+            /* translators: %s: formatted date. */
+            ? sprintf( __( 'Orders on %s', 'woo-check' ), $range_start_display )
+            /* translators: 1: range start date. 2: range end date. */
+            : sprintf( __( 'Orders from %1$s to %2$s', 'woo-check' ), $range_start_display, $range_end_display );
+        $chart_aria_label   = $is_single_day_range
+            ? __( 'Stacked hourly orders by region', 'woo-check' )
+            : __( 'Stacked daily orders by region', 'woo-check' );
         $anomalous_order_ids_by_hour = array_filter(
             array_map(
                 static function ( $ids ) {
@@ -399,11 +581,37 @@ function villegas_packing_list_shortcode( $atts ) {
         );
         ?>
         <div id="villegas-packing-overview" class="packing-stats__widget">
-            <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
+            <div class="packing-stats__header">
+                <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
+                <form method="get" class="packing-stats__controls">
+                    <?php foreach ( $current_query_args as $query_key => $query_value ) : ?>
+                        <input type="hidden" name="<?php echo esc_attr( $query_key ); ?>" value="<?php echo esc_attr( $query_value ); ?>" />
+                    <?php endforeach; ?>
+                    <label class="packing-stats__control">
+                        <span><?php esc_html_e( 'Start date', 'woo-check' ); ?></span>
+                        <input
+                            type="date"
+                            name="packing_start_date"
+                            value="<?php echo esc_attr( $range_start_obj->format( 'Y-m-d' ) ); ?>"
+                            max="<?php echo esc_attr( $range_end_obj->format( 'Y-m-d' ) ); ?>"
+                        />
+                    </label>
+                    <label class="packing-stats__control">
+                        <span><?php esc_html_e( 'End date', 'woo-check' ); ?></span>
+                        <input
+                            type="date"
+                            name="packing_end_date"
+                            value="<?php echo esc_attr( $range_end_obj->format( 'Y-m-d' ) ); ?>"
+                            min="<?php echo esc_attr( $range_start_obj->format( 'Y-m-d' ) ); ?>"
+                        />
+                    </label>
+                    <button type="submit" class="packing-stats__apply-button"><?php esc_html_e( 'Apply', 'woo-check' ); ?></button>
+                </form>
+            </div>
             <div class="packing-stats__metrics">
                 <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'New Orders Today', 'woo-check' ); ?>:</span>
-                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['new_orders_today'] ) ); ?></span>
+                    <span class="packing-stats__stat-label"><?php echo esc_html( $orders_range_label ); ?>:</span>
+                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
                 </div>
                 <div class="packing-stats__stat">
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
@@ -413,10 +621,10 @@ function villegas_packing_list_shortcode( $atts ) {
                     <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
                 </div>
-                <?php if ( $undetermined_regions_today > 0 ) : ?>
+                <?php if ( $undetermined_regions_in_range > 0 ) : ?>
                     <div class="packing-stats__stat">
-                        <span class="packing-stats__stat-label"><?php esc_html_e( 'Unassigned Region Orders Today', 'woo-check' ); ?>:</span>
-                        <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $undetermined_regions_today ) ); ?></span>
+                        <span class="packing-stats__stat-label"><?php esc_html_e( 'Unassigned Region Orders', 'woo-check' ); ?>:</span>
+                        <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $undetermined_regions_in_range ) ); ?></span>
                     </div>
                 <?php endif; ?>
             </div>
@@ -434,7 +642,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 </div>
             <?php endif; ?>
             <div class="packing-stats__chart">
-                <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php esc_attr_e( 'Stacked hourly orders by region', 'woo-check' ); ?>"></canvas>
+                <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php echo esc_attr( $chart_aria_label ); ?>"></canvas>
             </div>
         </div>
     </div>
@@ -512,13 +720,17 @@ function villegas_packing_list_shortcode( $atts ) {
                             stacked: true,
                             title: {
                                 display: true,
-                                text: '<?php echo esc_js( __( 'Hour of Day (24hr Clock)', 'woo-check' ) ); ?>',
+                                text: chartData.x_axis_label,
                                 font: {
                                     weight: 'bold'
                                 }
                             },
                             grid: {
                                 display: false,
+                            },
+                            ticks: {
+                                maxRotation: chartData.mode === 'daily' ? 45 : 0,
+                                minRotation: 0,
                             }
                         },
                         y: {
