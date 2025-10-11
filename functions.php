@@ -1075,21 +1075,43 @@ function villegas_packing_list_shortcode( $atts ) {
                 return;
             }
 
-            showPacking.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
+            var activatePacking = function () {
                 packingPage.style.display = 'block';
                 inventoryPage.style.display = 'none';
                 showPacking.classList.add( 'active' );
                 showInventory.classList.remove( 'active' );
-            } );
+            };
 
-            showInventory.addEventListener( 'click', function ( event ) {
-                event.preventDefault();
+            var activateInventory = function () {
                 packingPage.style.display = 'none';
                 inventoryPage.style.display = 'block';
                 showInventory.classList.add( 'active' );
                 showPacking.classList.remove( 'active' );
+            };
+
+            showPacking.addEventListener( 'click', function ( event ) {
+                event.preventDefault();
+                activatePacking();
             } );
+
+            showInventory.addEventListener( 'click', function ( event ) {
+                event.preventDefault();
+                activateInventory();
+            } );
+
+            var shouldShowInventory = false;
+
+            try {
+                shouldShowInventory = ( new URLSearchParams( window.location.search ) ).has( 'start_date' );
+            } catch ( error ) {
+                shouldShowInventory = window.location.search.indexOf( 'start_date=' ) !== -1;
+            }
+
+            if ( shouldShowInventory ) {
+                activateInventory();
+            } else {
+                activatePacking();
+            }
         } );
     </script>
     <?php
