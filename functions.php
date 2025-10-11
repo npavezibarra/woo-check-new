@@ -349,30 +349,60 @@ function villegas_packing_list_shortcode( $atts ) {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
-                padding: 6px 12px;
-                border: 1px solid #ccc;
-                border-radius: 4px;
-                background: #f3f4f6;
-                color: inherit;
+                padding: 6px 16px;
+                border: 1px solid #d0d5dd;
+                border-radius: 999px;
+                background: #fff;
+                color: #1f2937;
                 cursor: pointer;
                 font-weight: 600;
-                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-            }
-
-            .packing-region-toggle__button.is-active {
-                background: #1d4ed8;
-                border-color: #1d4ed8;
-                color: #fff;
+                line-height: 1;
+                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
             }
 
             .packing-region-toggle__button:hover,
             .packing-region-toggle__button:focus {
-                background: #e5e7eb;
+                background: #f8fafc;
             }
 
-            .packing-region-toggle__button.is-active:hover,
-            .packing-region-toggle__button.is-active:focus {
-                background: #1e40af;
+            .packing-region-toggle__button.is-active {
+                background: #1e90ff;
+                border-color: #1e90ff;
+                color: #fff;
+                box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.15);
+            }
+
+            .packing-region-toggle__button[data-region-filter="rm"] {
+                color: #ed1c24;
+                border-color: #ed1c24;
+            }
+
+            .packing-region-toggle__button[data-region-filter="rm"]:hover,
+            .packing-region-toggle__button[data-region-filter="rm"]:focus {
+                background: rgba(237, 28, 36, 0.08);
+            }
+
+            .packing-region-toggle__button[data-region-filter="rm"].is-active {
+                background: #ed1c24;
+                border-color: #ed1c24;
+                color: #fff;
+                box-shadow: 0 0 0 1px rgba(237, 28, 36, 0.15);
+            }
+
+            .packing-region-toggle__button[data-region-filter="non-rm"] {
+                color: #1e90ff;
+                border-color: #1e90ff;
+            }
+
+            .packing-region-toggle__button[data-region-filter="non-rm"]:hover,
+            .packing-region-toggle__button[data-region-filter="non-rm"]:focus {
+                background: rgba(30, 144, 255, 0.08);
+            }
+
+            .packing-region-toggle__button[data-region-filter="non-rm"].is-active {
+                background: #1e90ff;
+                border-color: #1e90ff;
+                color: #fff;
             }
 
             #packing-stats {
@@ -708,8 +738,8 @@ function villegas_packing_list_shortcode( $atts ) {
                 {
                     label: '<?php echo esc_js( __( 'RM Orders', 'woo-check' ) ); ?>',
                     data: chartData.rm,
-                    backgroundColor: 'rgba(239, 68, 68, 0.85)',
-                    borderColor: 'rgba(239, 68, 68, 1)',
+                    backgroundColor: 'rgba(237, 28, 36, 0.85)',
+                    borderColor: 'rgba(237, 28, 36, 1)',
                     borderWidth: 1,
                     borderRadius: 3,
                     borderSkipped: false,
@@ -718,8 +748,8 @@ function villegas_packing_list_shortcode( $atts ) {
                 {
                     label: '<?php echo esc_js( __( 'Not RM Orders', 'woo-check' ) ); ?>',
                     data: chartData.not_rm,
-                    backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
+                    backgroundColor: 'rgba(30, 144, 255, 0.85)',
+                    borderColor: 'rgba(30, 144, 255, 1)',
                     borderWidth: 1,
                     borderRadius: 3,
                     borderSkipped: false,
@@ -844,7 +874,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 data-region-filter="rm"
                 aria-pressed="false"
             >
-                <?php esc_html_x( 'RM', 'Filter region option', 'woo-check' ); ?>
+                <?php esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
             </button>
             <button
                 type="button"
@@ -852,7 +882,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 data-region-filter="non-rm"
                 aria-pressed="false"
             >
-                <?php esc_html_x( 'Non RM', 'Filter region option', 'woo-check' ); ?>
+                <?php esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
             </button>
         </div>
         <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
