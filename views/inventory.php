@@ -291,10 +291,10 @@ foreach ( $books as $book ) {
 }
 
 .bar-fill--sales {
-    background: #4e79a7;
+    background: #c0deff;
 }
 
 .bar-fill--stock {
-    background: #59a14f;
+    background: #c0deff;
 }
 </style>
