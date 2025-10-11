@@ -14,20 +14,10 @@ $raw_start     = isset( $_GET['start_date'] ) ? wp_unslash( $_GET['start_date'] 
 $start_date    = ( is_string( $raw_start ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) ? $raw_start : $default_start;
 
 $timezone = wp_timezone();
-$utc      = new DateTimeZone( 'UTC' );
 
-try {
-    $start_datetime = new DateTimeImmutable( $start_date, $timezone );
-} catch ( Exception $e ) {
-    $start_datetime = new DateTimeImmutable( $default_start, $timezone );
-    $start_date     = $default_start;
-}
-
-$start_of_day     = $start_datetime->setTime( 0, 0, 0 );
-$start_boundary   = $start_of_day->setTimezone( $utc )->format( 'Y-m-d H:i:s' );
 $today            = new DateTimeImmutable( 'now', $timezone );
 $display_end_date = $today->format( 'Y-m-d' );
-$end_boundary     = $today->modify( '+1 day' )->setTime( 0, 0, 0 )->setTimezone( $utc )->format( 'Y-m-d H:i:s' );
+$end_date         = $display_end_date;
 
 $books = wc_get_products(
     [
@@ -56,25 +46,25 @@ foreach ( $books as $book ) {
     $sales = $wpdb->get_var(
         $wpdb->prepare(
             "
-            SELECT SUM( CAST( qty_meta.meta_value AS UNSIGNED ) )
-            FROM {$wpdb->prefix}wc_orders AS orders
-            INNER JOIN {$wpdb->prefix}woocommerce_order_items AS order_items
-                ON orders.id = order_items.order_id
-            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS product_meta
-                ON order_items.order_item_id = product_meta.order_item_id
-            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS qty_meta
-                ON order_items.order_item_id = qty_meta.order_item_id
-            WHERE product_meta.meta_key = '_product_id'
-                AND product_meta.meta_value = %d
-                AND qty_meta.meta_key = '_qty'
-                AND orders.status IN ( 'wc-processing', 'wc-completed' )
-                AND orders.type = 'shop_order'
-                AND orders.date_created_gmt >= %s
-                AND orders.date_created_gmt < %s
-            ",
+    SELECT SUM(qty.meta_value + 0)
+    FROM {$wpdb->prefix}wc_orders o
+    JOIN {$wpdb->prefix}woocommerce_order_items oi 
+        ON o.id = oi.order_id
+    JOIN {$wpdb->prefix}woocommerce_order_itemmeta pid 
+        ON oi.order_item_id = pid.order_item_id
+    JOIN {$wpdb->prefix}woocommerce_order_itemmeta qty 
+        ON oi.order_item_id = qty.order_item_id
+    WHERE pid.meta_key = '_product_id'
+      AND pid.meta_value = %d
+      AND qty.meta_key = '_qty'
+      AND o.status IN ('wc-processing', 'wc-completed')
+      -- Adjust UTC timestamps by -3h for Chile local time
+      AND o.date_created_gmt >= DATE_SUB(%s, INTERVAL 3 HOUR)
+      AND o.date_created_gmt <  DATE_ADD(%s, INTERVAL 21 HOUR)
+",
             $book_id,
-            $start_boundary,
-            $end_boundary
+            $start_date . ' 00:00:00',
+            date( 'Y-m-d', strtotime( $end_date . ' +1 day' ) ) . ' 00:00:00'
         )
     );
 
