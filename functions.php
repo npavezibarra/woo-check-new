@@ -770,6 +770,26 @@ function villegas_packing_list_shortcode( $atts ) {
                 }
             ];
 
+            var yAxisMax = null;
+
+            if ( chartData.mode === 'hourly' ) {
+                var dataLength = Math.max(
+                    Array.isArray( chartData.rm ) ? chartData.rm.length : 0,
+                    Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : 0
+                );
+
+                var highestTotal = 0;
+
+                for ( var i = 0; i < dataLength; i++ ) {
+                    var rmValue = Array.isArray( chartData.rm ) ? Number( chartData.rm[ i ] || 0 ) : 0;
+                    var notRmValue = Array.isArray( chartData.not_rm ) ? Number( chartData.not_rm[ i ] || 0 ) : 0;
+
+                    highestTotal = Math.max( highestTotal, rmValue + notRmValue );
+                }
+
+                yAxisMax = highestTotal > 20 ? highestTotal : 20;
+            }
+
             var config = {
                 type: 'bar',
                 data: {
@@ -817,17 +837,25 @@ function villegas_packing_list_shortcode( $atts ) {
                                 minRotation: 0,
                             }
                         },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
-                                font: {
-                                    weight: 'bold'
+                        y: ( function () {
+                            var options = {
+                                stacked: true,
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
+                                    font: {
+                                        weight: 'bold'
+                                    }
                                 }
+                            };
+
+                            if ( yAxisMax !== null ) {
+                                options.max = yAxisMax;
                             }
-                        }
+
+                            return options;
+                        }() )
                     }
                 }
             };
