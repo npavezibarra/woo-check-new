@@ -26,6 +26,50 @@ add_action( 'woocommerce_before_checkout_form', function() {
 
 add_shortcode( 'villegas-packing-list', 'villegas_packing_list_shortcode' );
 
+if ( ! function_exists( 'villegas_packing_overview_log' ) ) {
+    /**
+     * Write an error log line namespaced for the packing overview widget.
+     *
+     * @param string $message  Log description.
+     * @param array  $context  Additional structured details.
+     */
+    function villegas_packing_overview_log( $message, array $context = [] ) {
+        $prefix = '[Packing Overview] ';
+
+        $context_string = '';
+
+        if ( ! empty( $context ) ) {
+            $json_flags = 0;
+
+            if ( defined( 'JSON_UNESCAPED_SLASHES' ) ) {
+                $json_flags |= JSON_UNESCAPED_SLASHES;
+            }
+
+            if ( defined( 'JSON_UNESCAPED_UNICODE' ) ) {
+                $json_flags |= JSON_UNESCAPED_UNICODE;
+            }
+
+            if ( function_exists( 'wp_json_encode' ) ) {
+                $context_string = wp_json_encode( $context, $json_flags );
+            } else {
+                $context_string = json_encode( $context, $json_flags );
+            }
+
+            if ( false === $context_string ) {
+                $context_string = ''; // Avoid logging "false" when encoding fails.
+            }
+        }
+
+        $log_line = $prefix . $message;
+
+        if ( '' !== $context_string ) {
+            $log_line .= ' ' . $context_string;
+        }
+
+        error_log( $log_line );
+    }
+}
+
 /**
  * Shortcode callback to display a paginated table of processing orders.
  *
@@ -268,6 +312,19 @@ function villegas_packing_list_shortcode( $atts ) {
 
         $hourly_region_counts['region_metropolitana'] = array_fill( 0, $hour_slot_count, 0 );
         $hourly_region_counts['other_regions']        = array_fill( 0, $hour_slot_count, 0 );
+
+        if ( 0 === $hour_slot_count ) {
+            villegas_packing_overview_log(
+                'No hourly slots were generated for the chart payload',
+                [
+                    'range_start'        => $range_start_day->format( DateTimeInterface::ATOM ),
+                    'range_end'          => $range_end_day->format( DateTimeInterface::ATOM ),
+                    'using_default'      => $using_default_range ? '1' : '0',
+                    'range_start_input'  => $range_start_input ?? '',
+                    'range_end_input'    => $range_end_input ?? '',
+                ]
+            );
+        }
     } else {
         $current_day = $range_start_day;
 
@@ -762,6 +819,49 @@ function villegas_packing_list_shortcode( $atts ) {
                 $hourly_non_rm[]     = null;
             }
 
+            $label_count  = count( $hourly_axis_labels );
+            $rm_count     = count( $hourly_rm_values );
+            $non_rm_count = count( $hourly_non_rm );
+
+            if ( $label_count !== $rm_count || $label_count !== $non_rm_count ) {
+                $normalize_dataset_length = static function ( array $values, $target_length ) {
+                    $normalized_values = array_values( $values );
+                    $current_length    = count( $normalized_values );
+
+                    if ( $current_length > $target_length ) {
+                        $normalized_values = array_slice( $normalized_values, 0, $target_length );
+                    } elseif ( $current_length < $target_length ) {
+                        $normalized_values = array_pad( $normalized_values, $target_length, 0 );
+                    }
+
+                    return $normalized_values;
+                };
+
+                villegas_packing_overview_log(
+                    'Normalized hourly dataset lengths',
+                    [
+                        'label_count'      => $label_count,
+                        'rm_count_before'  => $rm_count,
+                        'non_rm_before'    => $non_rm_count,
+                        'using_default'    => $using_default_range ? '1' : '0',
+                        'range_start'      => $range_start_day->format( DateTimeInterface::ATOM ),
+                        'range_end'        => $range_end_day->format( DateTimeInterface::ATOM ),
+                    ]
+                );
+
+                $hourly_rm_values  = $normalize_dataset_length( $hourly_rm_values, $label_count );
+                $hourly_non_rm     = $normalize_dataset_length( $hourly_non_rm, $label_count );
+
+                villegas_packing_overview_log(
+                    'Hourly dataset lengths after normalization',
+                    [
+                        'label_count'     => $label_count,
+                        'rm_count_after'  => count( $hourly_rm_values ),
+                        'non_rm_after'    => count( $hourly_non_rm ),
+                    ]
+                );
+            }
+
             $villegas_overview_chart_payload['labels'] = $hourly_axis_labels;
             $villegas_overview_chart_payload['rm']     = $hourly_rm_values;
             $villegas_overview_chart_payload['not_rm'] = $hourly_non_rm;
@@ -786,6 +886,22 @@ function villegas_packing_list_shortcode( $atts ) {
             $villegas_overview_chart_payload['rm']     = array_map( 'intval', array_values( $daily_region_counts['region_metropolitana'] ) );
             $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', array_values( $daily_region_counts['other_regions'] ) );
         }
+
+        villegas_packing_overview_log(
+            'Chart payload assembled',
+            [
+                'mode'              => $villegas_overview_chart_payload['mode'],
+                'labels'            => count( $villegas_overview_chart_payload['labels'] ),
+                'rm_points'         => count( $villegas_overview_chart_payload['rm'] ),
+                'non_rm_points'     => count( $villegas_overview_chart_payload['not_rm'] ),
+                'orders_in_range'   => $summary_counts['orders_in_range'],
+                'range_start'       => $range_start_day->format( DateTimeInterface::ATOM ),
+                'range_end'         => $range_end_day->format( DateTimeInterface::ATOM ),
+                'using_default'     => $using_default_range ? '1' : '0',
+                'is_single_day'     => $is_single_day_range ? '1' : '0',
+                'undetermined'      => $undetermined_regions_in_range,
+            ]
+        );
 
         $chart_aria_label   = $is_single_day_range
             ? __( 'Stacked hourly orders by region', 'woo-check' )
@@ -847,19 +963,84 @@ function villegas_packing_list_shortcode( $atts ) {
 
     <script>
         ( function () {
+            var consoleAvailable = 'undefined' !== typeof console;
+
+            var logDebug = function ( message, payload ) {
+                if ( ! consoleAvailable || 'function' !== typeof console.log ) {
+                    return;
+                }
+
+                if ( 'undefined' !== typeof payload ) {
+                    console.log( '[Packing Overview] ' + message, payload );
+                } else {
+                    console.log( '[Packing Overview] ' + message );
+                }
+            };
+
+            var logError = function ( message, payload ) {
+                if ( ! consoleAvailable || 'function' !== typeof console.error ) {
+                    return;
+                }
+
+                if ( 'undefined' !== typeof payload ) {
+                    console.error( '[Packing Overview] ' + message, payload );
+                } else {
+                    console.error( '[Packing Overview] ' + message );
+                }
+            };
+
             if ( 'undefined' === typeof Chart ) {
+                logError( 'Chart.js library is not loaded on the page' );
                 return;
             }
 
             var chartCanvas = document.getElementById( 'villegasPackingOverviewChart' );
 
-            if ( ! chartCanvas || chartCanvas.dataset.chartRendered ) {
+            if ( ! chartCanvas ) {
+                logError( 'Chart canvas element could not be located in the DOM' );
                 return;
             }
 
-            chartCanvas.dataset.chartRendered = '1';
+            var markRendered = function ( canvas, shouldMark ) {
+                try {
+                    if ( canvas.dataset ) {
+                        if ( shouldMark ) {
+                            canvas.dataset.chartRendered = '1';
+                        } else {
+                            delete canvas.dataset.chartRendered;
+                        }
+                    }
+                } catch ( datasetError ) {
+                    logDebug( 'Unable to interact with dataset API', datasetError );
+                }
+
+                if ( shouldMark ) {
+                    canvas.setAttribute( 'data-chart-rendered', '1' );
+                } else {
+                    canvas.removeAttribute( 'data-chart-rendered' );
+                }
+            };
+
+            var alreadyRendered = false;
+
+            try {
+                alreadyRendered = Boolean( chartCanvas.dataset && chartCanvas.dataset.chartRendered );
+            } catch ( datasetReadError ) {
+                logDebug( 'Failed to inspect dataset API, falling back to attribute lookup', datasetReadError );
+            }
+
+            if ( ! alreadyRendered ) {
+                alreadyRendered = chartCanvas.hasAttribute( 'data-chart-rendered' );
+            }
+
+            if ( alreadyRendered ) {
+                logDebug( 'Skipping chart initialization because it is already rendered' );
+                return;
+            }
 
             var chartData = <?php echo wp_json_encode( $villegas_overview_chart_payload ); ?>;
+
+            logDebug( 'Chart data payload', chartData );
 
             var datasets = [
                 {
@@ -909,6 +1090,18 @@ function villegas_packing_list_shortcode( $atts ) {
                 }
 
                 yAxisMax = highestTotal > 20 ? highestTotal : 20;
+            }
+
+            if (
+                Array.isArray( chartData.labels ) &&
+                ( chartData.labels.length !== ( Array.isArray( chartData.rm ) ? chartData.rm.length : 0 ) ||
+                    chartData.labels.length !== ( Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : 0 ) )
+            ) {
+                logError( 'Chart dataset counts do not match label count', {
+                    labels: chartData.labels.length,
+                    rm: Array.isArray( chartData.rm ) ? chartData.rm.length : null,
+                    not_rm: Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : null
+                } );
             }
 
             var elevenAmMarkerPlugin = {
@@ -1038,7 +1231,22 @@ function villegas_packing_list_shortcode( $atts ) {
                 }
             };
 
-            new Chart( chartCanvas.getContext( '2d' ), config );
+            var context = chartCanvas.getContext( '2d' );
+
+            if ( ! context ) {
+                logError( 'Canvas 2D context is not available for the packing overview chart' );
+                return;
+            }
+
+            try {
+                var chartInstance = new Chart( context, config );
+                markRendered( chartCanvas, true );
+                chartCanvas._packingOverviewChart = chartInstance;
+            } catch ( chartError ) {
+                logError( 'Failed to initialize the Chart.js instance', chartError );
+                logError( 'Chart.js payload snapshot for debugging', chartData );
+                markRendered( chartCanvas, false );
+            }
         } )();
     </script>
 
