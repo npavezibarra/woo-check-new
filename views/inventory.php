@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $villegas_inventory_context = isset( $villegas_inventory_context ) && is_array( $villegas_inventory_context )
     ? $villegas_inventory_context
     : [];
+$max_sales        = isset( $villegas_inventory_context['max_sales'] ) ? (int) $villegas_inventory_context['max_sales'] : 0;
+$max_stock        = isset( $villegas_inventory_context['max_stock'] ) ? (int) $villegas_inventory_context['max_stock'] : 0;
+$total_stock      = isset( $villegas_inventory_context['total_stock'] ) ? (int) $villegas_inventory_context['total_stock'] : 0;
+$sort_column      = isset( $villegas_inventory_context['sort_column'] ) ? (string) $villegas_inventory_context['sort_column'] : '';
+$sort_order       = isset( $villegas_inventory_context['sort_order'] ) ? (string) $villegas_inventory_context['sort_order'] : 'desc';
 
 $start_date       = isset( $villegas_inventory_context['start_date'] ) ? (string) $villegas_inventory_context['start_date'] : '';
 $display_end_date = isset( $villegas_inventory_context['display_end_date'] ) ? (string) $villegas_inventory_context['display_end_date'] : '';
@@ -49,12 +54,38 @@ $max_stock        = isset( $villegas_inventory_context['max_stock'] ) ? (int) $v
             <?php endif; ?>
         </form>
     </div>
+    <div class="inventory-summary">
+        <div class="inventory-total-card">
+            <span class="inventory-total-label"><?php esc_html_e( 'TOTAL BOOKS', 'woo-check' ); ?></span>
+            <span class="inventory-total-value"><?php echo esc_html( number_format_i18n( $total_stock ) ); ?></span>
+        </div>
+    </div>
     <table class="inventory-table">
         <thead>
             <tr>
                 <th><?php esc_html_e( 'Libro', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Vendidos', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Stock actual', 'woo-check' ); ?></th>
+                <th>
+                    <a
+                        href="<?php echo esc_url( add_query_arg( array_merge( $base_args, [
+                            'inventory_sort'  => 'sales',
+                            'inventory_order' => $sales_next_direction,
+                        ] ), $base_url ) ); ?>"
+                        class="inventory-sort-link<?php echo $sales_is_active ? ' is-active' : ''; ?>"
+                    >
+                        <?php esc_html_e( 'Vendidos', 'woo-check' ); ?><?php echo esc_html( $sales_label_suffix ); ?>
+                    </a>
+                </th>
+                <th>
+                    <a
+                        href="<?php echo esc_url( add_query_arg( array_merge( $base_args, [
+                            'inventory_sort'  => 'stock',
+                            'inventory_order' => $stock_next_direction,
+                        ] ), $base_url ) ); ?>"
+                        class="inventory-sort-link<?php echo $stock_is_active ? ' is-active' : ''; ?>"
+                    >
+                        <?php esc_html_e( 'Stock actual', 'woo-check' ); ?><?php echo esc_html( $stock_label_suffix ); ?>
+                    </a>
+                </th>
             </tr>
         </thead>
         <tbody>
