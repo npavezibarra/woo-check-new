@@ -9,57 +9,37 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$default_start = '2025-10-10';
-$raw_start     = isset( $_GET['start_date'] ) ? wp_unslash( $_GET['start_date'] ) : $default_start;
-$start_date    = ( is_string( $raw_start ) && preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) ? $raw_start : $default_start;
-
-$timezone = wp_timezone();
-
-$today            = new DateTimeImmutable( 'now', $timezone );
-$display_end_date = $today->format( 'Y-m-d' );
-$end_date         = $display_end_date;
-
-$books = wc_get_products(
-    [
-        'status'   => 'publish',
-        'category' => [ 'libro' ],
-        'limit'    => -1,
-        'orderby'  => 'title',
-        'order'    => 'ASC',
-    ]
-);
-
-$data      = [];
-$max_sales = 0;
-$max_stock = 0;
-
-$sales_counts = class_exists( 'Woo_Check_Inventory' )
-    ? Woo_Check_Inventory::get_sales_counts( $start_date, $end_date )
+$villegas_inventory_context = isset( $villegas_inventory_context ) && is_array( $villegas_inventory_context )
+    ? $villegas_inventory_context
     : [];
 
-foreach ( $books as $book ) {
-    if ( ! $book instanceof WC_Product ) {
-        continue;
-    }
+$start_date       = isset( $villegas_inventory_context['start_date'] ) ? (string) $villegas_inventory_context['start_date'] : '';
+$display_end_date = isset( $villegas_inventory_context['display_end_date'] ) ? (string) $villegas_inventory_context['display_end_date'] : '';
+$rows             = isset( $villegas_inventory_context['rows'] ) && is_array( $villegas_inventory_context['rows'] )
+    ? $villegas_inventory_context['rows']
+    : [];
+$max_sales        = isset( $villegas_inventory_context['max_sales'] ) ? (int) $villegas_inventory_context['max_sales'] : 0;
+$max_stock        = isset( $villegas_inventory_context['max_stock'] ) ? (int) $villegas_inventory_context['max_stock'] : 0;
+$total_stock      = isset( $villegas_inventory_context['total_stock'] ) ? (int) $villegas_inventory_context['total_stock'] : 0;
+$sort_column      = isset( $villegas_inventory_context['sort_column'] ) ? (string) $villegas_inventory_context['sort_column'] : '';
+$sort_order       = isset( $villegas_inventory_context['sort_order'] ) ? (string) $villegas_inventory_context['sort_order'] : 'desc';
 
-    $book_id = $book->get_id();
-    $stock   = $book->get_stock_quantity();
+$base_args = [];
 
-    $sales_value = isset( $sales_counts[ $book_id ] ) ? (int) $sales_counts[ $book_id ] : 0;
-    $stock_value = null !== $stock ? (int) $stock : null;
-
-    $data[] = [
-        'name'  => $book->get_name(),
-        'sales' => $sales_value,
-        'stock' => $stock_value,
-    ];
-
-    $max_sales = max( $max_sales, $sales_value );
-
-    if ( null !== $stock_value ) {
-        $max_stock = max( $max_stock, $stock_value );
-    }
+if ( '' !== $start_date ) {
+    $base_args['start_date'] = $start_date;
 }
+
+$base_url = remove_query_arg( [ 'inventory_sort', 'inventory_order' ] );
+
+$sales_is_active = ( 'sales' === $sort_column );
+$stock_is_active = ( 'stock' === $sort_column );
+
+$sales_next_direction = ( $sales_is_active && 'asc' === $sort_order ) ? 'desc' : 'asc';
+$stock_next_direction = ( $stock_is_active && 'asc' === $sort_order ) ? 'desc' : 'asc';
+
+$sales_label_suffix = $sales_is_active ? ( 'asc' === $sort_order ? ' ↑' : ' ↓' ) : '';
+$stock_label_suffix = $stock_is_active ? ( 'asc' === $sort_order ? ' ↑' : ' ↓' ) : '';
 ?>
 <div class="inventory-container">
     <div class="inventory-header">
@@ -76,6 +56,7 @@ foreach ( $books as $book ) {
             <button type="submit" class="inventory-filter-button button">
                 <?php esc_html_e( 'Apply', 'woo-check' ); ?>
             </button>
+            <?php if ( '' !== $display_end_date ) : ?>
             <span class="inventory-filter-note">
                 <?php
                 printf(
@@ -85,43 +66,74 @@ foreach ( $books as $book ) {
                 );
                 ?>
             </span>
+            <?php endif; ?>
         </form>
+    </div>
+    <div class="inventory-summary">
+        <div class="inventory-total-card">
+            <span class="inventory-total-label"><?php esc_html_e( 'TOTAL BOOKS', 'woo-check' ); ?></span>
+            <span class="inventory-total-value"><?php echo esc_html( number_format_i18n( $total_stock ) ); ?></span>
+        </div>
     </div>
     <table class="inventory-table">
         <thead>
             <tr>
                 <th><?php esc_html_e( 'Libro', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Vendidos', 'woo-check' ); ?></th>
-                <th><?php esc_html_e( 'Stock actual', 'woo-check' ); ?></th>
+                <th>
+                    <a
+                        href="<?php echo esc_url( add_query_arg( array_merge( $base_args, [
+                            'inventory_sort'  => 'sales',
+                            'inventory_order' => $sales_next_direction,
+                        ] ), $base_url ) ); ?>"
+                        class="inventory-sort-link<?php echo $sales_is_active ? ' is-active' : ''; ?>"
+                    >
+                        <?php esc_html_e( 'Vendidos', 'woo-check' ); ?><?php echo esc_html( $sales_label_suffix ); ?>
+                    </a>
+                </th>
+                <th>
+                    <a
+                        href="<?php echo esc_url( add_query_arg( array_merge( $base_args, [
+                            'inventory_sort'  => 'stock',
+                            'inventory_order' => $stock_next_direction,
+                        ] ), $base_url ) ); ?>"
+                        class="inventory-sort-link<?php echo $stock_is_active ? ' is-active' : ''; ?>"
+                    >
+                        <?php esc_html_e( 'Stock actual', 'woo-check' ); ?><?php echo esc_html( $stock_label_suffix ); ?>
+                    </a>
+                </th>
             </tr>
         </thead>
         <tbody>
-        <?php if ( empty( $data ) ) : ?>
+        <?php if ( empty( $rows ) ) : ?>
             <tr>
                 <td colspan="3" class="inventory-empty">
                     <?php esc_html_e( 'No books found in the Libro category.', 'woo-check' ); ?>
                 </td>
             </tr>
         <?php else : ?>
-            <?php foreach ( $data as $row ) :
+            <?php foreach ( $rows as $row ) :
+                $book_name = isset( $row['name'] ) ? (string) $row['name'] : '';
+                $sales     = isset( $row['sales'] ) ? (int) $row['sales'] : 0;
+                $stock     = array_key_exists( 'stock', $row ) ? $row['stock'] : null;
+
                 $sales_percent = 0;
                 $stock_percent = 0;
 
                 if ( $max_sales > 0 ) {
-                    $sales_percent = min( 100, ( $row['sales'] / $max_sales ) * 100 );
+                    $sales_percent = min( 100, ( $sales / $max_sales ) * 100 );
                     $sales_percent = round( $sales_percent, 2 );
                 }
 
-                if ( $max_stock > 0 && null !== $row['stock'] ) {
-                    $stock_percent = min( 100, ( $row['stock'] / $max_stock ) * 100 );
+                if ( $max_stock > 0 && null !== $stock ) {
+                    $stock_percent = min( 100, ( $stock / $max_stock ) * 100 );
                     $stock_percent = round( $stock_percent, 2 );
                 }
             ?>
             <tr>
-                <td class="book-name"><?php echo esc_html( $row['name'] ); ?></td>
+                <td class="book-name"><?php echo esc_html( $book_name ); ?></td>
                 <td class="bar-cell">
                     <div class="bar-wrapper">
-                        <span class="bar-label"><?php echo esc_html( number_format_i18n( $row['sales'] ) ); ?></span>
+                        <span class="bar-label"><?php echo esc_html( number_format_i18n( $sales ) ); ?></span>
                         <div
                             class="bar-fill bar-fill--sales"
                             style="width: <?php echo esc_attr( $sales_percent ); ?>%;"
@@ -132,9 +144,9 @@ foreach ( $books as $book ) {
                 <td class="bar-cell">
                     <div class="bar-wrapper">
                         <span class="bar-label">
-                            <?php echo null !== $row['stock'] ? esc_html( number_format_i18n( $row['stock'] ) ) : esc_html__( 'N/A', 'woo-check' ); ?>
+                            <?php echo null !== $stock ? esc_html( number_format_i18n( (int) $stock ) ) : esc_html__( 'N/A', 'woo-check' ); ?>
                         </span>
-                        <?php if ( null !== $row['stock'] ) : ?>
+                        <?php if ( null !== $stock ) : ?>
                         <div
                             class="bar-fill bar-fill--stock"
                             style="width: <?php echo esc_attr( $stock_percent ); ?>%;"
@@ -149,119 +161,3 @@ foreach ( $books as $book ) {
         </tbody>
     </table>
 </div>
-
-<style>
-.inventory-container {
-    width: 90%;
-    max-width: 900px;
-    margin: 30px auto;
-    font-family: system-ui, sans-serif;
-}
-
-.inventory-header {
-    margin-bottom: 20px;
-}
-
-.inventory-filter-form {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-}
-
-.inventory-filter-label {
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-}
-
-.inventory-filter-button {
-    padding: 6px 18px;
-    border-radius: 4px;
-}
-
-.inventory-filter-note {
-    font-size: 13px;
-    color: #666;
-}
-
-.inventory-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid #ddd;
-    font-size: 15px;
-    background: #fff;
-}
-
-.inventory-table thead {
-    background: #f6f6f6;
-    border-bottom: 2px solid #ccc;
-}
-
-.inventory-table th {
-    text-align: left;
-    padding: 12px 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: #222;
-    border-bottom: 1px solid #ddd;
-    letter-spacing: 0.04em;
-}
-
-.inventory-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #eee;
-    color: #333;
-}
-
-.inventory-table tr:hover {
-    background: #fafafa;
-}
-
-.inventory-empty {
-    text-align: center;
-    padding: 24px 16px;
-    font-style: italic;
-    color: #666;
-}
-
-.bar-cell {
-    width: 40%;
-}
-
-.bar-wrapper {
-    position: relative;
-    height: 28px;
-    border-radius: 4px;
-    background: #f0f0f0;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    padding-left: 12px;
-}
-
-.bar-label {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111;
-    z-index: 1;
-}
-
-.bar-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.4s ease;
-}
-
-.bar-fill--sales {
-    background: #c0deff;
-}
-
-.bar-fill--stock {
-    background: #c0deff;
-}
-</style>

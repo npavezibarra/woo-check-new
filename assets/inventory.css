@@ -1,0 +1,160 @@
+.inventory-container {
+    width: 90%;
+    max-width: 900px;
+    margin: 30px auto;
+    font-family: system-ui, sans-serif;
+}
+
+.inventory-header {
+    margin-bottom: 20px;
+}
+
+.inventory-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+}
+
+.inventory-filter-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.inventory-filter-button {
+    padding: 6px 18px;
+    border-radius: 4px;
+}
+
+.inventory-filter-note {
+    font-size: 13px;
+    color: #666;
+}
+
+.inventory-summary {
+    margin-bottom: 18px;
+}
+
+.inventory-total-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border: 1px solid #d4e1ff;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #f8fbff, #eef5ff);
+    box-shadow: 0 4px 10px rgba(12, 52, 131, 0.08);
+}
+
+.inventory-total-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #0b3d91;
+}
+
+.inventory-total-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: #051c4a;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    background: #fff;
+}
+
+.inventory-table thead {
+    background: #f6f6f6;
+    border-bottom: 2px solid #ccc;
+}
+
+.inventory-table th {
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #222;
+    border-bottom: 1px solid #ddd;
+    letter-spacing: 0.04em;
+}
+
+.inventory-sort-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.inventory-sort-link:hover,
+.inventory-sort-link:focus {
+    color: #0b5ed7;
+    text-decoration: underline;
+}
+
+.inventory-sort-link.is-active {
+    color: #0b5ed7;
+}
+
+.inventory-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.inventory-table tr:hover {
+    background: #fafafa;
+}
+
+.inventory-empty {
+    text-align: center;
+    padding: 24px 16px;
+    font-style: italic;
+    color: #666;
+}
+
+.bar-cell {
+    width: 40%;
+}
+
+.bar-wrapper {
+    position: relative;
+    height: 28px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+}
+
+.bar-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    z-index: 1;
+}
+
+.bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.bar-fill--sales {
+    background: #c0deff;
+}
+
+.bar-fill--stock {
+    background: #c0deff;
+}
