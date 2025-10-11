@@ -711,11 +711,11 @@ function villegas_packing_list_shortcode( $atts ) {
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
                 </div>
                 <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Region Metropolitana', 'woo-check' ); ?>:</span>
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'RECIBELO', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
                 </div>
                 <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Other Regions', 'woo-check' ); ?>:</span>
+                    <span class="packing-stats__stat-label"><?php esc_html_e( 'SHIPIT', 'woo-check' ); ?>:</span>
                     <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
                 </div>
                 <?php if ( $undetermined_regions_in_range > 0 ) : ?>
@@ -749,7 +749,7 @@ function villegas_packing_list_shortcode( $atts ) {
 
             var datasets = [
                 {
-                    label: '<?php echo esc_js( __( 'RM Orders', 'woo-check' ) ); ?>',
+                    label: '<?php echo esc_js( __( 'RECIBELO Orders', 'woo-check' ) ); ?>',
                     data: chartData.rm,
                     backgroundColor: 'rgba(237, 28, 36, 0.85)',
                     borderColor: 'rgba(237, 28, 36, 1)',
@@ -759,7 +759,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     stack: 'orders',
                 },
                 {
-                    label: '<?php echo esc_js( __( 'Not RM Orders', 'woo-check' ) ); ?>',
+                    label: '<?php echo esc_js( __( 'SHIPIT Orders', 'woo-check' ) ); ?>',
                     data: chartData.not_rm,
                     backgroundColor: 'rgba(30, 144, 255, 0.85)',
                     borderColor: 'rgba(30, 144, 255, 1)',
