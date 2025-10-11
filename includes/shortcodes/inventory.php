@@ -59,7 +59,9 @@ function villegas_render_inventory_page( $atts = [] ) {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        return '<p>' . esc_html__( 'Información Confidencial', 'woo-check' ) . '</p>';
+        return function_exists( 'woo_check_render_confidential_message' )
+            ? woo_check_render_confidential_message()
+            : '<p>' . esc_html__( 'Información Confidencial', 'woo-check' ) . '</p>';
     }
 
     $default_start = '2025-10-10';

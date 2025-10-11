@@ -24,6 +24,35 @@ add_action( 'woocommerce_before_checkout_form', function() {
     echo '</div>';
 }, 20 );
 
+if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
+    /**
+     * Render a full screen confidential message with a login button.
+     *
+     * @return string
+     */
+    function woo_check_render_confidential_message() {
+        $container_style = 'display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            . 'min-height:100vh;width:100%;background-color:#000;color:#fff;text-align:center;padding:2rem;'
+            . 'box-sizing:border-box;';
+
+        $button_style = 'margin-top:1.5rem;padding:0.75rem 2.5rem;border-radius:4px;border:1px solid #fff;'
+            . 'background-color:#000;color:#fff;text-decoration:none;font-weight:600;letter-spacing:0.08em;'
+            . 'text-transform:uppercase;';
+
+        $login_url = esc_url( wp_login_url() );
+
+        return sprintf(
+            '<div class="woo-check-confidential-message" style="%1$s"><p style="margin:0;font-size:1.5rem;">%2$s</p>'
+            . '<a class="woo-check-confidential-login" style="%3$s" href="%4$s">%5$s</a></div>',
+            esc_attr( $container_style ),
+            esc_html__( 'Información Confidencial', 'woo-check' ),
+            esc_attr( $button_style ),
+            $login_url,
+            esc_html__( 'Login', 'woo-check' )
+        );
+    }
+}
+
 add_shortcode( 'villegas-packing-list', 'villegas_packing_list_shortcode' );
 
 /**
@@ -38,7 +67,7 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     if ( ! current_user_can( 'manage_options' ) ) {
-        return '<p>' . esc_html__( 'Información Confidencial', 'woo-check' ) . '</p>';
+        return woo_check_render_confidential_message();
     }
 
     $atts = shortcode_atts(
