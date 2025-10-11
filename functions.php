@@ -366,10 +366,10 @@ function villegas_packing_list_shortcode( $atts ) {
             }
 
             .packing-region-toggle__button.is-active {
-                background: #1e90ff;
-                border-color: #1e90ff;
+                background: #1f2937;
+                border-color: #1f2937;
                 color: #fff;
-                box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.15);
+                box-shadow: 0 0 0 1px rgba(31, 41, 55, 0.15);
             }
 
             .packing-region-toggle__button[data-region-filter="rm"] {
@@ -403,6 +403,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 background: #1e90ff;
                 border-color: #1e90ff;
                 color: #fff;
+                box-shadow: 0 0 0 1px rgba(30, 144, 255, 0.15);
             }
 
             #packing-stats {
@@ -872,11 +873,14 @@ function villegas_packing_list_shortcode( $atts ) {
     ?>
     <div class="villegas-packing-toolbar">
         <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
-            <button type="button" class="packing-region-toggle__button is-active" data-region-filter="rm" aria-pressed="true">
-                <?php esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
+            <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
+                <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
+            </button>
+            <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
+                <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
             </button>
             <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
-                <?php esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
+                <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
             </button>
         </div>
         <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
