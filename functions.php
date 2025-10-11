@@ -135,6 +135,8 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => 0,
     ];
 
+    $undetermined_regions_today = 0;
+
     $hourly_region_counts = [
         'region_metropolitana' => array_fill( 0, 24, 0 ),
         'other_regions'        => array_fill( 0, 24, 0 ),
@@ -178,22 +180,7 @@ function villegas_packing_list_shortcode( $atts ) {
     ];
 
     if ( is_array( $summary_orders ) ) {
-        $current_timestamp = current_time( 'timestamp' );
-        $today_start_ts    = strtotime( 'today', $current_timestamp );
-        $today_end_ts      = strtotime( 'tomorrow', $today_start_ts );
-
-        if ( false === $today_start_ts ) {
-            $today_start_ts = strtotime( 'today' );
-        }
-
-        if ( false === $today_start_ts ) {
-            $today_start_ts = (int) $current_timestamp;
-        }
-
-        if ( false === $today_end_ts ) {
-            $day_in_seconds = defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400;
-            $today_end_ts   = (int) $today_start_ts + $day_in_seconds;
-        }
+        $today_local_str = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
 
         foreach ( $summary_orders as $summary_order ) {
             if ( ! $summary_order instanceof WC_Order ) {
@@ -206,11 +193,13 @@ function villegas_packing_list_shortcode( $atts ) {
 
             $date_created = $summary_order->get_date_created();
             $is_today     = false;
+            $localized_date = null;
 
             if ( $date_created instanceof WC_DateTime ) {
-                $order_timestamp = $date_created->getTimestamp();
+                $localized_date = clone $date_created;
+                $localized_date->setTimezone( $site_timezone );
 
-                if ( $order_timestamp >= $today_start_ts && $order_timestamp < $today_end_ts ) {
+                if ( $localized_date->format( 'Y-m-d' ) === $today_local_str ) {
                     $summary_counts['new_orders_today']++;
                     $is_today = true;
                 }
@@ -219,9 +208,7 @@ function villegas_packing_list_shortcode( $atts ) {
             if ( $is_today ) {
                 $order_hour = 0;
 
-                if ( $date_created instanceof WC_DateTime ) {
-                    $localized_date = clone $date_created;
-                    $localized_date->setTimezone( $site_timezone );
+                if ( isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
                     $order_hour = (int) $localized_date->format( 'G' );
                 }
 
@@ -233,6 +220,10 @@ function villegas_packing_list_shortcode( $atts ) {
                 } else {
                     $summary_counts['other_regions']++;
                     $hourly_region_counts['other_regions'][ $order_hour ]++;
+                }
+
+                if ( '' === trim( (string) $region_label ) ) {
+                    $undetermined_regions_today++;
                 }
 
                 if ( isset( $anomalous_order_ids_by_hour[ $order_hour ] ) ) {
