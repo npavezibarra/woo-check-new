@@ -45,3 +45,153 @@ html#container-reset {
 #container-reset > body {
     background: none !important;
 }
+
+.woo-check-login-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100000;
+}
+
+.woo-check-login-modal.is-visible {
+    display: flex;
+}
+
+body.woo-check-login-modal-open {
+    overflow: hidden;
+}
+
+.woo-check-login-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+.woo-check-login-modal__content {
+    position: relative;
+    background: #ffffff;
+    color: #111827;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+    padding: 2rem;
+    width: min(90%, 420px);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.woo-check-login-modal__title {
+    margin: 0;
+    font-size: 1.5rem;
+    text-align: center;
+    color: inherit;
+}
+
+.woo-check-login-modal__close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: transparent;
+    border: none;
+    color: #111827;
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.woo-check-login-modal form,
+.woo-check-login-modal .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.woo-check-login-modal label,
+.woo-check-login-modal .login-form label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: inherit;
+}
+
+.woo-check-login-modal input[type="text"],
+.woo-check-login-modal input[type="password"],
+.woo-check-login-modal input[type="email"] {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    background: #ffffff;
+    color: #111827;
+}
+
+.woo-check-login-modal input[type="text"]:focus,
+.woo-check-login-modal input[type="password"]:focus,
+.woo-check-login-modal input[type="email"]:focus {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+    border-color: #111827;
+}
+
+.woo-check-login-modal .login-remember,
+.woo-check-login-modal .woo-check-login-fallback__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.woo-check-login-modal .login-remember label,
+.woo-check-login-modal .woo-check-login-fallback__remember {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.woo-check-login-modal .login-submit input[type="submit"],
+.woo-check-login-modal .woo-check-login-fallback__submit {
+    margin-left: auto;
+    padding: 0.65rem 1.75rem;
+    border-radius: 999px;
+    border: none;
+    background: #000000;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.woo-check-login-modal .login-submit input[type="submit"]:hover,
+.woo-check-login-modal .woo-check-login-fallback__submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.woo-check-login-modal p {
+    margin: 0;
+}
+
+.woo-check-confidential-login {
+    text-decoration: none;
+}
+
+@media (max-width: 480px) {
+    .woo-check-login-modal__content {
+        padding: 1.5rem;
+    }
+
+    .woo-check-login-modal .login-remember,
+    .woo-check-login-modal .woo-check-login-fallback__actions {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .woo-check-login-modal .login-submit input[type="submit"],
+    .woo-check-login-modal .woo-check-login-fallback__submit {
+        width: 100%;
+    }
+}

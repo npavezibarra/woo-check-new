@@ -36,19 +36,88 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
             . 'box-sizing:border-box;';
 
         $button_style = 'margin-top:1.5rem;padding:0.75rem 2.5rem;border-radius:4px;border:1px solid #fff;'
-            . 'background-color:#000;color:#fff;text-decoration:none;font-weight:600;letter-spacing:0.08em;'
-            . 'text-transform:uppercase;';
+            . 'background-color:#000;color:#fff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;';
 
-        $login_url = esc_url( wp_login_url() );
+        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+        $redirect_to = $request_uri ? home_url( $request_uri ) : home_url();
+        $redirect_to = wp_validate_redirect( $redirect_to, home_url() );
+
+        $unique_suffix = (string) wp_rand( 1000, 999999 );
+        $modal_id      = 'woo-check-login-modal-' . $unique_suffix;
+        $modal_title   = 'woo-check-login-modal-title-' . $unique_suffix;
+
+        $login_form = '';
+
+        if ( function_exists( 'wp_login_form' ) ) {
+            $login_form = wp_login_form(
+                [
+                    'echo'           => false,
+                    'redirect'       => $redirect_to,
+                    'form_id'        => 'woo-check-login-form-' . $unique_suffix,
+                    'label_log_in'   => esc_html__( 'Login', 'woo-check' ),
+                    'id_username'    => 'woo-check-user-login-' . $unique_suffix,
+                    'id_password'    => 'woo-check-user-pass-' . $unique_suffix,
+                    'id_remember'    => 'woo-check-rememberme-' . $unique_suffix,
+                    'id_submit'      => 'woo-check-login-submit-' . $unique_suffix,
+                    'remember'       => true,
+                ]
+            );
+        }
+
+        if ( '' === $login_form ) {
+            $login_action = esc_url( wp_login_url( $redirect_to ) );
+            $login_form   = sprintf(
+                '<form class="woo-check-login-fallback" action="%1$s" method="post">'
+                . '<label for="woo-check-user-login-%2$s">%3$s</label>'
+                . '<input type="text" name="log" id="woo-check-user-login-%2$s" required>'
+                . '<label for="woo-check-user-pass-%2$s">%4$s</label>'
+                . '<input type="password" name="pwd" id="woo-check-user-pass-%2$s" required>'
+                . '<div class="woo-check-login-fallback__actions">'
+                . '<label class="woo-check-login-fallback__remember">'
+                . '<input type="checkbox" name="rememberme" value="forever">%5$s'
+                . '</label>'
+                . '<button type="submit" class="woo-check-login-fallback__submit">%6$s</button>'
+                . '</div>'
+                . '<input type="hidden" name="redirect_to" value="%7$s">'
+                . '</form>',
+                $login_action,
+                esc_attr( $unique_suffix ),
+                esc_html__( 'Username or Email Address', 'woocommerce' ),
+                esc_html__( 'Password', 'woocommerce' ),
+                esc_html__( 'Remember me', 'woocommerce' ),
+                esc_html__( 'Login', 'woo-check' ),
+                esc_attr( $redirect_to )
+            );
+        }
+
+        $modal_markup = sprintf(
+            '<div class="woo-check-login-modal" id="%1$s" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="%2$s">'
+            . '<div class="woo-check-login-modal__backdrop" data-woo-check-modal-dismiss></div>'
+            . '<div class="woo-check-login-modal__content" role="document">'
+            . '<button type="button" class="woo-check-login-modal__close" aria-label="%5$s" data-woo-check-modal-dismiss>&times;</button>'
+            . '<h2 id="%2$s" class="woo-check-login-modal__title">%3$s</h2>'
+            . '%4$s'
+            . '</div>'
+            . '</div>',
+            esc_attr( $modal_id ),
+            esc_attr( $modal_title ),
+            esc_html__( 'Login', 'woo-check' ),
+            $login_form,
+            esc_attr__( 'Close login form', 'woo-check' )
+        );
 
         return sprintf(
-            '<div class="woo-check-confidential-message" style="%1$s"><p style="margin:0;font-size:1.5rem;">%2$s</p>'
-            . '<a class="woo-check-confidential-login" style="%3$s" href="%4$s">%5$s</a></div>',
+            '<div class="woo-check-confidential-message" data-woo-check-login-container style="%1$s">'
+            . '<p style="margin:0;font-size:1.5rem;">%2$s</p>'
+            . '<button type="button" class="woo-check-confidential-login" style="%3$s" data-woo-check-modal-target="%4$s">%5$s</button>'
+            . '%6$s'
+            . '</div>',
             esc_attr( $container_style ),
             esc_html__( 'Información Confidencial', 'woo-check' ),
             esc_attr( $button_style ),
-            $login_url,
-            esc_html__( 'Login', 'woo-check' )
+            esc_attr( $modal_id ),
+            esc_html__( 'Login', 'woo-check' ),
+            $modal_markup
         );
     }
 }
