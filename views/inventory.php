@@ -9,34 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$default_start = '2025-10-10';
-$raw_start     = isset( $_GET['start_date'] ) ? wp_unslash( $_GET['start_date'] ) : '';
-
-if ( preg_match( '/^\d{4}-\d{2}-\d{2}$/', $raw_start ) ) {
-    $start_date = $raw_start;
-} else {
-    $start_date = $default_start;
-}
-
-$timezone = wp_timezone();
-
-$start_dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $start_date . ' 00:00:00', $timezone );
-
-if ( ! $start_dt ) {
-    $start_dt = DateTime::createFromFormat( 'Y-m-d H:i:s', $default_start . ' 00:00:00', $timezone );
-    $start_date = $default_start;
-}
-
-$today    = new DateTime( 'now', $timezone );
-$end_date = $today->format( 'Y-m-d' );
-$end_dt   = clone $today;
-$end_dt->setTime( 23, 59, 59 );
-
-if ( $start_dt > $end_dt ) {
-    $start_dt  = DateTime::createFromFormat( 'Y-m-d H:i:s', $default_start . ' 00:00:00', $timezone );
-    $start_date = $default_start;
-}
-
 $books = wc_get_products(
     [
         'status'   => 'publish',
@@ -47,12 +19,9 @@ $books = wc_get_products(
     ]
 );
 
-$data      = [];
-$max_sales = 0;
-$max_stock = 0;
-
-$start_bound = $start_dt->format( 'Y-m-d H:i:s' );
-$end_bound   = $end_dt->format( 'Y-m-d H:i:s' );
+$data       = [];
+$max_sales  = 0;
+$max_stock  = 0;
 
 global $wpdb;
 
@@ -67,27 +36,20 @@ foreach ( $books as $book ) {
     $sales = $wpdb->get_var(
         $wpdb->prepare(
             "
-            SELECT SUM( CAST( qty_meta.meta_value AS DECIMAL(18,2) ) )
+            SELECT SUM( CAST( qty_meta.meta_value AS UNSIGNED ) )
             FROM {$wpdb->prefix}woocommerce_order_items AS order_items
+            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS product_meta
+                ON order_items.order_item_id = product_meta.order_item_id
             INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS qty_meta
                 ON order_items.order_item_id = qty_meta.order_item_id
-            LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS product_meta
-                ON order_items.order_item_id = product_meta.order_item_id
-                    AND product_meta.meta_key = '_product_id'
-            LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS variation_meta
-                ON order_items.order_item_id = variation_meta.order_item_id
-                    AND variation_meta.meta_key = '_variation_id'
             INNER JOIN {$wpdb->posts} AS posts
                 ON order_items.order_id = posts.ID
-            WHERE qty_meta.meta_key = '_qty'
+            WHERE product_meta.meta_key = '_product_id'
+                AND product_meta.meta_value = %d
+                AND qty_meta.meta_key = '_qty'
                 AND posts.post_type = 'shop_order'
                 AND posts.post_status IN ( 'wc-processing', 'wc-completed' )
-                AND posts.post_date BETWEEN %s AND %s
-                AND ( product_meta.meta_value = %d OR variation_meta.meta_value = %d )
             ",
-            $start_bound,
-            $end_bound,
-            $book_id,
             $book_id
         )
     );
@@ -110,29 +72,6 @@ foreach ( $books as $book ) {
 
 ?>
 <div class="inventory-container">
-    <div class="inventory-header">
-        <form method="get" class="inventory-filter-form">
-            <label for="inventory-start-date"><?php esc_html_e( 'Start Date:', 'woo-check' ); ?></label>
-            <input
-                type="date"
-                id="inventory-start-date"
-                name="start_date"
-                value="<?php echo esc_attr( $start_date ); ?>"
-            />
-            <button type="submit" class="button button-primary">
-                <?php esc_html_e( 'Apply', 'woo-check' ); ?>
-            </button>
-            <span class="auto-end-note">
-                <?php
-                printf(
-                    /* translators: %s: current date */
-                    esc_html__( 'Counting until today: %s', 'woo-check' ),
-                    esc_html( $end_date )
-                );
-                ?>
-            </span>
-        </form>
-    </div>
     <table class="inventory-table">
         <thead>
             <tr>
@@ -202,45 +141,6 @@ foreach ( $books as $book ) {
     max-width: 900px;
     margin: 30px auto;
     font-family: system-ui, sans-serif;
-}
-
-.inventory-header {
-    text-align: left;
-    margin-bottom: 20px;
-}
-
-.inventory-filter-form {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    font-size: 14px;
-}
-
-.inventory-filter-form label {
-    font-weight: 600;
-    color: #222;
-}
-
-.inventory-filter-form input[type='date'] {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #333;
-    background-color: #fff;
-}
-
-.inventory-filter-form .button {
-    padding: 6px 16px;
-    font-size: 14px;
-    height: auto;
-    line-height: 1.4;
-}
-
-.auto-end-note {
-    font-size: 13px;
-    color: #666;
 }
 
 .inventory-table {
