@@ -151,20 +151,40 @@ function villegas_packing_list_shortcode( $atts ) {
         }
     }
 
-    $default_range_date = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
+    $current_time = new DateTimeImmutable( 'now', $site_timezone );
+    $default_end_obj = $current_time->setTime( 11, 0, 0 );
+    $default_start_obj = $default_end_obj->modify( '-1 day' );
 
-    $range_start_input = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $range_end_input   = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $default_start_date = $default_start_obj->format( 'Y-m-d' );
+    $default_end_date   = $default_end_obj->format( 'Y-m-d' );
+
+    $has_start_date_param = isset( $_GET['packing_start_date'] ) && '' !== $_GET['packing_start_date']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $has_end_date_param   = isset( $_GET['packing_end_date'] ) && '' !== $_GET['packing_end_date']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $using_default_range  = ! $has_start_date_param && ! $has_end_date_param;
+
+    if ( $has_start_date_param ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $range_start_input = sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    } else {
+        $range_start_input = $default_start_date;
+    }
+
+    if ( $has_end_date_param ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $range_end_input = sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    } else {
+        $range_end_input = $default_end_date;
+    }
 
     $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_start_input, $site_timezone );
     $range_end_obj   = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_end_input, $site_timezone );
 
     if ( false === $range_start_obj ) {
-        $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+        $range_start_obj   = $default_start_obj;
+        $using_default_range = true;
     }
 
     if ( false === $range_end_obj ) {
-        $range_end_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+        $range_end_obj     = $default_end_obj;
+        $using_default_range = true;
     }
 
     if ( $range_end_obj < $range_start_obj ) {
@@ -173,10 +193,25 @@ function villegas_packing_list_shortcode( $atts ) {
         $range_end_obj   = $tmp;
     }
 
-    $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
-    $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    if ( $using_default_range ) {
+        $range_start_day = $range_start_obj->setTime( 11, 0, 0 );
+        $range_end_day   = $range_end_obj->setTime( 11, 0, 0 );
+    } else {
+        $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
+        $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    }
 
     $is_single_day_range = $range_start_day->format( 'Y-m-d' ) === $range_end_day->format( 'Y-m-d' );
+
+    if ( ! $is_single_day_range && $using_default_range ) {
+        $day_in_seconds         = defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400;
+        $hour_in_seconds        = defined( 'HOUR_IN_SECONDS' ) ? HOUR_IN_SECONDS : 3600;
+        $range_duration_seconds = max( 0, $range_end_day->getTimestamp() - $range_start_day->getTimestamp() );
+
+        if ( abs( $range_duration_seconds - $day_in_seconds ) <= $hour_in_seconds ) {
+            $is_single_day_range = true;
+        }
+    }
 
     $summary_counts = [
         'orders_in_range'      => 0,
