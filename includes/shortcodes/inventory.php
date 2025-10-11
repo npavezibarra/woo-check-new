@@ -66,27 +66,9 @@ function villegas_render_inventory_page( $atts = [] ) {
         ? Woo_Check_Inventory::get_sales_counts( $start_date, $end_date )
         : [];
 
-    $allowed_sort_columns = [ 'sales', 'stock' ];
-    $sort_column          = isset( $_GET['inventory_sort'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        ? sanitize_key( wp_unslash( $_GET['inventory_sort'] ) )
-        : '';
-
-    if ( ! in_array( $sort_column, $allowed_sort_columns, true ) ) {
-        $sort_column = '';
-    }
-
-    $sort_order = isset( $_GET['inventory_order'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        ? strtolower( (string) wp_unslash( $_GET['inventory_order'] ) )
-        : 'desc';
-
-    if ( ! in_array( $sort_order, [ 'asc', 'desc' ], true ) ) {
-        $sort_order = 'desc';
-    }
-
     $rows      = [];
     $max_sales = 0;
     $max_stock = 0;
-    $total_stock = 0;
 
     foreach ( $products as $product ) {
         if ( ! $product instanceof WC_Product ) {
@@ -109,52 +91,7 @@ function villegas_render_inventory_page( $atts = [] ) {
 
         if ( null !== $stock ) {
             $max_stock = max( $max_stock, $stock );
-            $total_stock += max( 0, (int) $stock );
         }
-    }
-
-    if ( '' !== $sort_column ) {
-        usort(
-            $rows,
-            static function ( $a, $b ) use ( $sort_column, $sort_order ) {
-                $tie_break = false;
-                $a_sales = isset( $a['sales'] ) ? (int) $a['sales'] : 0;
-                $b_sales = isset( $b['sales'] ) ? (int) $b['sales'] : 0;
-
-                $a_stock = array_key_exists( 'stock', $a ) ? $a['stock'] : null;
-                $b_stock = array_key_exists( 'stock', $b ) ? $b['stock'] : null;
-
-                if ( 'sales' === $sort_column ) {
-                    $comparison = $a_sales <=> $b_sales;
-                } else {
-                    $a_has_stock = null !== $a_stock;
-                    $b_has_stock = null !== $b_stock;
-
-                    if ( ! $a_has_stock && ! $b_has_stock ) {
-                        $comparison = 0;
-                    } elseif ( ! $a_has_stock ) {
-                        $comparison = 1;
-                    } elseif ( ! $b_has_stock ) {
-                        $comparison = -1;
-                    } else {
-                        $comparison = (int) $a_stock <=> (int) $b_stock;
-                    }
-                }
-
-                if ( 0 === $comparison ) {
-                    $tie_break = true;
-                    $a_name = isset( $a['name'] ) ? (string) $a['name'] : '';
-                    $b_name = isset( $b['name'] ) ? (string) $b['name'] : '';
-                    $comparison = strcasecmp( $a_name, $b_name );
-                }
-
-                if ( ! $tie_break && 'desc' === $sort_order ) {
-                    $comparison *= -1;
-                }
-
-                return $comparison;
-            }
-        );
     }
 
     $villegas_inventory_context = [
@@ -163,9 +100,6 @@ function villegas_render_inventory_page( $atts = [] ) {
         'rows'              => $rows,
         'max_sales'         => $max_sales,
         'max_stock'         => $max_stock,
-        'total_stock'       => $total_stock,
-        'sort_column'       => $sort_column,
-        'sort_order'        => $sort_order,
     ];
 
     $plugin_root      = dirname( dirname( __DIR__ ) );

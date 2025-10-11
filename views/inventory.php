@@ -12,6 +12,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 $villegas_inventory_context = isset( $villegas_inventory_context ) && is_array( $villegas_inventory_context )
     ? $villegas_inventory_context
     : [];
+$max_sales        = isset( $villegas_inventory_context['max_sales'] ) ? (int) $villegas_inventory_context['max_sales'] : 0;
+$max_stock        = isset( $villegas_inventory_context['max_stock'] ) ? (int) $villegas_inventory_context['max_stock'] : 0;
+$total_stock      = isset( $villegas_inventory_context['total_stock'] ) ? (int) $villegas_inventory_context['total_stock'] : 0;
+$sort_column      = isset( $villegas_inventory_context['sort_column'] ) ? (string) $villegas_inventory_context['sort_column'] : '';
+$sort_order       = isset( $villegas_inventory_context['sort_order'] ) ? (string) $villegas_inventory_context['sort_order'] : 'desc';
 
 $start_date       = isset( $villegas_inventory_context['start_date'] ) ? (string) $villegas_inventory_context['start_date'] : '';
 $display_end_date = isset( $villegas_inventory_context['display_end_date'] ) ? (string) $villegas_inventory_context['display_end_date'] : '';
@@ -20,26 +25,6 @@ $rows             = isset( $villegas_inventory_context['rows'] ) && is_array( $v
     : [];
 $max_sales        = isset( $villegas_inventory_context['max_sales'] ) ? (int) $villegas_inventory_context['max_sales'] : 0;
 $max_stock        = isset( $villegas_inventory_context['max_stock'] ) ? (int) $villegas_inventory_context['max_stock'] : 0;
-$total_stock      = isset( $villegas_inventory_context['total_stock'] ) ? (int) $villegas_inventory_context['total_stock'] : 0;
-$sort_column      = isset( $villegas_inventory_context['sort_column'] ) ? (string) $villegas_inventory_context['sort_column'] : '';
-$sort_order       = isset( $villegas_inventory_context['sort_order'] ) ? (string) $villegas_inventory_context['sort_order'] : 'desc';
-
-$base_args = [];
-
-if ( '' !== $start_date ) {
-    $base_args['start_date'] = $start_date;
-}
-
-$base_url = remove_query_arg( [ 'inventory_sort', 'inventory_order' ] );
-
-$sales_is_active = ( 'sales' === $sort_column );
-$stock_is_active = ( 'stock' === $sort_column );
-
-$sales_next_direction = ( $sales_is_active && 'asc' === $sort_order ) ? 'desc' : 'asc';
-$stock_next_direction = ( $stock_is_active && 'asc' === $sort_order ) ? 'desc' : 'asc';
-
-$sales_label_suffix = $sales_is_active ? ( 'asc' === $sort_order ? ' ↑' : ' ↓' ) : '';
-$stock_label_suffix = $stock_is_active ? ( 'asc' === $sort_order ? ' ↑' : ' ↓' ) : '';
 ?>
 <div class="inventory-container">
     <div class="inventory-header">

@@ -33,34 +33,6 @@
     color: #666;
 }
 
-.inventory-summary {
-    margin-bottom: 18px;
-}
-
-.inventory-total-card {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 18px;
-    border: 1px solid #d4e1ff;
-    border-radius: 6px;
-    background: linear-gradient(135deg, #f8fbff, #eef5ff);
-    box-shadow: 0 4px 10px rgba(12, 52, 131, 0.08);
-}
-
-.inventory-total-label {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: #0b3d91;
-}
-
-.inventory-total-value {
-    font-size: 24px;
-    font-weight: 700;
-    color: #051c4a;
-}
-
 .inventory-table {
     width: 100%;
     border-collapse: collapse;
@@ -82,25 +54,6 @@
     color: #222;
     border-bottom: 1px solid #ddd;
     letter-spacing: 0.04em;
-}
-
-.inventory-sort-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    color: inherit;
-    text-decoration: none;
-    transition: color 0.2s ease;
-}
-
-.inventory-sort-link:hover,
-.inventory-sort-link:focus {
-    color: #0b5ed7;
-    text-decoration: underline;
-}
-
-.inventory-sort-link.is-active {
-    color: #0b5ed7;
 }
 
 .inventory-table td {
