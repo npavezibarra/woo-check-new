@@ -140,6 +140,28 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => array_fill( 0, 24, 0 ),
     ];
 
+    $site_timezone = null;
+
+    if ( function_exists( 'wp_timezone' ) ) {
+        $site_timezone = wp_timezone();
+    } elseif ( function_exists( 'wp_timezone_string' ) ) {
+        $timezone_string = wp_timezone_string();
+
+        if ( $timezone_string ) {
+            $site_timezone = timezone_open( $timezone_string );
+        }
+    }
+
+    if ( ! $site_timezone instanceof DateTimeZone ) {
+        $fallback_timezone = timezone_open( date_default_timezone_get() );
+
+        if ( $fallback_timezone instanceof DateTimeZone ) {
+            $site_timezone = $fallback_timezone;
+        } else {
+            $site_timezone = new DateTimeZone( 'UTC' );
+        }
+    }
+
     $order_region_cache = [];
 
     $summary_orders = wc_get_orders(
@@ -193,12 +215,12 @@ function villegas_packing_list_shortcode( $atts ) {
                 $order_hour = 0;
 
                 if ( $date_created instanceof WC_DateTime ) {
-                    $offset_timestamp = method_exists( $date_created, 'getOffsetTimestamp' )
-                        ? $date_created->getOffsetTimestamp()
-                        : $order_timestamp + (int) $date_created->getOffset();
-
-                    $order_hour = (int) gmdate( 'G', $offset_timestamp );
+                    $localized_date = clone $date_created;
+                    $localized_date->setTimezone( $site_timezone );
+                    $order_hour = (int) $localized_date->format( 'G' );
                 }
+
+                $order_hour = max( 0, min( 23, $order_hour ) );
 
                 if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
                     $summary_counts['region_metropolitana']++;
@@ -275,7 +297,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 align-items: baseline;
                 justify-content: space-between;
                 gap: 8px;
-                font-size: 14px;
+                font-size: 20px;
             }
 
             .packing-stats__stat-label {
@@ -285,8 +307,8 @@ function villegas_packing_list_shortcode( $atts ) {
             #villegas-packing-overview .packing-stats__metrics {
                 display: flex;
                 flex-direction: column;
-                gap: 8px;
-                max-width: 280px;
+                gap: 0;
+                max-width: 247px;
             }
 
             .villegas-packing-pagination {
@@ -419,7 +441,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     backgroundColor: 'rgba(239, 68, 68, 0.85)',
                     borderColor: 'rgba(239, 68, 68, 1)',
                     borderWidth: 1,
-                    borderRadius: 6,
+                    borderRadius: 3,
                     borderSkipped: false,
                     stack: 'orders',
                 },
@@ -429,7 +451,7 @@ function villegas_packing_list_shortcode( $atts ) {
                     backgroundColor: 'rgba(59, 130, 246, 0.85)',
                     borderColor: 'rgba(59, 130, 246, 1)',
                     borderWidth: 1,
-                    borderRadius: 6,
+                    borderRadius: 3,
                     borderSkipped: false,
                     stack: 'orders',
                 }
