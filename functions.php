@@ -322,13 +322,57 @@ function villegas_packing_list_shortcode( $atts ) {
                 background-color: #fff9c4;
             }
 
+            .villegas-packing-list tr.is-hidden {
+                display: none;
+            }
+
             .villegas-packing-toolbar {
                 display: flex;
                 align-items: center;
-                justify-content: flex-end;
+                justify-content: space-between;
                 flex-wrap: wrap;
                 gap: 12px;
                 margin-bottom: 12px;
+            }
+
+            .villegas-packing-toolbar .villegas-packing-pagination {
+                margin-left: auto;
+            }
+
+            .packing-region-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .packing-region-toggle__button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 6px 12px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                background: #f3f4f6;
+                color: inherit;
+                cursor: pointer;
+                font-weight: 600;
+                transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+            }
+
+            .packing-region-toggle__button.is-active {
+                background: #1d4ed8;
+                border-color: #1d4ed8;
+                color: #fff;
+            }
+
+            .packing-region-toggle__button:hover,
+            .packing-region-toggle__button:focus {
+                background: #e5e7eb;
+            }
+
+            .packing-region-toggle__button.is-active:hover,
+            .packing-region-toggle__button.is-active:focus {
+                background: #1e40af;
             }
 
             #packing-stats {
@@ -495,6 +539,46 @@ function villegas_packing_list_shortcode( $atts ) {
                     } else {
                         row.classList.remove( 'is-checked' );
                     }
+                } );
+
+                document.addEventListener( 'click', function ( event ) {
+                    var button = event.target.closest( '.packing-region-toggle__button' );
+
+                    if ( ! button ) {
+                        return;
+                    }
+
+                    event.preventDefault();
+
+                    var filter = button.getAttribute( 'data-region-filter' );
+                    var toolbar = button.closest( '.villegas-packing-toolbar' );
+
+                    if ( ! toolbar ) {
+                        return;
+                    }
+
+                    var buttons = toolbar.querySelectorAll( '.packing-region-toggle__button' );
+
+                    buttons.forEach( function ( toggleButton ) {
+                        var isActive = toggleButton === button;
+                        toggleButton.classList.toggle( 'is-active', isActive );
+                        toggleButton.setAttribute( 'aria-pressed', isActive ? 'true' : 'false' );
+                    } );
+
+                    var table = toolbar.parentElement ? toolbar.parentElement.querySelector( '.villegas-packing-list' ) : null;
+
+                    if ( ! table ) {
+                        return;
+                    }
+
+                    var rows = table.querySelectorAll( 'tbody tr' );
+
+                    rows.forEach( function ( row ) {
+                        var regionGroup = row.getAttribute( 'data-region-group' );
+                        var shouldShow = 'all' === filter || filter === regionGroup;
+
+                        row.classList.toggle( 'is-hidden', ! shouldShow );
+                    } );
                 } );
             } )();
         </script>
@@ -743,13 +827,37 @@ function villegas_packing_list_shortcode( $atts ) {
         $pagination_markup = ob_get_clean();
     }
 
-    if ( $pagination_markup ) {
-        ?>
-        <div class="villegas-packing-toolbar">
-            <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    ?>
+    <div class="villegas-packing-toolbar">
+        <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
+            <button
+                type="button"
+                class="packing-region-toggle__button is-active"
+                data-region-filter="all"
+                aria-pressed="true"
+            >
+                <?php esc_html_e( 'All', 'woo-check' ); ?>
+            </button>
+            <button
+                type="button"
+                class="packing-region-toggle__button"
+                data-region-filter="rm"
+                aria-pressed="false"
+            >
+                <?php esc_html_x( 'RM', 'Filter region option', 'woo-check' ); ?>
+            </button>
+            <button
+                type="button"
+                class="packing-region-toggle__button"
+                data-region-filter="non-rm"
+                aria-pressed="false"
+            >
+                <?php esc_html_x( 'Non RM', 'Filter region option', 'woo-check' ); ?>
+            </button>
         </div>
-        <?php
-    }
+        <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+    </div>
+    <?php
 
     ?>
     <table class="villegas-packing-list">
@@ -766,7 +874,12 @@ function villegas_packing_list_shortcode( $atts ) {
         <tbody>
             <?php foreach ( $orders as $order ) : ?>
                 <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
-                <tr>
+                <?php
+                $order_id    = $order->get_id();
+                $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
+                $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
+                ?>
+                <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
                     <td>
                         <input
                             type="checkbox"
@@ -794,12 +907,7 @@ function villegas_packing_list_shortcode( $atts ) {
                         ?>
                     </td>
                     <td>
-                        <?php
-                        $order_id    = $order->get_id();
-                        $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
-
-                        echo esc_html( $region_name );
-                        ?>
+                        <?php echo esc_html( $region_name ); ?>
                     </td>
                 </tr>
             <?php endforeach; ?>
