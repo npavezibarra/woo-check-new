@@ -39,6 +39,60 @@ $books = wc_get_products(
     ]
 );
 
+$data       = [];
+$max_sales  = 0;
+$max_stock  = 0;
+
+global $wpdb;
+
+foreach ( $books as $book ) {
+    if ( ! $book instanceof WC_Product ) {
+        continue;
+    }
+
+    $book_id = $book->get_id();
+    $stock   = $book->get_stock_quantity();
+
+    $sales = $wpdb->get_var(
+        $wpdb->prepare(
+            "
+            SELECT SUM( CAST( qty_meta.meta_value AS UNSIGNED ) )
+            FROM {$wpdb->prefix}woocommerce_order_items AS order_items
+            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS product_meta
+                ON order_items.order_item_id = product_meta.order_item_id
+            INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS qty_meta
+                ON order_items.order_item_id = qty_meta.order_item_id
+            INNER JOIN {$wpdb->posts} AS posts
+                ON order_items.order_id = posts.ID
+            WHERE product_meta.meta_key = '_product_id'
+                AND product_meta.meta_value = %d
+                AND qty_meta.meta_key = '_qty'
+                AND posts.post_type = 'shop_order'
+                AND posts.post_status IN ( 'wc-processing', 'wc-completed' )
+                AND posts.post_date BETWEEN %s AND %s
+            ",
+            $book_id,
+            $start_datetime,
+            $end_datetime
+        )
+    );
+
+    $sales_value = $sales ? (int) $sales : 0;
+    $stock_value = null !== $stock ? (int) $stock : null;
+
+    $data[] = [
+        'name'  => $book->get_name(),
+        'sales' => $sales_value,
+        'stock' => $stock_value,
+    ];
+
+    $max_sales = max( $max_sales, $sales_value );
+
+    if ( null !== $stock_value ) {
+        $max_stock = max( $max_stock, $stock_value );
+    }
+}
+
 ?>
 <div class="inventory-container">
     <div class="inventory-header">
@@ -65,51 +119,56 @@ $books = wc_get_products(
             </tr>
         </thead>
         <tbody>
-        <?php
-        global $wpdb;
+        <?php if ( empty( $data ) ) : ?>
+            <tr>
+                <td colspan="3" class="inventory-empty">
+                    <?php esc_html_e( 'No books found in the Libro category.', 'woo-check' ); ?>
+                </td>
+            </tr>
+        <?php else : ?>
+            <?php foreach ( $data as $row ) :
+                $sales_percent = 0;
+                $stock_percent = 0;
 
-        foreach ( $books as $book ) {
-            if ( ! $book instanceof WC_Product ) {
-                continue;
-            }
+                if ( $max_sales > 0 ) {
+                    $sales_percent = min( 100, ( $row['sales'] / $max_sales ) * 100 );
+                    $sales_percent = round( $sales_percent, 2 );
+                }
 
-            $book_id = $book->get_id();
-            $stock   = $book->get_stock_quantity();
-
-            $sales = $wpdb->get_var(
-                $wpdb->prepare(
-                    "
-                    SELECT SUM( CAST( qty_meta.meta_value AS UNSIGNED ) )
-                    FROM {$wpdb->prefix}woocommerce_order_items AS order_items
-                    INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS product_meta
-                        ON order_items.order_item_id = product_meta.order_item_id
-                    INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta AS qty_meta
-                        ON order_items.order_item_id = qty_meta.order_item_id
-                    INNER JOIN {$wpdb->posts} AS posts
-                        ON order_items.order_id = posts.ID
-                    WHERE product_meta.meta_key = '_product_id'
-                        AND product_meta.meta_value = %d
-                        AND qty_meta.meta_key = '_qty'
-                        AND posts.post_type = 'shop_order'
-                        AND posts.post_status IN ( 'wc-processing', 'wc-completed' )
-                        AND posts.post_date BETWEEN %s AND %s
-                    ",
-                    $book_id,
-                    $start_datetime,
-                    $end_datetime
-                )
-            );
-
-            $sales = $sales ? (int) $sales : 0;
+                if ( $max_stock > 0 && null !== $row['stock'] ) {
+                    $stock_percent = min( 100, ( $row['stock'] / $max_stock ) * 100 );
+                    $stock_percent = round( $stock_percent, 2 );
+                }
             ?>
             <tr>
-                <td><?php echo esc_html( $book->get_name() ); ?></td>
-                <td><?php echo esc_html( $sales ); ?></td>
-                <td><?php echo esc_html( null !== $stock ? (string) $stock : __( 'N/A', 'woo-check' ) ); ?></td>
+                <td class="book-name"><?php echo esc_html( $row['name'] ); ?></td>
+                <td class="bar-cell">
+                    <div class="bar-wrapper">
+                        <span class="bar-label"><?php echo esc_html( number_format_i18n( $row['sales'] ) ); ?></span>
+                        <div
+                            class="bar-fill bar-fill--sales"
+                            style="width: <?php echo esc_attr( $sales_percent ); ?>%;"
+                            aria-hidden="true"
+                        ></div>
+                    </div>
+                </td>
+                <td class="bar-cell">
+                    <div class="bar-wrapper">
+                        <span class="bar-label">
+                            <?php echo null !== $row['stock'] ? esc_html( number_format_i18n( $row['stock'] ) ) : esc_html__( 'N/A', 'woo-check' ); ?>
+                        </span>
+                        <?php if ( null !== $row['stock'] ) : ?>
+                        <div
+                            class="bar-fill bar-fill--stock"
+                            style="width: <?php echo esc_attr( $stock_percent ); ?>%;"
+                            aria-hidden="true"
+                        ></div>
+                        <?php endif; ?>
+                    </div>
+                </td>
             </tr>
-            <?php
-        }
-        ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
         </tbody>
     </table>
 </div>
@@ -179,5 +238,51 @@ $books = wc_get_products(
 
 .inventory-table tr:hover {
     background: #fafafa;
+}
+
+.inventory-empty {
+    text-align: center;
+    padding: 24px 16px;
+    font-style: italic;
+    color: #666;
+}
+
+.bar-cell {
+    width: 40%;
+}
+
+.bar-wrapper {
+    position: relative;
+    height: 28px;
+    border-radius: 4px;
+    background: #f0f0f0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding-left: 12px;
+}
+
+.bar-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111;
+    z-index: 1;
+}
+
+.bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+.bar-fill--sales {
+    background: #4e79a7;
+}
+
+.bar-fill--stock {
+    background: #59a14f;
 }
 </style>
