@@ -9,26 +9,6 @@ if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-$current_time    = current_time( 'timestamp' );
-$default_start   = wp_date( 'Y-m-d', $current_time - WEEK_IN_SECONDS );
-$default_end     = wp_date( 'Y-m-d', $current_time );
-$raw_start_date  = isset( $_GET['start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['start_date'] ) ) : $default_start;
-$raw_end_date    = isset( $_GET['end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['end_date'] ) ) : $default_end;
-$start_date      = $raw_start_date;
-$end_date        = $raw_end_date;
-
-// Ensure valid dates in Y-m-d format.
-if ( ! wp_checkdate( substr( $start_date, 5, 2 ), substr( $start_date, 8, 2 ), substr( $start_date, 0, 4 ), $start_date ) ) {
-    $start_date = $default_start;
-}
-
-if ( ! wp_checkdate( substr( $end_date, 5, 2 ), substr( $end_date, 8, 2 ), substr( $end_date, 0, 4 ), $end_date ) ) {
-    $end_date = $default_end;
-}
-
-$start_datetime = $start_date . ' 00:00:00';
-$end_datetime   = $end_date . ' 23:59:59';
-
 $books = wc_get_products(
     [
         'status'   => 'publish',
@@ -69,11 +49,8 @@ foreach ( $books as $book ) {
                 AND qty_meta.meta_key = '_qty'
                 AND posts.post_type = 'shop_order'
                 AND posts.post_status IN ( 'wc-processing', 'wc-completed' )
-                AND posts.post_date BETWEEN %s AND %s
             ",
-            $book_id,
-            $start_datetime,
-            $end_datetime
+            $book_id
         )
     );
 
@@ -95,21 +72,6 @@ foreach ( $books as $book ) {
 
 ?>
 <div class="inventory-container">
-    <div class="inventory-header">
-        <form method="get" class="inventory-filter-form">
-            <label>
-                <?php esc_html_e( 'Start Date:', 'woo-check' ); ?>
-            </label>
-            <input type="date" name="start_date" value="<?php echo esc_attr( $start_date ); ?>">
-            <label>
-                <?php esc_html_e( 'End Date:', 'woo-check' ); ?>
-            </label>
-            <input type="date" name="end_date" value="<?php echo esc_attr( $end_date ); ?>">
-            <button type="submit" class="button">
-                <?php esc_html_e( 'Apply', 'woo-check' ); ?>
-            </button>
-        </form>
-    </div>
     <table class="inventory-table">
         <thead>
             <tr>
@@ -179,32 +141,6 @@ foreach ( $books as $book ) {
     max-width: 900px;
     margin: 30px auto;
     font-family: system-ui, sans-serif;
-}
-
-.inventory-header {
-    text-align: left;
-    margin-bottom: 20px;
-}
-
-.inventory-filter-form {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    font-size: 15px;
-    color: #333;
-}
-
-.inventory-filter-form label {
-    font-weight: 600;
-    text-transform: uppercase;
-}
-
-.inventory-filter-form input[type="date"] {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    font-size: 15px;
 }
 
 .inventory-table {
