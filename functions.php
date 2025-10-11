@@ -571,22 +571,18 @@ function villegas_packing_list_shortcode( $atts ) {
                     }
                 } );
 
-                document.addEventListener( 'click', function ( event ) {
-                    var button = event.target.closest( '.packing-region-toggle__button' );
-
+                var applyRegionFilter = function ( button ) {
                     if ( ! button ) {
                         return;
                     }
 
-                    event.preventDefault();
-
-                    var filter = button.getAttribute( 'data-region-filter' );
                     var toolbar = button.closest( '.villegas-packing-toolbar' );
 
                     if ( ! toolbar ) {
                         return;
                     }
 
+                    var filter = button.getAttribute( 'data-region-filter' );
                     var buttons = toolbar.querySelectorAll( '.packing-region-toggle__button' );
 
                     buttons.forEach( function ( toggleButton ) {
@@ -595,7 +591,8 @@ function villegas_packing_list_shortcode( $atts ) {
                         toggleButton.setAttribute( 'aria-pressed', isActive ? 'true' : 'false' );
                     } );
 
-                    var table = toolbar.parentElement ? toolbar.parentElement.querySelector( '.villegas-packing-list' ) : null;
+                    var container = toolbar.parentElement;
+                    var table = container ? container.querySelector( '.villegas-packing-list' ) : null;
 
                     if ( ! table ) {
                         return;
@@ -609,6 +606,21 @@ function villegas_packing_list_shortcode( $atts ) {
 
                         row.classList.toggle( 'is-hidden', ! shouldShow );
                     } );
+                };
+
+                document.addEventListener( 'click', function ( event ) {
+                    var button = event.target.closest( '.packing-region-toggle__button' );
+
+                    if ( ! button ) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    applyRegionFilter( button );
+                } );
+
+                document.querySelectorAll( '.packing-region-toggle__button.is-active' ).forEach( function ( button ) {
+                    applyRegionFilter( button );
                 } );
             } )();
         </script>
@@ -860,28 +872,10 @@ function villegas_packing_list_shortcode( $atts ) {
     ?>
     <div class="villegas-packing-toolbar">
         <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
-            <button
-                type="button"
-                class="packing-region-toggle__button is-active"
-                data-region-filter="all"
-                aria-pressed="true"
-            >
-                <?php esc_html_e( 'All', 'woo-check' ); ?>
-            </button>
-            <button
-                type="button"
-                class="packing-region-toggle__button"
-                data-region-filter="rm"
-                aria-pressed="false"
-            >
+            <button type="button" class="packing-region-toggle__button is-active" data-region-filter="rm" aria-pressed="true">
                 <?php esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
             </button>
-            <button
-                type="button"
-                class="packing-region-toggle__button"
-                data-region-filter="non-rm"
-                aria-pressed="false"
-            >
+            <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
                 <?php esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
             </button>
         </div>
