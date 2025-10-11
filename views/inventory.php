@@ -40,30 +40,31 @@ $books = wc_get_products(
 );
 
 ?>
-<div class="inventory-header">
-    <form method="get">
-        <label>
-            <?php esc_html_e( 'Start Date:', 'woo-check' ); ?>
+<div class="inventory-container">
+    <div class="inventory-header">
+        <form method="get" class="inventory-filter-form">
+            <label>
+                <?php esc_html_e( 'Start Date:', 'woo-check' ); ?>
+            </label>
             <input type="date" name="start_date" value="<?php echo esc_attr( $start_date ); ?>">
-        </label>
-        <label>
-            <?php esc_html_e( 'End Date:', 'woo-check' ); ?>
+            <label>
+                <?php esc_html_e( 'End Date:', 'woo-check' ); ?>
+            </label>
             <input type="date" name="end_date" value="<?php echo esc_attr( $end_date ); ?>">
-        </label>
-        <button type="submit" class="button">
-            <?php esc_html_e( 'Apply', 'woo-check' ); ?>
-        </button>
-    </form>
-</div>
-<table class="inventory-table">
-    <thead>
-        <tr>
-            <th><?php esc_html_e( 'Libro', 'woo-check' ); ?></th>
-            <th><?php esc_html_e( 'Vendidos', 'woo-check' ); ?></th>
-            <th><?php esc_html_e( 'Stock actual', 'woo-check' ); ?></th>
-        </tr>
-    </thead>
-    <tbody>
+            <button type="submit" class="button">
+                <?php esc_html_e( 'Apply', 'woo-check' ); ?>
+            </button>
+        </form>
+    </div>
+    <table class="inventory-table">
+        <thead>
+            <tr>
+                <th><?php esc_html_e( 'Libro', 'woo-check' ); ?></th>
+                <th><?php esc_html_e( 'Vendidos', 'woo-check' ); ?></th>
+                <th><?php esc_html_e( 'Stock actual', 'woo-check' ); ?></th>
+            </tr>
+        </thead>
+        <tbody>
         <?php
         global $wpdb;
 
@@ -109,5 +110,74 @@ $books = wc_get_products(
             <?php
         }
         ?>
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>
+
+<style>
+.inventory-container {
+    width: 90%;
+    max-width: 900px;
+    margin: 30px auto;
+    font-family: system-ui, sans-serif;
+}
+
+.inventory-header {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.inventory-filter-form {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 15px;
+    color: #333;
+}
+
+.inventory-filter-form label {
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.inventory-filter-form input[type="date"] {
+    padding: 6px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 15px;
+}
+
+.inventory-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    background: #fff;
+}
+
+.inventory-table thead {
+    background: #f6f6f6;
+    border-bottom: 2px solid #ccc;
+}
+
+.inventory-table th {
+    text-align: left;
+    padding: 12px 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #222;
+    border-bottom: 1px solid #ddd;
+    letter-spacing: 0.04em;
+}
+
+.inventory-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.inventory-table tr:hover {
+    background: #fafafa;
+}
+</style>
