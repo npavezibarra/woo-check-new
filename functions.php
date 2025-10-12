@@ -403,6 +403,13 @@ function villegas_packing_list_shortcode( $atts ) {
         $packing_assets_printed = true;
         ?>
         <style>
+            #villegas-packing-shortcode {
+                display: flex;
+                flex-direction: column;
+                max-width: 1000px;
+                margin: 0 auto;
+            }
+
             .villegas-toolbar-switch {
                 text-align: center;
                 margin-bottom: 20px;
@@ -424,7 +431,7 @@ function villegas_packing_list_shortcode( $atts ) {
             }
 
             #villegas-packing-container {
-                max-width: 1200px;
+                width: 100%;
                 margin: 0 auto;
             }
 
@@ -766,7 +773,8 @@ function villegas_packing_list_shortcode( $atts ) {
     }
 
     ?>
-    <div id="packing-stats">
+    <div id="villegas-packing-shortcode">
+        <div id="packing-stats">
             <?php
             $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
 
@@ -1047,7 +1055,6 @@ function villegas_packing_list_shortcode( $atts ) {
             new Chart( chartCanvas.getContext( '2d' ), config );
         } )();
         </script>
-    </div>
 
     <?php
     $pagination_markup = '';
@@ -1104,57 +1111,58 @@ function villegas_packing_list_shortcode( $atts ) {
                     <thead>
                         <tr>
                             <th class="packing-select">
-                            <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
-                        </th>
-                        <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
-                        <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
-                        <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ( $orders as $order ) : ?>
-                        <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
-                        <?php
-                        $order_id    = $order->get_id();
-                        $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
-                        $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
-                        ?>
-                        <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
-                            <td>
-                                <input
-                                    type="checkbox"
-                                    class="packing-checkbox"
-                                    data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
-                                    aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
-                                />
-                            </td>
-                            <td><?php echo esc_html( $order->get_id() ); ?></td>
-                            <td>
-                                <?php
-                                $item_lines = [];
-
-                                foreach ( $order->get_items() as $item ) {
-                                    $line = sprintf(
-                                        '%s - %s',
-                                        $item->get_name(),
-                                        wc_stock_amount( $item->get_quantity() )
-                                    );
-
-                                    $item_lines[] = esc_html( $line );
-                                }
-
-                                echo wp_kses_post( implode( '<br />', $item_lines ) );
-                                ?>
-                            </td>
-                            <td>
-                                <?php echo esc_html( $region_name ); ?>
-                            </td>
+                                <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
+                            </th>
+                            <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
+                            <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
+                            <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
                         </tr>
-                    <?php endforeach; ?>
-                </tbody>
+                    </thead>
+                    <tbody>
+                        <?php foreach ( $orders as $order ) : ?>
+                            <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
+                            <?php
+                            $order_id    = $order->get_id();
+                            $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
+                            $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
+                            ?>
+                            <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        class="packing-checkbox"
+                                        data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
+                                        aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
+                                    />
+                                </td>
+                                <td><?php echo esc_html( $order->get_id() ); ?></td>
+                                <td>
+                                    <?php
+                                    $item_lines = [];
+
+                                    foreach ( $order->get_items() as $item ) {
+                                        $line = sprintf(
+                                            '%s - %s',
+                                            $item->get_name(),
+                                            wc_stock_amount( $item->get_quantity() )
+                                        );
+
+                                        $item_lines[] = esc_html( $line );
+                                    }
+
+                                    echo wp_kses_post( implode( '<br />', $item_lines ) );
+                                    ?>
+                                </td>
+                                <td>
+                                    <?php echo esc_html( $region_name ); ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
                 </table>
             </div>
         </div>
+    </div>
     <?php
 
     return trim( ob_get_clean() );
