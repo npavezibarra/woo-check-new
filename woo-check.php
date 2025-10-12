@@ -544,6 +544,194 @@ function wc_check_resend_order_to_recibelo( $order ) {
     $order->save_meta_data();
 }
 
+add_action( 'woocommerce_reduce_order_stock', 'woo_check_reduce_pack_librerias_component_stock', 20 );
+add_action( 'woocommerce_restore_order_stock', 'woo_check_restore_pack_librerias_component_stock', 20 );
+
+/**
+ * Decrease base book stock levels when Pack Librerías variations are sold.
+ *
+ * @param int|WC_Order $order Order instance or ID.
+ */
+function woo_check_reduce_pack_librerias_component_stock( $order ) {
+    if ( ! class_exists( 'Woo_Check_Inventory' ) || ! function_exists( 'wc_get_product' ) || ! function_exists( 'wc_update_product_stock' ) ) {
+        return;
+    }
+
+    if ( is_numeric( $order ) ) {
+        $order = wc_get_order( $order );
+    }
+
+    if ( ! $order instanceof WC_Order ) {
+        return;
+    }
+
+    if ( 'yes' === $order->get_meta( '_woo_check_pack_stock_adjusted', true ) ) {
+        return;
+    }
+
+    $adjustments = woo_check_calculate_pack_librerias_adjustments( $order );
+
+    if ( empty( $adjustments ) ) {
+        return;
+    }
+
+    foreach ( $adjustments as $product_id => $units ) {
+        $product_id = (int) $product_id;
+        $units      = (int) max( 0, $units );
+
+        if ( $product_id <= 0 || $units <= 0 ) {
+            continue;
+        }
+
+        $product = wc_get_product( $product_id );
+
+        if ( ! $product instanceof WC_Product || ! $product->managing_stock() ) {
+            continue;
+        }
+
+        wc_update_product_stock( $product, $units, 'decrease' );
+    }
+
+    $order->update_meta_data( '_woo_check_pack_stock_adjusted', 'yes' );
+    $order->update_meta_data( '_woo_check_pack_stock_adjustments', $adjustments );
+    $order->save_meta_data();
+}
+
+/**
+ * Restore base book stock levels if a Pack Librerías order is restocked.
+ *
+ * @param int|WC_Order $order Order instance or ID.
+ */
+function woo_check_restore_pack_librerias_component_stock( $order ) {
+    if ( ! class_exists( 'Woo_Check_Inventory' ) || ! function_exists( 'wc_get_product' ) || ! function_exists( 'wc_update_product_stock' ) ) {
+        return;
+    }
+
+    if ( is_numeric( $order ) ) {
+        $order = wc_get_order( $order );
+    }
+
+    if ( ! $order instanceof WC_Order ) {
+        return;
+    }
+
+    $stored_adjustments = $order->get_meta( '_woo_check_pack_stock_adjustments', true );
+    $adjustments        = is_array( $stored_adjustments ) ? $stored_adjustments : woo_check_calculate_pack_librerias_adjustments( $order );
+
+    if ( empty( $adjustments ) ) {
+        $order->delete_meta_data( '_woo_check_pack_stock_adjusted' );
+        $order->delete_meta_data( '_woo_check_pack_stock_adjustments' );
+        $order->save_meta_data();
+        return;
+    }
+
+    foreach ( $adjustments as $product_id => $units ) {
+        $product_id = (int) $product_id;
+        $units      = (int) max( 0, $units );
+
+        if ( $product_id <= 0 || $units <= 0 ) {
+            continue;
+        }
+
+        $product = wc_get_product( $product_id );
+
+        if ( ! $product instanceof WC_Product || ! $product->managing_stock() ) {
+            continue;
+        }
+
+        wc_update_product_stock( $product, $units, 'increase' );
+    }
+
+    $order->delete_meta_data( '_woo_check_pack_stock_adjusted' );
+    $order->delete_meta_data( '_woo_check_pack_stock_adjustments' );
+    $order->save_meta_data();
+}
+
+/**
+ * Calculate the stock adjustments required for Pack Librerías line items.
+ *
+ * @param WC_Order $order Order instance.
+ *
+ * @return array<int,int>
+ */
+function woo_check_calculate_pack_librerias_adjustments( WC_Order $order ) {
+    $adjustments = [];
+
+    foreach ( $order->get_items( 'line_item' ) as $item ) {
+        if ( ! $item instanceof WC_Order_Item_Product ) {
+            continue;
+        }
+
+        $product_id = (int) $item->get_product_id();
+
+        if ( $product_id <= 0 ) {
+            continue;
+        }
+
+        $component_ids = Woo_Check_Inventory::get_pack_component_product_ids( $product_id );
+
+        if ( empty( $component_ids ) ) {
+            continue;
+        }
+
+        $quantity     = (float) $item->get_quantity();
+        $variation_id = method_exists( $item, 'get_variation_id' ) ? (int) $item->get_variation_id() : 0;
+
+        if ( $quantity <= 0 || $variation_id <= 0 ) {
+            continue;
+        }
+
+        $context_name        = woo_check_pack_librerias_context_label( $item );
+        $normalized_quantity = Woo_Check_Inventory::normalize_pack_librerias_quantity( $quantity, $variation_id, $context_name );
+
+        $normalized_units = (int) round( $normalized_quantity );
+        $original_units   = (int) round( $quantity );
+
+        if ( $normalized_units <= $original_units ) {
+            continue;
+        }
+
+        foreach ( $component_ids as $component_id ) {
+            $component_id = (int) $component_id;
+
+            if ( $component_id <= 0 ) {
+                continue;
+            }
+
+            $adjustments[ $component_id ] = ( $adjustments[ $component_id ] ?? 0 ) + $normalized_units;
+        }
+    }
+
+    return $adjustments;
+}
+
+/**
+ * Build a descriptive label for a Pack Librerías line item.
+ *
+ * @param WC_Order_Item_Product $item Order item instance.
+ *
+ * @return string
+ */
+function woo_check_pack_librerias_context_label( WC_Order_Item_Product $item ) {
+    $label = $item->get_name();
+
+    $product = method_exists( $item, 'get_product' ) ? $item->get_product() : null;
+
+    if ( class_exists( 'WC_Product_Variation' ) && $product instanceof WC_Product_Variation ) {
+        $parent_id = $product->get_parent_id();
+
+        if ( $parent_id && function_exists( 'wc_get_product' ) ) {
+            $parent_product = wc_get_product( $parent_id );
+
+            if ( $parent_product instanceof WC_Product ) {
+                $label .= ' ' . $parent_product->get_name();
+            }
+        }
+    }
+
+    return $label;
+}
+
 /**
  * Map a Recíbelo raw status into a user-friendly label.
  *

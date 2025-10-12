@@ -186,6 +186,38 @@ class Woo_Check_Inventory {
     }
 
     /**
+     * Retrieve the mapped component product IDs for a pack product.
+     *
+     * @param int $pack_product_id Pack product identifier.
+     *
+     * @return array<int,int> Sanitized list of related product IDs.
+     */
+    public static function get_pack_component_product_ids( $pack_product_id ) {
+        $pack_product_id = (int) $pack_product_id;
+
+        if ( $pack_product_id <= 0 ) {
+            return [];
+        }
+
+        $pack_map = self::get_pack_map();
+
+        if ( empty( $pack_map[ $pack_product_id ] ) ) {
+            return [];
+        }
+
+        $components = array_map( 'intval', (array) $pack_map[ $pack_product_id ] );
+
+        return array_values(
+            array_filter(
+                $components,
+                static function ( $value ) {
+                    return (int) $value > 0;
+                }
+            )
+        );
+    }
+
+    /**
      * Retrieve the configured pack size for a Pack Librerías variation.
      *
      * @param int $variation_id Variation identifier.
