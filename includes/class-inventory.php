@@ -39,8 +39,14 @@ class Woo_Check_Inventory {
         $sales    = [];
 
         foreach ( $order_items as $row ) {
-            $product_id = isset( $row['product_id'] ) ? (int) $row['product_id'] : 0;
-            $quantity   = isset( $row['quantity'] ) ? (float) $row['quantity'] : 0.0;
+            $product_id      = isset( $row['product_id'] ) ? (int) $row['product_id'] : 0;
+            $quantity        = isset( $row['quantity'] ) ? (float) $row['quantity'] : 0.0;
+            $variation_id    = isset( $row['variation_id'] ) ? (int) $row['variation_id'] : 0;
+            $order_item_name = isset( $row['order_item_name'] ) ? (string) $row['order_item_name'] : '';
+
+            if ( $variation_id > 0 ) {
+                $quantity = self::normalize_pack_librerias_quantity( $quantity, $variation_id, $order_item_name );
+            }
 
             if ( $product_id <= 0 || abs( $quantity ) < 0.0001 ) {
                 continue;
@@ -113,7 +119,9 @@ class Woo_Check_Inventory {
         $sql = "
             SELECT
                 pid.meta_value AS product_id,
-                qty.meta_value AS quantity
+                qty.meta_value AS quantity,
+                COALESCE( vid.meta_value, '0' ) AS variation_id,
+                oi.order_item_name AS order_item_name
             FROM {$wpdb->prefix}wc_orders o
             INNER JOIN {$wpdb->prefix}woocommerce_order_items oi
                 ON o.id = oi.order_id
@@ -121,6 +129,9 @@ class Woo_Check_Inventory {
                 ON oi.order_item_id = pid.order_item_id
             INNER JOIN {$wpdb->prefix}woocommerce_order_itemmeta qty
                 ON oi.order_item_id = qty.order_item_id
+            LEFT JOIN {$wpdb->prefix}woocommerce_order_itemmeta vid
+                ON oi.order_item_id = vid.order_item_id
+               AND vid.meta_key = '_variation_id'
             WHERE oi.order_item_type = 'line_item'
               AND pid.meta_key = '_product_id'
               AND qty.meta_key = '_qty'
@@ -142,6 +153,146 @@ class Woo_Check_Inventory {
         }
 
         return $results;
+    }
+
+    /**
+     * Convert pack quantities into the number of individual books sold.
+     *
+     * @param float  $quantity        Ordered quantity for the variation.
+     * @param int    $variation_id    Variation identifier.
+     * @param string $order_item_name Order item label as stored in WooCommerce.
+     *
+     * @return float Normalized quantity representing individual units.
+     */
+    public static function normalize_pack_librerias_quantity( $quantity, $variation_id, $order_item_name = '' ) {
+        $quantity     = (float) $quantity;
+        $variation_id = (int) $variation_id;
+
+        if ( 0 === $variation_id || abs( $quantity ) < 0.0001 ) {
+            return $quantity;
+        }
+
+        if ( '' !== $order_item_name && ! self::string_contains_pack_librerias( $order_item_name ) ) {
+            return $quantity;
+        }
+
+        $pack_size = self::get_pack_librerias_pack_size( $variation_id );
+
+        if ( $pack_size <= 1 ) {
+            return $quantity;
+        }
+
+        return $quantity * $pack_size;
+    }
+
+    /**
+     * Retrieve the mapped component product IDs for a pack product.
+     *
+     * @param int $pack_product_id Pack product identifier.
+     *
+     * @return array<int,int> Sanitized list of related product IDs.
+     */
+    public static function get_pack_component_product_ids( $pack_product_id ) {
+        $pack_product_id = (int) $pack_product_id;
+
+        if ( $pack_product_id <= 0 ) {
+            return [];
+        }
+
+        $pack_map = self::get_pack_map();
+
+        if ( empty( $pack_map[ $pack_product_id ] ) ) {
+            return [];
+        }
+
+        $components = array_map( 'intval', (array) $pack_map[ $pack_product_id ] );
+
+        return array_values(
+            array_filter(
+                $components,
+                static function ( $value ) {
+                    return (int) $value > 0;
+                }
+            )
+        );
+    }
+
+    /**
+     * Retrieve the configured pack size for a Pack Librerías variation.
+     *
+     * @param int $variation_id Variation identifier.
+     *
+     * @return int Number of individual units included in the pack.
+     */
+    public static function get_pack_librerias_pack_size( $variation_id ) {
+        $variation_id = (int) $variation_id;
+
+        if ( $variation_id <= 0 ) {
+            return 1;
+        }
+
+        $map = self::get_pack_librerias_variation_map();
+
+        return isset( $map[ $variation_id ] ) ? max( 1, (int) $map[ $variation_id ] ) : 1;
+    }
+
+    /**
+     * Determine whether the provided label references a Pack Librerías product.
+     *
+     * @param string $value Raw label or product name.
+     *
+     * @return bool
+     */
+    protected static function string_contains_pack_librerias( $value ) {
+        $value = trim( (string) $value );
+
+        if ( '' === $value ) {
+            return false;
+        }
+
+        if ( function_exists( 'remove_accents' ) ) {
+            $value = remove_accents( $value );
+        }
+
+        return false !== stripos( $value, 'pack librerias' );
+    }
+
+    /**
+     * Get the mapping of Pack Librerías variation IDs to their pack sizes.
+     *
+     * @return array<int,int>
+     */
+    protected static function get_pack_librerias_variation_map() {
+        static $pack_sizes = null;
+
+        if ( null !== $pack_sizes ) {
+            return $pack_sizes;
+        }
+
+        $pack_sizes = [
+            // Debut & Despedida.
+            2934 => 8,
+            2935 => 10,
+            2936 => 12,
+            2937 => 15,
+            // La Torre de Papel.
+            2942 => 8,
+            2943 => 10,
+            2944 => 12,
+            2945 => 15,
+            // Insurrección.
+            5619 => 8,
+            5620 => 10,
+            5621 => 12,
+            5622 => 15,
+            // Para No Tirarse por la Ventana.
+            9457 => 8,
+            9458 => 10,
+            9460 => 12,
+            9459 => 15,
+        ];
+
+        return $pack_sizes;
     }
 
     /**
