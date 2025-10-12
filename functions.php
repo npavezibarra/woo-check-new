@@ -1141,10 +1141,38 @@ function villegas_packing_list_shortcode( $atts ) {
                                     $item_lines = [];
 
                                     foreach ( $order->get_items() as $item ) {
+                                        $quantity     = $item->get_quantity();
+                                        $variation_id = method_exists( $item, 'get_variation_id' ) ? $item->get_variation_id() : 0;
+                                        $context_name = $item->get_name();
+
+                                        if ( $variation_id > 0 && function_exists( 'wc_get_product' ) ) {
+                                            $product = $item->get_product();
+
+                                            if ( $product instanceof WC_Product_Variation ) {
+                                                $parent_id = $product->get_parent_id();
+
+                                                if ( $parent_id ) {
+                                                    $parent_product = wc_get_product( $parent_id );
+
+                                                    if ( $parent_product instanceof WC_Product ) {
+                                                        $context_name .= ' ' . $parent_product->get_name();
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if ( class_exists( 'Woo_Check_Inventory' ) ) {
+                                            $quantity = Woo_Check_Inventory::normalize_pack_librerias_quantity(
+                                                $quantity,
+                                                $variation_id,
+                                                $context_name
+                                            );
+                                        }
+
                                         $line = sprintf(
                                             '%s - %s',
                                             $item->get_name(),
-                                            wc_stock_amount( $item->get_quantity() )
+                                            wc_stock_amount( $quantity )
                                         );
 
                                         $item_lines[] = esc_html( $line );
