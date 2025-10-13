@@ -91,7 +91,7 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
         }
 
         $modal_markup = sprintf(
-            '<div class="woo-check-login-modal" id="%1$s" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="%2$s">'
+            '<div class="woo-check-login-modal" id="%1$s" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="%2$s" hidden>'
             . '<div class="woo-check-login-modal__backdrop" data-woo-check-modal-dismiss></div>'
             . '<div class="woo-check-login-modal__content" role="document">'
             . '<button type="button" class="woo-check-login-modal__close" aria-label="%5$s" data-woo-check-modal-dismiss>&times;</button>'
