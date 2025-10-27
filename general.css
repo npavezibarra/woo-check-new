@@ -63,6 +63,23 @@ body.woo-check-login-modal-open {
     overflow: hidden;
 }
 
+/* Owning contact view */
+#owning-contact-view {
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+#owning-contact-view p {
+    margin: 2px 0;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+#owning-contact-email-view {
+    color: #0066cc;
+    word-break: break-all;
+}
+
 .woo-check-login-modal__backdrop {
     position: absolute;
     inset: 0;
