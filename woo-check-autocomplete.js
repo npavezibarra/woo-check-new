@@ -197,6 +197,52 @@ jQuery(document).ready(function ($) {
             const matches = comunaList.filter(function (comuna) {
                 return regex.test(comuna);
             });
+
+            // Check for exact match (case-insensitive)
+            const exactMatch = matches.find(c => c.toLowerCase() === term.toLowerCase());
+
+            if (exactMatch) {
+                console.log("🎯 Exact match found during typing:", exactMatch);
+
+                // Auto-select the exact match
+                const comunaInput = $(this.element);
+
+                // Temporarily disable to prevent re-search loop
+                comunaInput.autocomplete("disable");
+
+                comunaInput.val(exactMatch);
+                comunaInput.trigger('change').trigger('input');
+
+                if (comunaInput[0]) {
+                    comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
+                }
+
+                // Close the dropdown immediately
+                response([]);
+                comunaInput.autocomplete("close");
+                $(".ui-autocomplete").hide();
+
+                // Blur to hide keyboard
+                comunaInput.blur();
+
+                // Sync region
+                const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
+                const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
+                syncRegionWithComuna(comunaInput, regionSelect);
+
+                // Re-enable after delay
+                setTimeout(() => {
+                    comunaInput.autocomplete("enable");
+                }, 500);
+
+                setTimeout(() => {
+                    console.log("🔄 Triggering WooCommerce update_checkout from exact match");
+                    $('body').trigger('update_checkout');
+                }, 600);
+
+                return; // Stop processing
+            }
+
             response(matches);
         },
         minLength: 1,
