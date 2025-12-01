@@ -383,18 +383,26 @@ table.shop_table.woocommerce-checkout-review-order-table {
     background-color: white;
     /* Set the background to white */
     border: 1px solid #ccc;
-    max-height: auto;
+    max-height: 300px;
     /* Max height for scrolling */
-    max-width: 350px;
-    /* Set max width
-    overflow-y: auto; /* Add scrolling if there are many items */
+    max-width: 90vw !important;
+    /* Prevent overflowing screen */
+    width: auto !important;
+    /* Allow it to shrink */
+    overflow-y: auto;
+    /* Add scrolling if there are many items */
+    overflow-x: hidden;
+    /* Prevent horizontal scroll */
+    white-space: normal;
+    /* Allow text wrapping */
+    box-sizing: border-box;
     list-style-type: none;
     /* Remove bullet points */
     padding: 0;
     /* Remove padding */
     margin: 0;
     /* Remove margin */
-    z-index: 1000;
+    z-index: 10000;
     /* Ensure the dropdown appears above other elements */
 }
 
