@@ -504,4 +504,12 @@ p#forgot-aviso {
     textarea {
         font-size: 16px !important;
     }
+
+    /* Constrain dropdown width on mobile */
+    .ui-autocomplete {
+        width: 80% !important;
+        left: 10% !important;
+        /* Center it */
+        max-width: 80% !important;
+    }
 }

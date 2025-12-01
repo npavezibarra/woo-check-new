@@ -233,6 +233,13 @@ jQuery(document).ready(function ($) {
                 // Re-enable after delay
                 setTimeout(() => {
                     comunaInput.autocomplete("enable");
+
+                    // Jump focus to the phone field
+                    const phoneField = $('#billing_phone');
+                    if (phoneField.length) {
+                        console.log("👉 Jumping focus to phone field (Exact Match)");
+                        phoneField.focus();
+                    }
                 }, 500);
 
                 setTimeout(() => {
@@ -280,6 +287,13 @@ jQuery(document).ready(function ($) {
                 // Ensure it's closed just in case
                 if (comunaInput.data('ui-autocomplete')) {
                     comunaInput.autocomplete('close');
+                }
+
+                // Jump focus to the phone field
+                const phoneField = $('#billing_phone');
+                if (phoneField.length) {
+                    console.log("👉 Jumping focus to phone field");
+                    phoneField.focus();
                 }
             }, 500);
 
