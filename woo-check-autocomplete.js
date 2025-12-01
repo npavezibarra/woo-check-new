@@ -28,6 +28,10 @@ jQuery(document).ready(function ($) {
         console.log("✅ comunasChile is loaded, proceeding with autocomplete.");
     }
 
+    // Inject Test Marker 001
+    $('#billing_comuna_field').before('<!-- test 001 -->');
+    console.log("✅ Test Marker 001 injected");
+
     // --- NORMALIZATION FUNCTION ---
     function normalizeString(str) {
         return str
@@ -191,8 +195,18 @@ jQuery(document).ready(function ($) {
 
     // --- AUTOCOMPLETE INITIALIZATION ---
     $(comunaFieldSelector).autocomplete({
+        search: function (event, ui) {
+            console.log("🔍 Autocomplete SEARCH triggered for:", $(this).val());
+        },
+        response: function (event, ui) {
+            console.log("📦 Autocomplete RESPONSE received. Items:", ui.content.length);
+        },
+        close: function (event, ui) {
+            console.log("❌ Autocomplete CLOSE event triggered");
+        },
         source: function (request, response) {
             const term = request.term;
+            console.log("🔎 Searching for:", term);
             const regex = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
             const matches = comunaList.filter(function (comuna) {
                 return regex.test(comuna);
@@ -221,6 +235,7 @@ jQuery(document).ready(function ($) {
                 response([]);
                 comunaInput.autocomplete("close");
                 $(".ui-autocomplete").hide();
+                $(".ui-autocomplete").css('display', 'none'); // Aggressive hide
 
                 // Blur to hide keyboard
                 comunaInput.blur();
@@ -254,6 +269,7 @@ jQuery(document).ready(function ($) {
         },
         minLength: 1,
         select: function (event, ui) {
+            console.log("👆 Autocomplete SELECT triggered");
             // Prevent default behavior to avoid double-setting the value
             event.preventDefault();
 
@@ -289,6 +305,10 @@ jQuery(document).ready(function ($) {
                     comunaInput.autocomplete('close');
                 }
 
+                // Force hide aggressive
+                $(".ui-autocomplete").hide();
+                $(".ui-autocomplete").css('display', 'none');
+
                 // Jump focus to the phone field
                 const phoneField = $('#billing_phone');
                 if (phoneField.length) {
@@ -303,6 +323,7 @@ jQuery(document).ready(function ($) {
             }, 600);
         },
         change: function (event, ui) {
+            console.log("📝 Autocomplete CHANGE triggered");
             const comunaInput = $(this);
             const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
             const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
