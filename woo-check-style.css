@@ -8,6 +8,13 @@ body.woocommerce-checkout {
     --checkout-content-width: 880px;
 }
 
+/* Prevent horizontal scroll on mobile */
+html,
+body {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+
 body.checkout-modal-open {
     overflow: hidden;
 }
@@ -68,8 +75,8 @@ h1.alignwide.wp-block-post-title,
 }
 
 
-.woocommerce-form-login-toggle > .wc-block-components-notice-banner,
-.woocommerce-form-login-toggle > .woocommerce-info {
+.woocommerce-form-login-toggle>.wc-block-components-notice-banner,
+.woocommerce-form-login-toggle>.woocommerce-info {
     background-image: radial-gradient(at top center, rgba(255, 255, 255, 0.03) 0%, rgba(0, 0, 0, 0.03) 100%),
         linear-gradient(to top, rgba(255, 255, 255, 0.1) 0%, rgba(143, 152, 157, 0.6) 100%);
 }
@@ -80,8 +87,8 @@ h1.alignwide.wp-block-post-title,
         linear-gradient(to top, rgba(255, 255, 255, 0.1) 0%, rgba(143, 152, 157, 0.6) 100%);
 }
 
-.woocommerce-form-coupon-toggle > .wc-block-components-notice-banner,
-.woocommerce-form-coupon-toggle > .woocommerce-info {
+.woocommerce-form-coupon-toggle>.wc-block-components-notice-banner,
+.woocommerce-form-coupon-toggle>.woocommerce-info {
     background: linear-gradient(90deg, #fcff9e 0%, #ffb340 100%);
     border: 0;
 }
@@ -256,8 +263,9 @@ form.woocommerce-form.woocommerce-form-login.login {
     width: 100% !important;
 }
 
-.woocommerce-billing-fields__field-wrapper > p > label {
-    font-size: 12px; !important;
+.woocommerce-billing-fields__field-wrapper>p>label {
+    font-size: 12px;
+    !important;
     margin-bottom: 0px;
 }
 
@@ -285,8 +293,9 @@ p#shipping_last_name_field {
     display: none;
 }
 
-.woocommerce-shipping-fields__field-wrapper > p > label {
-    font-size: 12px; !important;
+.woocommerce-shipping-fields__field-wrapper>p>label {
+    font-size: 12px;
+    !important;
     margin-bottom: 0px;
 }
 
@@ -308,12 +317,16 @@ table.shop_table.woocommerce-checkout-review-order-table {
     background: #ebebeb;
 }
 
-#add_payment_method #payment, .woocommerce-cart #payment, .woocommerce-checkout #payment {
+#add_payment_method #payment,
+.woocommerce-cart #payment,
+.woocommerce-checkout #payment {
     background: #ebebeb;
     border-radius: 5px;
 }
 
-#add_payment_method #payment div.payment_box, .woocommerce-cart #payment div.payment_box, .woocommerce-checkout #payment div.payment_box {
+#add_payment_method #payment div.payment_box,
+.woocommerce-cart #payment div.payment_box,
+.woocommerce-checkout #payment div.payment_box {
     position: relative;
     box-sizing: border-box;
     width: 100%;
@@ -326,7 +339,9 @@ table.shop_table.woocommerce-checkout-review-order-table {
     color: #515151;
 }
 
-#add_payment_method #payment div.payment_box::before, .woocommerce-cart #payment div.payment_box::before, .woocommerce-checkout #payment div.payment_box::before {
+#add_payment_method #payment div.payment_box::before,
+.woocommerce-cart #payment div.payment_box::before,
+.woocommerce-checkout #payment div.payment_box::before {
     content: "";
     display: block;
     border: 1em solid #fafafa;
@@ -343,7 +358,9 @@ table.shop_table.woocommerce-checkout-review-order-table {
     font-size: 14px;
 }
 
-#add_payment_method #payment div.payment_box, .woocommerce-cart #payment div.payment_box, .woocommerce-checkout #payment div.payment_box {
+#add_payment_method #payment div.payment_box,
+.woocommerce-cart #payment div.payment_box,
+.woocommerce-checkout #payment div.payment_box {
     position: relative;
     box-sizing: border-box;
     width: 100%;
@@ -363,24 +380,33 @@ table.shop_table.woocommerce-checkout-review-order-table {
 
 /* Customize jQuery UI Autocomplete dropdown */
 .ui-autocomplete {
-    background-color: white; /* Set the background to white */
+    background-color: white;
+    /* Set the background to white */
     border: 1px solid #ccc;
-    max-height: auto; /* Max height for scrolling */
-    max-width: 350px; /* Set max width
+    max-height: auto;
+    /* Max height for scrolling */
+    max-width: 350px;
+    /* Set max width
     overflow-y: auto; /* Add scrolling if there are many items */
-    list-style-type: none; /* Remove bullet points */
-    padding: 0; /* Remove padding */
-    margin: 0; /* Remove margin */
-    z-index: 1000; /* Ensure the dropdown appears above other elements */
+    list-style-type: none;
+    /* Remove bullet points */
+    padding: 0;
+    /* Remove padding */
+    margin: 0;
+    /* Remove margin */
+    z-index: 1000;
+    /* Ensure the dropdown appears above other elements */
 }
 
 .ui-autocomplete li {
-    padding: 8px 12px; /* Add padding for clickable area */
+    padding: 8px 12px;
+    /* Add padding for clickable area */
     cursor: pointer;
 }
 
 .ui-autocomplete li:hover {
-    background-color: #f0f0f0; /* Add a light background on hover */
+    background-color: #f0f0f0;
+    /* Add a light background on hover */
 }
 
 
