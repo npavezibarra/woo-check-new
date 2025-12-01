@@ -3,34 +3,35 @@
 /**
  * Wrap WooCommerce checkout login and coupon notices inside a flex container.
  */
-add_action( 'woocommerce_before_checkout_form', function() {
+add_action('woocommerce_before_checkout_form', function () {
     echo '<div class="checkout-notices-row">';
-}, 5 );
+}, 5);
 
-if ( function_exists( 'woocommerce_checkout_coupon_form' ) ) {
-    remove_action( 'woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10 );
+if (function_exists('woocommerce_checkout_coupon_form')) {
+    remove_action('woocommerce_before_checkout_form', 'woocommerce_checkout_coupon_form', 10);
 
-    add_action( 'woocommerce_before_checkout_form', function() {
-        if ( function_exists( 'wc_coupons_enabled' ) && ! wc_coupons_enabled() ) {
+    add_action('woocommerce_before_checkout_form', function () {
+        if (function_exists('wc_coupons_enabled') && !wc_coupons_enabled()) {
             return;
         }
 
         echo '<div id="checkout-notices-divider" aria-hidden="true"></div>';
         woocommerce_checkout_coupon_form();
-    }, 15 );
+    }, 15);
 }
 
-add_action( 'woocommerce_before_checkout_form', function() {
+add_action('woocommerce_before_checkout_form', function () {
     echo '</div>';
-}, 20 );
+}, 20);
 
-if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
+if (!function_exists('woo_check_render_confidential_message')) {
     /**
      * Render a full screen confidential message with a login button.
      *
      * @return string
      */
-    function woo_check_render_confidential_message() {
+    function woo_check_render_confidential_message()
+    {
         $container_style = 'display:flex;flex-direction:column;align-items:center;justify-content:center;'
             . 'min-height:100vh;width:100%;background-color:#000;color:#fff;text-align:center;padding:2rem;'
             . 'box-sizing:border-box;';
@@ -38,35 +39,35 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
         $button_style = 'margin-top:1.5rem;padding:0.75rem 2.5rem;border-radius:4px;border:1px solid #fff;'
             . 'background-color:#000;color:#fff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;';
 
-        $request_uri = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
-        $redirect_to = $request_uri ? home_url( $request_uri ) : home_url();
-        $redirect_to = wp_validate_redirect( $redirect_to, home_url() );
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+        $redirect_to = $request_uri ? home_url($request_uri) : home_url();
+        $redirect_to = wp_validate_redirect($redirect_to, home_url());
 
-        $unique_suffix = (string) wp_rand( 1000, 999999 );
-        $modal_id      = 'woo-check-login-modal-' . $unique_suffix;
-        $modal_title   = 'woo-check-login-modal-title-' . $unique_suffix;
+        $unique_suffix = (string) wp_rand(1000, 999999);
+        $modal_id = 'woo-check-login-modal-' . $unique_suffix;
+        $modal_title = 'woo-check-login-modal-title-' . $unique_suffix;
 
         $login_form = '';
 
-        if ( function_exists( 'wp_login_form' ) ) {
+        if (function_exists('wp_login_form')) {
             $login_form = wp_login_form(
                 [
-                    'echo'           => false,
-                    'redirect'       => $redirect_to,
-                    'form_id'        => 'woo-check-login-form-' . $unique_suffix,
-                    'label_log_in'   => esc_html__( 'Login', 'woo-check' ),
-                    'id_username'    => 'woo-check-user-login-' . $unique_suffix,
-                    'id_password'    => 'woo-check-user-pass-' . $unique_suffix,
-                    'id_remember'    => 'woo-check-rememberme-' . $unique_suffix,
-                    'id_submit'      => 'woo-check-login-submit-' . $unique_suffix,
-                    'remember'       => true,
+                    'echo' => false,
+                    'redirect' => $redirect_to,
+                    'form_id' => 'woo-check-login-form-' . $unique_suffix,
+                    'label_log_in' => esc_html__('Login', 'woo-check'),
+                    'id_username' => 'woo-check-user-login-' . $unique_suffix,
+                    'id_password' => 'woo-check-user-pass-' . $unique_suffix,
+                    'id_remember' => 'woo-check-rememberme-' . $unique_suffix,
+                    'id_submit' => 'woo-check-login-submit-' . $unique_suffix,
+                    'remember' => true,
                 ]
             );
         }
 
-        if ( '' === $login_form ) {
-            $login_action = esc_url( wp_login_url( $redirect_to ) );
-            $login_form   = sprintf(
+        if ('' === $login_form) {
+            $login_action = esc_url(wp_login_url($redirect_to));
+            $login_form = sprintf(
                 '<form class="woo-check-login-fallback" action="%1$s" method="post">'
                 . '<label for="woo-check-user-login-%2$s">%3$s</label>'
                 . '<input type="text" name="log" id="woo-check-user-login-%2$s" required>'
@@ -81,12 +82,12 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
                 . '<input type="hidden" name="redirect_to" value="%7$s">'
                 . '</form>',
                 $login_action,
-                esc_attr( $unique_suffix ),
-                esc_html__( 'Username or Email Address', 'woocommerce' ),
-                esc_html__( 'Password', 'woocommerce' ),
-                esc_html__( 'Remember me', 'woocommerce' ),
-                esc_html__( 'Login', 'woo-check' ),
-                esc_attr( $redirect_to )
+                esc_attr($unique_suffix),
+                esc_html__('Username or Email Address', 'woocommerce'),
+                esc_html__('Password', 'woocommerce'),
+                esc_html__('Remember me', 'woocommerce'),
+                esc_html__('Login', 'woo-check'),
+                esc_attr($redirect_to)
             );
         }
 
@@ -99,11 +100,11 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
             . '%4$s'
             . '</div>'
             . '</div>',
-            esc_attr( $modal_id ),
-            esc_attr( $modal_title ),
-            esc_html__( 'Login', 'woo-check' ),
+            esc_attr($modal_id),
+            esc_attr($modal_title),
+            esc_html__('Login', 'woo-check'),
             $login_form,
-            esc_attr__( 'Close login form', 'woo-check' )
+            esc_attr__('Close login form', 'woo-check')
         );
 
         return sprintf(
@@ -112,17 +113,59 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
             . '<button type="button" class="woo-check-confidential-login" style="%3$s" data-woo-check-modal-target="%4$s">%5$s</button>'
             . '%6$s'
             . '</div>',
-            esc_attr( $container_style ),
-            esc_html__( 'Información Confidencial', 'woo-check' ),
-            esc_attr( $button_style ),
-            esc_attr( $modal_id ),
-            esc_html__( 'Login', 'woo-check' ),
+            esc_attr($container_style),
+            esc_html__('Información Confidencial', 'woo-check'),
+            esc_attr($button_style),
+            esc_attr($modal_id),
+            esc_html__('Login', 'woo-check'),
             $modal_markup
         );
     }
 }
 
-add_shortcode( 'villegas-packing-list', 'villegas_packing_list_shortcode' );
+
+if (!function_exists('woo_check_render_confidential_message')) {
+    /**
+     * Render a full screen confidential message with a login button.
+     *
+     * @return string
+     */
+    function woo_check_render_confidential_message()
+    {
+        $container_style = 'display:flex;flex-direction:column;align-items:center;justify-content:center;'
+            . 'min-height:100vh;width:100%;background-color:#000;color:#fff;text-align:center;padding:2rem;'
+            . 'box-sizing:border-box;';
+
+        $button_style = 'margin-top:1.5rem;padding:0.75rem 2.5rem;border-radius:4px;border:1px solid #fff;'
+            . 'background-color:#000;color:#fff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;';
+
+        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
+        $redirect_to = $request_uri ? home_url($request_uri) : home_url();
+        $redirect_to = wp_validate_redirect($redirect_to, home_url());
+
+        $unique_suffix = (string) wp_rand(1000, 999999);
+        $modal_id = 'woo-check-login-modal-' . $unique_suffix;
+
+        // Use the helper function to get the modal HTML
+        $modal_markup = woo_check_get_login_modal_html($modal_id, $redirect_to);
+
+        return sprintf(
+            '<div class="woo-check-confidential-message" data-woo-check-login-container style="%1$s">'
+            . '<p style="margin:0;font-size:1.5rem;">%2$s</p>'
+            . '<button type="button" class="woo-check-confidential-login" style="%3$s" data-woo-check-modal-target="%4$s">%5$s</button>'
+            . '%6$s'
+            . '</div>',
+            esc_attr($container_style),
+            esc_html__('Información Confidencial', 'woo-check'),
+            esc_attr($button_style),
+            esc_attr($modal_id),
+            esc_html__('Login', 'woo-check'),
+            $modal_markup
+        );
+    }
+}
+
+add_shortcode('villegas-packing-list', 'villegas_packing_list_shortcode');
 
 /**
  * Shortcode callback to display a paginated table of processing orders.
@@ -130,12 +173,13 @@ add_shortcode( 'villegas-packing-list', 'villegas_packing_list_shortcode' );
  * @param array $atts Shortcode attributes.
  * @return string
  */
-function villegas_packing_list_shortcode( $atts ) {
-    if ( ! function_exists( 'wc_get_orders' ) ) {
+function villegas_packing_list_shortcode($atts)
+{
+    if (!function_exists('wc_get_orders')) {
         return '';
     }
 
-    if ( ! current_user_can( 'manage_options' ) ) {
+    if (!current_user_can('manage_options')) {
         return woo_check_render_confidential_message();
     }
 
@@ -147,174 +191,174 @@ function villegas_packing_list_shortcode( $atts ) {
         'villegas-packing-list'
     );
 
-    $per_page = max( 1, (int) $atts['per_page'] );
-    $page     = isset( $_GET['packing_page'] ) ? max( 1, (int) $_GET['packing_page'] ) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $per_page = max(1, (int) $atts['per_page']);
+    $page = isset($_GET['packing_page']) ? max(1, (int) $_GET['packing_page']) : 1; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
     $orders_args = [
-        'status'   => 'processing',
-        'orderby'  => 'date',
-        'order'    => 'DESC',
-        'limit'    => $per_page,
-        'paged'    => $page,
+        'status' => 'processing',
+        'orderby' => 'date',
+        'order' => 'DESC',
+        'limit' => $per_page,
+        'paged' => $page,
         'paginate' => true,
-        'return'   => 'objects',
+        'return' => 'objects',
     ];
 
-    $orders_query = wc_get_orders( $orders_args );
+    $orders_query = wc_get_orders($orders_args);
 
-    $orders       = [];
+    $orders = [];
     $total_orders = 0;
-    $total_pages  = 1;
+    $total_pages = 1;
 
-    if ( is_object( $orders_query ) && isset( $orders_query->orders ) ) {
-        $orders       = $orders_query->orders;
-        $total_orders = isset( $orders_query->total ) ? (int) $orders_query->total : count( $orders );
-        $total_pages  = isset( $orders_query->max_num_pages ) ? (int) $orders_query->max_num_pages : max( 1, (int) ceil( $total_orders / $per_page ) );
-    } elseif ( is_array( $orders_query ) ) {
-        $orders       = $orders_query;
-        $total_orders = count( $orders );
-        $total_pages  = max( 1, (int) ceil( $total_orders / $per_page ) );
+    if (is_object($orders_query) && isset($orders_query->orders)) {
+        $orders = $orders_query->orders;
+        $total_orders = isset($orders_query->total) ? (int) $orders_query->total : count($orders);
+        $total_pages = isset($orders_query->max_num_pages) ? (int) $orders_query->max_num_pages : max(1, (int) ceil($total_orders / $per_page));
+    } elseif (is_array($orders_query)) {
+        $orders = $orders_query;
+        $total_orders = count($orders);
+        $total_pages = max(1, (int) ceil($total_orders / $per_page));
     }
 
-    if ( empty( $orders ) ) {
-        return '<p>' . esc_html__( 'There are no processing orders at the moment.', 'woo-check' ) . '</p>';
+    if (empty($orders)) {
+        return '<p>' . esc_html__('There are no processing orders at the moment.', 'woo-check') . '</p>';
     }
 
-    $determine_region_label = static function ( WC_Order $order ) {
+    $determine_region_label = static function (WC_Order $order) {
         $region_name = '';
 
-        if ( function_exists( 'wc_check_determine_commune_region_data' ) ) {
-            $location = wc_check_determine_commune_region_data( $order );
+        if (function_exists('wc_check_determine_commune_region_data')) {
+            $location = wc_check_determine_commune_region_data($order);
 
-            if ( ! empty( $location['region_name'] ) ) {
+            if (!empty($location['region_name'])) {
                 $region_name = $location['region_name'];
             }
         }
 
-        if ( '' === $region_name ) {
+        if ('' === $region_name) {
             $region_name = $order->get_shipping_state() ?: $order->get_billing_state();
         }
 
         return $region_name;
     };
 
-    $normalize_region_name = static function ( $region_name ) {
+    $normalize_region_name = static function ($region_name) {
         $region_name = (string) $region_name;
 
-        if ( class_exists( 'WooCheck_Shipit_Validator' ) && method_exists( 'WooCheck_Shipit_Validator', 'normalize_commune' ) ) {
-            return WooCheck_Shipit_Validator::normalize_commune( $region_name );
+        if (class_exists('WooCheck_Shipit_Validator') && method_exists('WooCheck_Shipit_Validator', 'normalize_commune')) {
+            return WooCheck_Shipit_Validator::normalize_commune($region_name);
         }
 
-        if ( function_exists( 'remove_accents' ) ) {
-            $region_name = remove_accents( $region_name );
+        if (function_exists('remove_accents')) {
+            $region_name = remove_accents($region_name);
         }
 
-        return strtoupper( trim( $region_name ) );
+        return strtoupper(trim($region_name));
     };
 
-    $is_metropolitana_order = static function ( WC_Order $order, $region_label ) use ( $normalize_region_name ) {
-        $normalized_region = '' !== $region_label ? $normalize_region_name( $region_label ) : '';
+    $is_metropolitana_order = static function (WC_Order $order, $region_label) use ($normalize_region_name) {
+        $normalized_region = '' !== $region_label ? $normalize_region_name($region_label) : '';
 
-        if ( '' !== $normalized_region && false !== strpos( $normalized_region, 'METROPOLITANA' ) ) {
+        if ('' !== $normalized_region && false !== strpos($normalized_region, 'METROPOLITANA')) {
             return true;
         }
 
-        $shipping_state = strtoupper( (string) $order->get_shipping_state() );
-        $billing_state  = strtoupper( (string) $order->get_billing_state() );
+        $shipping_state = strtoupper((string) $order->get_shipping_state());
+        $billing_state = strtoupper((string) $order->get_billing_state());
 
-        $metropolitana_states = [ 'RM', 'CL-RM' ];
+        $metropolitana_states = ['RM', 'CL-RM'];
 
-        return in_array( $shipping_state, $metropolitana_states, true ) || in_array( $billing_state, $metropolitana_states, true );
+        return in_array($shipping_state, $metropolitana_states, true) || in_array($billing_state, $metropolitana_states, true);
     };
 
     $site_timezone = null;
 
-    if ( function_exists( 'wp_timezone' ) ) {
+    if (function_exists('wp_timezone')) {
         $site_timezone = wp_timezone();
-    } elseif ( function_exists( 'wp_timezone_string' ) ) {
+    } elseif (function_exists('wp_timezone_string')) {
         $timezone_string = wp_timezone_string();
 
-        if ( $timezone_string ) {
-            $site_timezone = timezone_open( $timezone_string );
+        if ($timezone_string) {
+            $site_timezone = timezone_open($timezone_string);
         }
     }
 
-    if ( ! $site_timezone instanceof DateTimeZone ) {
-        $fallback_timezone = timezone_open( date_default_timezone_get() );
+    if (!$site_timezone instanceof DateTimeZone) {
+        $fallback_timezone = timezone_open(date_default_timezone_get());
 
-        if ( $fallback_timezone instanceof DateTimeZone ) {
+        if ($fallback_timezone instanceof DateTimeZone) {
             $site_timezone = $fallback_timezone;
         } else {
-            $site_timezone = new DateTimeZone( 'UTC' );
+            $site_timezone = new DateTimeZone('UTC');
         }
     }
 
-    $default_range_date = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
+    $default_range_date = (new DateTimeImmutable('now', $site_timezone))->format('Y-m-d');
 
-    $range_start_input = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $range_end_input   = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_start_input = isset($_GET['packing_start_date']) ? sanitize_text_field(wp_unslash($_GET['packing_start_date'])) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $range_end_input = isset($_GET['packing_end_date']) ? sanitize_text_field(wp_unslash($_GET['packing_end_date'])) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-    $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_start_input, $site_timezone );
-    $range_end_obj   = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_end_input, $site_timezone );
+    $range_start_obj = DateTimeImmutable::createFromFormat('Y-m-d', $range_start_input, $site_timezone);
+    $range_end_obj = DateTimeImmutable::createFromFormat('Y-m-d', $range_end_input, $site_timezone);
 
-    if ( false === $range_start_obj ) {
-        $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+    if (false === $range_start_obj) {
+        $range_start_obj = DateTimeImmutable::createFromFormat('Y-m-d', $default_range_date, $site_timezone);
     }
 
-    if ( false === $range_end_obj ) {
-        $range_end_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+    if (false === $range_end_obj) {
+        $range_end_obj = DateTimeImmutable::createFromFormat('Y-m-d', $default_range_date, $site_timezone);
     }
 
-    if ( $range_end_obj < $range_start_obj ) {
-        $tmp             = $range_start_obj;
+    if ($range_end_obj < $range_start_obj) {
+        $tmp = $range_start_obj;
         $range_start_obj = $range_end_obj;
-        $range_end_obj   = $tmp;
+        $range_end_obj = $tmp;
     }
 
-    $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
-    $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    $range_start_day = $range_start_obj->setTime(0, 0, 0);
+    $range_end_day = $range_end_obj->setTime(23, 59, 59);
 
-    $is_single_day_range = $range_start_day->format( 'Y-m-d' ) === $range_end_day->format( 'Y-m-d' );
+    $is_single_day_range = $range_start_day->format('Y-m-d') === $range_end_day->format('Y-m-d');
 
     $summary_counts = [
-        'orders_in_range'      => 0,
+        'orders_in_range' => 0,
         'region_metropolitana' => 0,
-        'other_regions'        => 0,
+        'other_regions' => 0,
     ];
 
     $undetermined_regions_in_range = 0;
 
     $hourly_region_counts = [
-        'region_metropolitana' => array_fill( 0, 24, 0 ),
-        'other_regions'        => array_fill( 0, 24, 0 ),
+        'region_metropolitana' => array_fill(0, 24, 0),
+        'other_regions' => array_fill(0, 24, 0),
     ];
 
     $daily_region_counts = [
         'region_metropolitana' => [],
-        'other_regions'        => [],
+        'other_regions' => [],
     ];
 
-    if ( ! $is_single_day_range ) {
+    if (!$is_single_day_range) {
         $current_day = $range_start_day;
 
-        while ( $current_day <= $range_end_day ) {
-            $day_key                                  = $current_day->format( 'Y-m-d' );
-            $daily_region_counts['region_metropolitana'][ $day_key ] = 0;
-            $daily_region_counts['other_regions'][ $day_key ]        = 0;
-            $current_day                              = $current_day->modify( '+1 day' );
+        while ($current_day <= $range_end_day) {
+            $day_key = $current_day->format('Y-m-d');
+            $daily_region_counts['region_metropolitana'][$day_key] = 0;
+            $daily_region_counts['other_regions'][$day_key] = 0;
+            $current_day = $current_day->modify('+1 day');
         }
     }
 
     $current_query_args = [];
 
-    if ( isset( $_GET ) && is_array( $_GET ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        foreach ( $_GET as $key => $value ) {
-            if ( in_array( $key, [ 'packing_start_date', 'packing_end_date' ], true ) ) {
+    if (isset($_GET) && is_array($_GET)) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        foreach ($_GET as $key => $value) {
+            if (in_array($key, ['packing_start_date', 'packing_end_date'], true)) {
                 continue;
             }
 
-            if ( is_scalar( $value ) ) {
-                $current_query_args[ $key ] = (string) $value;
+            if (is_scalar($value)) {
+                $current_query_args[$key] = (string) $value;
             }
         }
     }
@@ -324,71 +368,71 @@ function villegas_packing_list_shortcode( $atts ) {
     $summary_orders = wc_get_orders(
         [
             'status' => 'processing',
-            'limit'  => -1,
+            'limit' => -1,
             'return' => 'objects',
         ]
     );
 
-    if ( is_array( $summary_orders ) ) {
-        foreach ( $summary_orders as $summary_order ) {
-            if ( ! $summary_order instanceof WC_Order ) {
+    if (is_array($summary_orders)) {
+        foreach ($summary_orders as $summary_order) {
+            if (!$summary_order instanceof WC_Order) {
                 continue;
             }
 
-            $order_id                = $summary_order->get_id();
-            $region_label            = $determine_region_label( $summary_order );
-            $order_region_cache[ $order_id ] = $region_label;
+            $order_id = $summary_order->get_id();
+            $region_label = $determine_region_label($summary_order);
+            $order_region_cache[$order_id] = $region_label;
 
-            $date_created    = $summary_order->get_date_created();
-            $localized_date  = null;
+            $date_created = $summary_order->get_date_created();
+            $localized_date = null;
             $is_in_range_day = false;
 
-            if ( $date_created instanceof WC_DateTime ) {
+            if ($date_created instanceof WC_DateTime) {
                 $localized_date = clone $date_created;
-                $localized_date->setTimezone( $site_timezone );
+                $localized_date->setTimezone($site_timezone);
 
-                if ( $localized_date >= $range_start_day && $localized_date <= $range_end_day ) {
+                if ($localized_date >= $range_start_day && $localized_date <= $range_end_day) {
                     $summary_counts['orders_in_range']++;
                     $is_in_range_day = true;
                 }
             }
 
-            if ( $is_in_range_day ) {
+            if ($is_in_range_day) {
                 $order_hour = 0;
 
-                if ( isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
-                    $order_hour = (int) $localized_date->format( 'G' );
+                if (isset($localized_date) && $localized_date instanceof DateTimeInterface) {
+                    $order_hour = (int) $localized_date->format('G');
                 }
 
-                $order_hour = max( 0, min( 23, $order_hour ) );
+                $order_hour = max(0, min(23, $order_hour));
 
-                if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
+                if ($is_metropolitana_order($summary_order, $region_label)) {
                     $summary_counts['region_metropolitana']++;
 
-                    if ( $is_single_day_range ) {
-                        $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
+                    if ($is_single_day_range) {
+                        $hourly_region_counts['region_metropolitana'][$order_hour]++;
                     } else {
-                        $day_key = $localized_date->format( 'Y-m-d' );
+                        $day_key = $localized_date->format('Y-m-d');
 
-                        if ( isset( $daily_region_counts['region_metropolitana'][ $day_key ] ) ) {
-                            $daily_region_counts['region_metropolitana'][ $day_key ]++;
+                        if (isset($daily_region_counts['region_metropolitana'][$day_key])) {
+                            $daily_region_counts['region_metropolitana'][$day_key]++;
                         }
                     }
                 } else {
                     $summary_counts['other_regions']++;
 
-                    if ( $is_single_day_range ) {
-                        $hourly_region_counts['other_regions'][ $order_hour ]++;
+                    if ($is_single_day_range) {
+                        $hourly_region_counts['other_regions'][$order_hour]++;
                     } else {
-                        $day_key = $localized_date->format( 'Y-m-d' );
+                        $day_key = $localized_date->format('Y-m-d');
 
-                        if ( isset( $daily_region_counts['other_regions'][ $day_key ] ) ) {
-                            $daily_region_counts['other_regions'][ $day_key ]++;
+                        if (isset($daily_region_counts['other_regions'][$day_key])) {
+                            $daily_region_counts['other_regions'][$day_key]++;
                         }
                     }
                 }
 
-                if ( '' === trim( (string) $region_label ) ) {
+                if ('' === trim((string) $region_label)) {
                     $undetermined_regions_in_range++;
                 }
             }
@@ -399,7 +443,7 @@ function villegas_packing_list_shortcode( $atts ) {
 
     static $packing_assets_printed = false;
 
-    if ( ! $packing_assets_printed ) {
+    if (!$packing_assets_printed) {
         $packing_assets_printed = true;
         ?>
         <style>
@@ -628,7 +672,7 @@ function villegas_packing_list_shortcode( $atts ) {
                 border-color: #1d4ed8;
             }
 
-            #villegas-packing-overview .packing-stats__header + .packing-stats__metrics {
+            #villegas-packing-overview .packing-stats__header+.packing-stats__metrics {
                 margin-top: 12px;
             }
 
@@ -697,77 +741,77 @@ function villegas_packing_list_shortcode( $atts ) {
         </style>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
         <script>
-            ( function () {
-                document.addEventListener( 'change', function ( event ) {
-                    if ( ! event.target.matches( '.packing-checkbox' ) ) {
+            (function () {
+                document.addEventListener('change', function (event) {
+                    if (!event.target.matches('.packing-checkbox')) {
                         return;
                     }
 
-                    var row = event.target.closest( 'tr' );
+                    var row = event.target.closest('tr');
 
-                    if ( ! row ) {
+                    if (!row) {
                         return;
                     }
 
-                    if ( event.target.checked ) {
-                        row.classList.add( 'is-checked' );
+                    if (event.target.checked) {
+                        row.classList.add('is-checked');
                     } else {
-                        row.classList.remove( 'is-checked' );
+                        row.classList.remove('is-checked');
                     }
-                } );
+                });
 
-                var applyRegionFilter = function ( button ) {
-                    if ( ! button ) {
+                var applyRegionFilter = function (button) {
+                    if (!button) {
                         return;
                     }
 
-                    var toolbar = button.closest( '.villegas-packing-toolbar' );
+                    var toolbar = button.closest('.villegas-packing-toolbar');
 
-                    if ( ! toolbar ) {
+                    if (!toolbar) {
                         return;
                     }
 
-                    var filter = button.getAttribute( 'data-region-filter' );
-                    var buttons = toolbar.querySelectorAll( '.packing-region-toggle__button' );
+                    var filter = button.getAttribute('data-region-filter');
+                    var buttons = toolbar.querySelectorAll('.packing-region-toggle__button');
 
-                    buttons.forEach( function ( toggleButton ) {
+                    buttons.forEach(function (toggleButton) {
                         var isActive = toggleButton === button;
-                        toggleButton.classList.toggle( 'is-active', isActive );
-                        toggleButton.setAttribute( 'aria-pressed', isActive ? 'true' : 'false' );
-                    } );
+                        toggleButton.classList.toggle('is-active', isActive);
+                        toggleButton.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+                    });
 
                     var container = toolbar.parentElement;
-                    var table = container ? container.querySelector( '.villegas-packing-list' ) : null;
+                    var table = container ? container.querySelector('.villegas-packing-list') : null;
 
-                    if ( ! table ) {
+                    if (!table) {
                         return;
                     }
 
-                    var rows = table.querySelectorAll( 'tbody tr' );
+                    var rows = table.querySelectorAll('tbody tr');
 
-                    rows.forEach( function ( row ) {
-                        var regionGroup = row.getAttribute( 'data-region-group' );
+                    rows.forEach(function (row) {
+                        var regionGroup = row.getAttribute('data-region-group');
                         var shouldShow = 'all' === filter || filter === regionGroup;
 
-                        row.classList.toggle( 'is-hidden', ! shouldShow );
-                    } );
+                        row.classList.toggle('is-hidden', !shouldShow);
+                    });
                 };
 
-                document.addEventListener( 'click', function ( event ) {
-                    var button = event.target.closest( '.packing-region-toggle__button' );
+                document.addEventListener('click', function (event) {
+                    var button = event.target.closest('.packing-region-toggle__button');
 
-                    if ( ! button ) {
+                    if (!button) {
                         return;
                     }
 
                     event.preventDefault();
-                    applyRegionFilter( button );
-                } );
+                    applyRegionFilter(button);
+                });
 
-                document.querySelectorAll( '.packing-region-toggle__button.is-active' ).forEach( function ( button ) {
-                    applyRegionFilter( button );
-                } );
-            } )();
+                document.querySelectorAll('.packing-region-toggle__button.is-active').forEach(function (button) {
+                    applyRegionFilter(button);
+                });
+            })();
         </script>
         <?php
     }
@@ -776,332 +820,341 @@ function villegas_packing_list_shortcode( $atts ) {
     <div id="villegas-packing-shortcode">
         <div id="packing-stats">
             <?php
-            $range_display_format = function_exists( 'get_option' ) ? (string) get_option( 'date_format', 'M j, Y' ) : 'M j, Y';
+            $range_display_format = function_exists('get_option') ? (string) get_option('date_format', 'M j, Y') : 'M j, Y';
 
             $villegas_overview_chart_payload = [
-                'labels'       => [],
-            'rm'           => [],
-            'not_rm'       => [],
-            'mode'         => $is_single_day_range ? 'hourly' : 'daily',
-            'x_axis_label' => $is_single_day_range
-                ? __( 'Hour of Day (24hr Clock)', 'woo-check' )
-                : __( 'Order Date', 'woo-check' ),
-        ];
-
-        if ( $is_single_day_range ) {
-            $villegas_overview_chart_payload['labels'] = array_map(
-                static function ( $hour ) {
-                    return sprintf( '%02d:00', $hour );
-                },
-                range( 0, 23 )
-            );
-
-            $villegas_overview_chart_payload['rm']     = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
-            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', $hourly_region_counts['other_regions'] );
-        } else {
-            $chart_day_keys = array_keys( $daily_region_counts['region_metropolitana'] );
-
-            $villegas_overview_chart_payload['labels'] = array_map(
-                static function ( $date_str ) use ( $range_display_format, $site_timezone ) {
-                    $date_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $date_str, $site_timezone );
-
-                    if ( $date_obj instanceof DateTimeImmutable ) {
-                        return $date_obj->format( $range_display_format );
-                    }
-
-                    return $date_str;
-                },
-                $chart_day_keys
-            );
-
-            $villegas_overview_chart_payload['rm']     = array_map( 'intval', array_values( $daily_region_counts['region_metropolitana'] ) );
-            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', array_values( $daily_region_counts['other_regions'] ) );
-        }
-
-        $chart_aria_label   = $is_single_day_range
-            ? __( 'Stacked hourly orders by region', 'woo-check' )
-            : __( 'Stacked daily orders by region', 'woo-check' );
-        ?>
-        <div id="villegas-packing-overview" class="packing-stats__widget">
-            <div class="packing-stats__header">
-                <p class="packing-stats__widget-title"><?php esc_html_e( 'Processing Overview', 'woo-check' ); ?></p>
-                <form method="get" class="packing-stats__controls">
-                    <?php foreach ( $current_query_args as $query_key => $query_value ) : ?>
-                        <input type="hidden" name="<?php echo esc_attr( $query_key ); ?>" value="<?php echo esc_attr( $query_value ); ?>" />
-                    <?php endforeach; ?>
-                    <label class="packing-stats__control">
-                        <span><?php esc_html_e( 'Start date', 'woo-check' ); ?></span>
-                        <input
-                            type="date"
-                            name="packing_start_date"
-                            value="<?php echo esc_attr( $range_start_obj->format( 'Y-m-d' ) ); ?>"
-                            max="<?php echo esc_attr( $range_end_obj->format( 'Y-m-d' ) ); ?>"
-                        />
-                    </label>
-                    <label class="packing-stats__control">
-                        <span><?php esc_html_e( 'End date', 'woo-check' ); ?></span>
-                        <input
-                            type="date"
-                            name="packing_end_date"
-                            value="<?php echo esc_attr( $range_end_obj->format( 'Y-m-d' ) ); ?>"
-                            min="<?php echo esc_attr( $range_start_obj->format( 'Y-m-d' ) ); ?>"
-                        />
-                    </label>
-                    <button type="submit" class="packing-stats__apply-button"><?php esc_html_e( 'Apply', 'woo-check' ); ?></button>
-                </form>
-            </div>
-            <div class="packing-stats__metrics">
-                <div class="packing-stats__stat">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'Total Orders', 'woo-check' ); ?>:</span>
-                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['orders_in_range'] ) ); ?></span>
-                </div>
-                <div class="packing-stats__stat packing-stats__stat--recibelo">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'RECIBELO', 'woo-check' ); ?>:</span>
-                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['region_metropolitana'] ) ); ?></span>
-                </div>
-                <div class="packing-stats__stat packing-stats__stat--shipit">
-                    <span class="packing-stats__stat-label"><?php esc_html_e( 'SHIPIT', 'woo-check' ); ?>:</span>
-                    <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $summary_counts['other_regions'] ) ); ?></span>
-                </div>
-                <?php if ( $undetermined_regions_in_range > 0 ) : ?>
-                    <div class="packing-stats__stat">
-                        <span class="packing-stats__stat-label"><?php esc_html_e( 'Unassigned Region Orders', 'woo-check' ); ?>:</span>
-                        <span class="packing-stats__stat-value"><?php echo esc_html( number_format_i18n( $undetermined_regions_in_range ) ); ?></span>
-                    </div>
-                <?php endif; ?>
-            </div>
-            <div class="packing-stats__chart">
-                <canvas id="villegasPackingOverviewChart" role="img" aria-label="<?php echo esc_attr( $chart_aria_label ); ?>"></canvas>
-            </div>
-        </div>
-        </div>
-
-    <script>
-        ( function () {
-            if ( 'undefined' === typeof Chart ) {
-                return;
-            }
-
-            var chartCanvas = document.getElementById( 'villegasPackingOverviewChart' );
-
-            if ( ! chartCanvas || chartCanvas.dataset.chartRendered ) {
-                return;
-            }
-
-            chartCanvas.dataset.chartRendered = '1';
-
-            var chartData = <?php echo wp_json_encode( $villegas_overview_chart_payload ); ?>;
-
-            var datasets = [
-                {
-                    label: '<?php echo esc_js( __( 'RECIBELO Orders', 'woo-check' ) ); ?>',
-                    data: chartData.rm,
-                    backgroundColor: 'rgba(237, 28, 36, 0.85)',
-                    borderColor: 'rgba(237, 28, 36, 1)',
-                    borderWidth: 1,
-                    borderRadius: 3,
-                    borderSkipped: false,
-                    stack: 'orders',
-                },
-                {
-                    label: '<?php echo esc_js( __( 'SHIPIT Orders', 'woo-check' ) ); ?>',
-                    data: chartData.not_rm,
-                    backgroundColor: 'rgba(30, 144, 255, 0.85)',
-                    borderColor: 'rgba(30, 144, 255, 1)',
-                    borderWidth: 1,
-                    borderRadius: 3,
-                    borderSkipped: false,
-                    stack: 'orders',
-                }
+                'labels' => [],
+                'rm' => [],
+                'not_rm' => [],
+                'mode' => $is_single_day_range ? 'hourly' : 'daily',
+                'x_axis_label' => $is_single_day_range
+                    ? __('Hour of Day (24hr Clock)', 'woo-check')
+                    : __('Order Date', 'woo-check'),
             ];
 
-            var yAxisMax = null;
-
-            if ( chartData.mode === 'hourly' ) {
-                var dataLength = Math.max(
-                    Array.isArray( chartData.rm ) ? chartData.rm.length : 0,
-                    Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : 0
+            if ($is_single_day_range) {
+                $villegas_overview_chart_payload['labels'] = array_map(
+                    static function ($hour) {
+                        return sprintf('%02d:00', $hour);
+                    },
+                    range(0, 23)
                 );
 
-                var highestTotal = 0;
+                $villegas_overview_chart_payload['rm'] = array_map('intval', $hourly_region_counts['region_metropolitana']);
+                $villegas_overview_chart_payload['not_rm'] = array_map('intval', $hourly_region_counts['other_regions']);
+            } else {
+                $chart_day_keys = array_keys($daily_region_counts['region_metropolitana']);
 
-                for ( var i = 0; i < dataLength; i++ ) {
-                    var rmValue = Array.isArray( chartData.rm ) ? Number( chartData.rm[ i ] || 0 ) : 0;
-                    var notRmValue = Array.isArray( chartData.not_rm ) ? Number( chartData.not_rm[ i ] || 0 ) : 0;
+                $villegas_overview_chart_payload['labels'] = array_map(
+                    static function ($date_str) use ($range_display_format, $site_timezone) {
+                        $date_obj = DateTimeImmutable::createFromFormat('Y-m-d', $date_str, $site_timezone);
 
-                    highestTotal = Math.max( highestTotal, rmValue + notRmValue );
-                }
+                        if ($date_obj instanceof DateTimeImmutable) {
+                            return $date_obj->format($range_display_format);
+                        }
 
-                yAxisMax = highestTotal > 20 ? highestTotal : 20;
+                        return $date_str;
+                    },
+                    $chart_day_keys
+                );
+
+                $villegas_overview_chart_payload['rm'] = array_map('intval', array_values($daily_region_counts['region_metropolitana']));
+                $villegas_overview_chart_payload['not_rm'] = array_map('intval', array_values($daily_region_counts['other_regions']));
             }
 
-            var elevenAmMarkerPlugin = {
-                id: 'elevenAmMarker',
-                afterDraw: function ( chart ) {
-                    if ( chartData.mode !== 'hourly' ) {
-                        return;
-                    }
+            $chart_aria_label = $is_single_day_range
+                ? __('Stacked hourly orders by region', 'woo-check')
+                : __('Stacked daily orders by region', 'woo-check');
+            ?>
+            <div id="villegas-packing-overview" class="packing-stats__widget">
+                <div class="packing-stats__header">
+                    <p class="packing-stats__widget-title"><?php esc_html_e('Processing Overview', 'woo-check'); ?></p>
+                    <form method="get" class="packing-stats__controls">
+                        <?php foreach ($current_query_args as $query_key => $query_value): ?>
+                            <input type="hidden" name="<?php echo esc_attr($query_key); ?>"
+                                value="<?php echo esc_attr($query_value); ?>" />
+                        <?php endforeach; ?>
+                        <label class="packing-stats__control">
+                            <span><?php esc_html_e('Start date', 'woo-check'); ?></span>
+                            <input type="date" name="packing_start_date"
+                                value="<?php echo esc_attr($range_start_obj->format('Y-m-d')); ?>"
+                                max="<?php echo esc_attr($range_end_obj->format('Y-m-d')); ?>" />
+                        </label>
+                        <label class="packing-stats__control">
+                            <span><?php esc_html_e('End date', 'woo-check'); ?></span>
+                            <input type="date" name="packing_end_date"
+                                value="<?php echo esc_attr($range_end_obj->format('Y-m-d')); ?>"
+                                min="<?php echo esc_attr($range_start_obj->format('Y-m-d')); ?>" />
+                        </label>
+                        <button type="submit"
+                            class="packing-stats__apply-button"><?php esc_html_e('Apply', 'woo-check'); ?></button>
+                    </form>
+                </div>
+                <div class="packing-stats__metrics">
+                    <div class="packing-stats__stat">
+                        <span class="packing-stats__stat-label"><?php esc_html_e('Total Orders', 'woo-check'); ?>:</span>
+                        <span
+                            class="packing-stats__stat-value"><?php echo esc_html(number_format_i18n($summary_counts['orders_in_range'])); ?></span>
+                    </div>
+                    <div class="packing-stats__stat packing-stats__stat--recibelo">
+                        <span class="packing-stats__stat-label"><?php esc_html_e('RECIBELO', 'woo-check'); ?>:</span>
+                        <span
+                            class="packing-stats__stat-value"><?php echo esc_html(number_format_i18n($summary_counts['region_metropolitana'])); ?></span>
+                    </div>
+                    <div class="packing-stats__stat packing-stats__stat--shipit">
+                        <span class="packing-stats__stat-label"><?php esc_html_e('SHIPIT', 'woo-check'); ?>:</span>
+                        <span
+                            class="packing-stats__stat-value"><?php echo esc_html(number_format_i18n($summary_counts['other_regions'])); ?></span>
+                    </div>
+                    <?php if ($undetermined_regions_in_range > 0): ?>
+                        <div class="packing-stats__stat">
+                            <span
+                                class="packing-stats__stat-label"><?php esc_html_e('Unassigned Region Orders', 'woo-check'); ?>:</span>
+                            <span
+                                class="packing-stats__stat-value"><?php echo esc_html(number_format_i18n($undetermined_regions_in_range)); ?></span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="packing-stats__chart">
+                    <canvas id="villegasPackingOverviewChart" role="img"
+                        aria-label="<?php echo esc_attr($chart_aria_label); ?>"></canvas>
+                </div>
+            </div>
+        </div>
 
-                    var labels = [];
-
-                    if ( chart.data && Array.isArray( chart.data.labels ) ) {
-                        labels = chart.data.labels;
-                    }
-                    var targetLabel = '11:00';
-                    var labelIndex = labels.indexOf( targetLabel );
-
-                    if ( labelIndex === -1 ) {
-                        return;
-                    }
-
-                    var xScale = chart.scales && chart.scales.x ? chart.scales.x : null;
-                    var yScale = chart.scales && chart.scales.y ? chart.scales.y : null;
-
-                    if ( ! xScale || ! yScale ) {
-                        return;
-                    }
-
-                    var xPosition = xScale.getPixelForValue( labelIndex );
-
-                    if ( ! isFinite( xPosition ) ) {
-                        return;
-                    }
-
-                    var ctx = chart.ctx;
-
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.setLineDash( [ 6, 6 ] );
-                    ctx.lineWidth = 2;
-                    ctx.strokeStyle = 'rgba(237, 28, 36, 1)';
-                    ctx.moveTo( xPosition, yScale.top );
-                    ctx.lineTo( xPosition, yScale.bottom );
-                    ctx.stroke();
-                    ctx.restore();
+        <script>
+            (function () {
+                if ('undefined' === typeof Chart) {
+                    return;
                 }
-            };
 
-            var config = {
-                type: 'bar',
-                data: {
-                    labels: chartData.labels,
-                    datasets: datasets,
-                },
-                plugins: [ elevenAmMarkerPlugin ],
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20,
-                            },
-                        },
-                        tooltip: {
-                            callbacks: {
-                                footer: function ( tooltipItems ) {
-                                    var total = tooltipItems.reduce( function ( sum, item ) {
-                                        return sum + ( item.parsed.y || 0 );
-                                    }, 0 );
+                var chartCanvas = document.getElementById('villegasPackingOverviewChart');
 
-                                    return '<?php echo esc_js( __( 'Total Orders:', 'woo-check' ) ); ?> ' + total;
-                                }
-                            }
-                        }
+                if (!chartCanvas || chartCanvas.dataset.chartRendered) {
+                    return;
+                }
+
+                chartCanvas.dataset.chartRendered = '1';
+
+                var chartData = <?php echo wp_json_encode($villegas_overview_chart_payload); ?>;
+
+                var datasets = [
+                    {
+                        label: '<?php echo esc_js(__('RECIBELO Orders', 'woo-check')); ?>',
+                        data: chartData.rm,
+                        backgroundColor: 'rgba(237, 28, 36, 0.85)',
+                        borderColor: 'rgba(237, 28, 36, 1)',
+                        borderWidth: 1,
+                        borderRadius: 3,
+                        borderSkipped: false,
+                        stack: 'orders',
                     },
-                    scales: {
-                        x: {
-                            stacked: true,
-                            title: {
-                                display: true,
-                                text: chartData.x_axis_label,
-                                font: {
-                                    weight: 'bold'
+                    {
+                        label: '<?php echo esc_js(__('SHIPIT Orders', 'woo-check')); ?>',
+                        data: chartData.not_rm,
+                        backgroundColor: 'rgba(30, 144, 255, 0.85)',
+                        borderColor: 'rgba(30, 144, 255, 1)',
+                        borderWidth: 1,
+                        borderRadius: 3,
+                        borderSkipped: false,
+                        stack: 'orders',
+                    }
+                ];
+
+                var yAxisMax = null;
+
+                if (chartData.mode === 'hourly') {
+                    var dataLength = Math.max(
+                        Array.isArray(chartData.rm) ? chartData.rm.length : 0,
+                        Array.isArray(chartData.not_rm) ? chartData.not_rm.length : 0
+                    );
+
+                    var highestTotal = 0;
+
+                    for (var i = 0; i < dataLength; i++) {
+                        var rmValue = Array.isArray(chartData.rm) ? Number(chartData.rm[i] || 0) : 0;
+                        var notRmValue = Array.isArray(chartData.not_rm) ? Number(chartData.not_rm[i] || 0) : 0;
+
+                        highestTotal = Math.max(highestTotal, rmValue + notRmValue);
+                    }
+
+                    yAxisMax = highestTotal > 20 ? highestTotal : 20;
+                }
+
+                var elevenAmMarkerPlugin = {
+                    id: 'elevenAmMarker',
+                    afterDraw: function (chart) {
+                        if (chartData.mode !== 'hourly') {
+                            return;
+                        }
+
+                        var labels = [];
+
+                        if (chart.data && Array.isArray(chart.data.labels)) {
+                            labels = chart.data.labels;
+                        }
+                        var targetLabel = '11:00';
+                        var labelIndex = labels.indexOf(targetLabel);
+
+                        if (labelIndex === -1) {
+                            return;
+                        }
+
+                        var xScale = chart.scales && chart.scales.x ? chart.scales.x : null;
+                        var yScale = chart.scales && chart.scales.y ? chart.scales.y : null;
+
+                        if (!xScale || !yScale) {
+                            return;
+                        }
+
+                        var xPosition = xScale.getPixelForValue(labelIndex);
+
+                        if (!isFinite(xPosition)) {
+                            return;
+                        }
+
+                        var ctx = chart.ctx;
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.setLineDash([6, 6]);
+                        ctx.lineWidth = 2;
+                        ctx.strokeStyle = 'rgba(237, 28, 36, 1)';
+                        ctx.moveTo(xPosition, yScale.top);
+                        ctx.lineTo(xPosition, yScale.bottom);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                };
+
+                var config = {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.labels,
+                        datasets: datasets,
+                    },
+                    plugins: [elevenAmMarkerPlugin],
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20,
+                                },
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    footer: function (tooltipItems) {
+                                        var total = tooltipItems.reduce(function (sum, item) {
+                                            return sum + (item.parsed.y || 0);
+                                        }, 0);
+
+                                        return '<?php echo esc_js(__('Total Orders:', 'woo-check')); ?> ' + total;
+                                    }
                                 }
-                            },
-                            grid: {
-                                display: false,
-                            },
-                            ticks: {
-                                maxRotation: chartData.mode === 'daily' ? 45 : 0,
-                                minRotation: 0,
                             }
                         },
-                        y: ( function () {
-                            var options = {
+                        scales: {
+                            x: {
                                 stacked: true,
-                                beginAtZero: true,
                                 title: {
                                     display: true,
-                                    text: '<?php echo esc_js( __( 'Orders (Units)', 'woo-check' ) ); ?>',
+                                    text: chartData.x_axis_label,
                                     font: {
                                         weight: 'bold'
                                     }
+                                },
+                                grid: {
+                                    display: false,
+                                },
+                                ticks: {
+                                    maxRotation: chartData.mode === 'daily' ? 45 : 0,
+                                    minRotation: 0,
                                 }
-                            };
+                            },
+                            y: (function () {
+                                var options = {
+                                    stacked: true,
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '<?php echo esc_js(__('Orders (Units)', 'woo-check')); ?>',
+                                        font: {
+                                            weight: 'bold'
+                                        }
+                                    }
+                                };
 
-                            if ( yAxisMax !== null ) {
-                                options.max = yAxisMax;
-                            }
+                                if (yAxisMax !== null) {
+                                    options.max = yAxisMax;
+                                }
 
-                            return options;
-                        }() )
+                                return options;
+                            }())
+                        }
                     }
-                }
-            };
+                };
 
-            new Chart( chartCanvas.getContext( '2d' ), config );
-        } )();
+                new Chart(chartCanvas.getContext('2d'), config);
+            })();
         </script>
 
-    <?php
-    $pagination_markup = '';
-
-    if ( $total_pages > 1 ) {
-        ob_start();
-        ?>
-        <nav class="villegas-packing-pagination" aria-label="<?php esc_attr_e( 'Packing list pagination', 'woo-check' ); ?>">
-            <?php if ( $page > 1 ) : ?>
-                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page - 1 ) ); ?>">
-                    <?php esc_html_e( 'Previous', 'woo-check' ); ?>
-                </a>
-            <?php endif; ?>
-            <span class="villegas-packing-pagination__status">
-                <?php
-                echo esc_html(
-                    sprintf(
-                        /* translators: 1: current page number. 2: total pages. */
-                        __( 'Page %1$d of %2$d', 'woo-check' ),
-                        $page,
-                        $total_pages
-                    )
-                );
-                ?>
-            </span>
-            <?php if ( $page < $total_pages ) : ?>
-                <a class="villegas-packing-pagination__button" href="<?php echo esc_url( add_query_arg( 'packing_page', $page + 1 ) ); ?>">
-                    <?php esc_html_e( 'Next', 'woo-check' ); ?>
-                </a>
-            <?php endif; ?>
-        </nav>
         <?php
-        $pagination_markup = ob_get_clean();
-    }
+        $pagination_markup = '';
 
-    ?>
+        if ($total_pages > 1) {
+            ob_start();
+            ?>
+            <nav class="villegas-packing-pagination"
+                aria-label="<?php esc_attr_e('Packing list pagination', 'woo-check'); ?>">
+                <?php if ($page > 1): ?>
+                    <a class="villegas-packing-pagination__button"
+                        href="<?php echo esc_url(add_query_arg('packing_page', $page - 1)); ?>">
+                        <?php esc_html_e('Previous', 'woo-check'); ?>
+                    </a>
+                <?php endif; ?>
+                <span class="villegas-packing-pagination__status">
+                    <?php
+                    echo esc_html(
+                        sprintf(
+                            /* translators: 1: current page number. 2: total pages. */
+                            __('Page %1$d of %2$d', 'woo-check'),
+                            $page,
+                            $total_pages
+                        )
+                    );
+                    ?>
+                </span>
+                <?php if ($page < $total_pages): ?>
+                    <a class="villegas-packing-pagination__button"
+                        href="<?php echo esc_url(add_query_arg('packing_page', $page + 1)); ?>">
+                        <?php esc_html_e('Next', 'woo-check'); ?>
+                    </a>
+                <?php endif; ?>
+            </nav>
+            <?php
+            $pagination_markup = ob_get_clean();
+        }
+
+        ?>
         <div id="villegas-packing-container">
             <div id="villegas-packing-toolbar" class="villegas-packing-toolbar">
-                <div class="packing-region-toggle" role="group" aria-label="<?php esc_attr_e( 'Filter orders by region', 'woo-check' ); ?>">
-                    <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all" aria-pressed="true">
-                        <?php echo esc_html_x( 'ALL', 'Filter region option for all orders', 'woo-check' ); ?>
+                <div class="packing-region-toggle" role="group"
+                    aria-label="<?php esc_attr_e('Filter orders by region', 'woo-check'); ?>">
+                    <button type="button" class="packing-region-toggle__button is-active" data-region-filter="all"
+                        aria-pressed="true">
+                        <?php echo esc_html_x('ALL', 'Filter region option for all orders', 'woo-check'); ?>
                     </button>
-                    <button type="button" class="packing-region-toggle__button" data-region-filter="rm" aria-pressed="false">
-                        <?php echo esc_html_x( 'RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check' ); ?>
+                    <button type="button" class="packing-region-toggle__button" data-region-filter="rm"
+                        aria-pressed="false">
+                        <?php echo esc_html_x('RECIBELO', 'Filter region option for Región Metropolitana orders', 'woo-check'); ?>
                     </button>
-                    <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm" aria-pressed="false">
-                        <?php echo esc_html_x( 'SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check' ); ?>
+                    <button type="button" class="packing-region-toggle__button" data-region-filter="non-rm"
+                        aria-pressed="false">
+                        <?php echo esc_html_x('SHIPIT', 'Filter region option for non Región Metropolitana orders', 'woo-check'); ?>
                     </button>
                 </div>
                 <?php echo $pagination_markup; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -1111,57 +1164,56 @@ function villegas_packing_list_shortcode( $atts ) {
                     <thead>
                         <tr>
                             <th class="packing-select">
-                                <span class="screen-reader-text"><?php esc_html_e( 'Select order', 'woo-check' ); ?></span>
+                                <span class="screen-reader-text"><?php esc_html_e('Select order', 'woo-check'); ?></span>
                             </th>
-                            <th><?php esc_html_e( 'Order ID', 'woo-check' ); ?></th>
-                            <th><?php esc_html_e( 'Items', 'woo-check' ); ?></th>
-                            <th><?php esc_html_e( 'Region', 'woo-check' ); ?></th>
+                            <th><?php esc_html_e('Order ID', 'woo-check'); ?></th>
+                            <th><?php esc_html_e('Items', 'woo-check'); ?></th>
+                            <th><?php esc_html_e('Region', 'woo-check'); ?></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ( $orders as $order ) : ?>
-                            <?php if ( ! $order instanceof WC_Order ) { continue; } ?>
+                        <?php foreach ($orders as $order): ?>
+                            <?php if (!$order instanceof WC_Order) {
+                                continue;
+                            } ?>
                             <?php
-                            $order_id    = $order->get_id();
-                            $region_name = $order_region_cache[ $order_id ] ?? $determine_region_label( $order );
-                            $region_type = $is_metropolitana_order( $order, $region_name ) ? 'rm' : 'non-rm';
+                            $order_id = $order->get_id();
+                            $region_name = $order_region_cache[$order_id] ?? $determine_region_label($order);
+                            $region_type = $is_metropolitana_order($order, $region_name) ? 'rm' : 'non-rm';
                             ?>
-                            <tr data-region-group="<?php echo esc_attr( $region_type ); ?>">
+                            <tr data-region-group="<?php echo esc_attr($region_type); ?>">
                                 <td>
-                                    <input
-                                        type="checkbox"
-                                        class="packing-checkbox"
-                                        data-order-id="<?php echo esc_attr( $order->get_id() ); ?>"
-                                        aria-label="<?php echo esc_attr( sprintf( __( 'Select order %d', 'woo-check' ), $order->get_id() ) ); ?>"
-                                    />
+                                    <input type="checkbox" class="packing-checkbox"
+                                        data-order-id="<?php echo esc_attr($order->get_id()); ?>"
+                                        aria-label="<?php echo esc_attr(sprintf(__('Select order %d', 'woo-check'), $order->get_id())); ?>" />
                                 </td>
-                                <td><?php echo esc_html( $order->get_id() ); ?></td>
+                                <td><?php echo esc_html($order->get_id()); ?></td>
                                 <td>
                                     <?php
                                     $item_lines = [];
 
-                                    foreach ( $order->get_items() as $item ) {
-                                        $quantity     = $item->get_quantity();
-                                        $variation_id = method_exists( $item, 'get_variation_id' ) ? $item->get_variation_id() : 0;
+                                    foreach ($order->get_items() as $item) {
+                                        $quantity = $item->get_quantity();
+                                        $variation_id = method_exists($item, 'get_variation_id') ? $item->get_variation_id() : 0;
                                         $context_name = $item->get_name();
 
-                                        if ( $variation_id > 0 && function_exists( 'wc_get_product' ) ) {
+                                        if ($variation_id > 0 && function_exists('wc_get_product')) {
                                             $product = $item->get_product();
 
-                                            if ( $product instanceof WC_Product_Variation ) {
+                                            if ($product instanceof WC_Product_Variation) {
                                                 $parent_id = $product->get_parent_id();
 
-                                                if ( $parent_id ) {
-                                                    $parent_product = wc_get_product( $parent_id );
+                                                if ($parent_id) {
+                                                    $parent_product = wc_get_product($parent_id);
 
-                                                    if ( $parent_product instanceof WC_Product ) {
+                                                    if ($parent_product instanceof WC_Product) {
                                                         $context_name .= ' ' . $parent_product->get_name();
                                                     }
                                                 }
                                             }
                                         }
 
-                                        if ( class_exists( 'Woo_Check_Inventory' ) ) {
+                                        if (class_exists('Woo_Check_Inventory')) {
                                             $quantity = Woo_Check_Inventory::normalize_pack_librerias_quantity(
                                                 $quantity,
                                                 $variation_id,
@@ -1172,17 +1224,17 @@ function villegas_packing_list_shortcode( $atts ) {
                                         $line = sprintf(
                                             '%s - %s',
                                             $item->get_name(),
-                                            wc_stock_amount( $quantity )
+                                            wc_stock_amount($quantity)
                                         );
 
-                                        $item_lines[] = esc_html( $line );
+                                        $item_lines[] = esc_html($line);
                                     }
 
-                                    echo wp_kses_post( implode( '<br />', $item_lines ) );
+                                    echo wp_kses_post(implode('<br />', $item_lines));
                                     ?>
                                 </td>
                                 <td>
-                                    <?php echo esc_html( $region_name ); ?>
+                                    <?php echo esc_html($region_name); ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -1193,6 +1245,6 @@ function villegas_packing_list_shortcode( $atts ) {
     </div>
     <?php
 
-    return trim( ob_get_clean() );
+    return trim(ob_get_clean());
 }
 

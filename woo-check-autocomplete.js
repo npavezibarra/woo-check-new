@@ -191,16 +191,19 @@ jQuery(document).ready(function ($) {
 
     // --- AUTOCOMPLETE INITIALIZATION ---
     $(comunaFieldSelector).autocomplete({
-        source: function(request, response) {
+        source: function (request, response) {
             const term = request.term;
             const regex = new RegExp("^" + $.ui.autocomplete.escapeRegex(term), "i");
-            const matches = comunaList.filter(function(comuna) {
+            const matches = comunaList.filter(function (comuna) {
                 return regex.test(comuna);
             });
             response(matches);
         },
         minLength: 1,
         select: function (event, ui) {
+            // Prevent default behavior to avoid double-setting the value
+            event.preventDefault();
+
             const comunaInput = $(this);
             const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
             const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
@@ -208,11 +211,22 @@ jQuery(document).ready(function ($) {
 
             console.log("🟢 Commune selected:", selectedComuna);
 
+            // Explicitly set the value
             comunaInput.val(selectedComuna);
+
+            // Trigger change events immediately
             comunaInput.trigger('change').trigger('input');
             if (comunaInput[0]) {
                 comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
             }
+
+            // Explicitly close the autocomplete menu
+            if (comunaInput.data('ui-autocomplete')) {
+                comunaInput.autocomplete('close');
+            }
+
+            // Blur the input to close the keyboard on mobile
+            comunaInput.blur();
 
             syncRegionWithComuna(comunaInput, regionSelect);
 
@@ -221,7 +235,7 @@ jQuery(document).ready(function ($) {
                 $('body').trigger('update_checkout');
             }, 500);
         },
-        change: function(event, ui) {
+        change: function (event, ui) {
             const comunaInput = $(this);
             const isBillingField = comunaInput.attr('id') === 'billing_comuna' || comunaInput.attr('id') === 'billing_city';
             const regionSelect = isBillingField ? '#billing_state' : '#shipping_state';
