@@ -237,7 +237,10 @@ jQuery(document).ready(function ($) {
                 $(".ui-autocomplete").hide();
                 $(".ui-autocomplete").css('display', 'none'); // Aggressive hide
 
-                // Blur to hide keyboard
+                // Blur to hide keyboard (Safari Fix: Hard blur)
+                if (document.activeElement) {
+                    document.activeElement.blur();
+                }
                 comunaInput.blur();
 
                 // Sync region
@@ -292,7 +295,10 @@ jQuery(document).ready(function ($) {
                 comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            // Blur the input to close the keyboard on mobile
+            // Blur the input to close the keyboard on mobile (Safari Fix: Hard blur)
+            if (document.activeElement) {
+                document.activeElement.blur();
+            }
             comunaInput.blur();
 
             syncRegionWithComuna(comunaInput, regionSelect);
@@ -327,6 +333,12 @@ jQuery(document).ready(function ($) {
                 $('body').trigger('update_checkout');
             }, 600);
         },
+        open: function (event, ui) {
+            // Safari Fix: Ensure touch events work on dropdown items
+            $(".ui-autocomplete li").on("touchstart", function () {
+                $(this).trigger("click");
+            });
+        },
         change: function (event, ui) {
             console.log("📝 Autocomplete CHANGE triggered");
             const comunaInput = $(this);
@@ -353,6 +365,13 @@ jQuery(document).ready(function ($) {
                 }
             }
         }
+    }).on("blur", function () {
+        // Safari Fix: Force hide on blur
+        console.log("💨 Input BLUR event triggered - Force hiding dropdown");
+        setTimeout(() => {
+            $(".ui-autocomplete").hide();
+            $(".ui-autocomplete").css('display', 'none');
+        }, 200);
     });
 
     // --- REGION SYNC ON BLUR ---
