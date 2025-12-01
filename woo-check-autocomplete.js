@@ -211,6 +211,9 @@ jQuery(document).ready(function ($) {
 
             console.log("🟢 Commune selected:", selectedComuna);
 
+            // Temporarily disable the autocomplete to prevent the input event from reopening the menu
+            comunaInput.autocomplete("disable");
+
             // Explicitly set the value
             comunaInput.val(selectedComuna);
 
@@ -220,24 +223,24 @@ jQuery(document).ready(function ($) {
                 comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            // Explicitly close the autocomplete menu with a slight delay to ensure selection is processed
+            // Blur the input to close the keyboard on mobile
+            comunaInput.blur();
+
+            syncRegionWithComuna(comunaInput, regionSelect);
+
+            // Re-enable the autocomplete after a delay to allow future edits
             setTimeout(() => {
+                comunaInput.autocomplete("enable");
+                // Ensure it's closed just in case
                 if (comunaInput.data('ui-autocomplete')) {
                     comunaInput.autocomplete('close');
                 }
-                // Force hide in case the plugin logic keeps it open
-                $(".ui-autocomplete").hide();
-
-                // Blur the input to close the keyboard on mobile
-                comunaInput.blur();
-            }, 100);
-
-            syncRegionWithComuna(comunaInput, regionSelect);
+            }, 500);
 
             setTimeout(() => {
                 console.log("🔄 Triggering WooCommerce update_checkout");
                 $('body').trigger('update_checkout');
-            }, 500);
+            }, 600);
         },
         change: function (event, ui) {
             const comunaInput = $(this);
