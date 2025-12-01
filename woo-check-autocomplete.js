@@ -305,9 +305,14 @@ jQuery(document).ready(function ($) {
                     comunaInput.autocomplete('close');
                 }
 
-                // Force hide aggressive
-                $(".ui-autocomplete").hide();
-                $(".ui-autocomplete").css('display', 'none');
+                // Force hide aggressive (Repeatedly for 1 second to combat mobile keyboard animations)
+                let hideCount = 0;
+                const hideInterval = setInterval(() => {
+                    $(".ui-autocomplete").hide();
+                    $(".ui-autocomplete").css('display', 'none');
+                    hideCount++;
+                    if (hideCount > 10) clearInterval(hideInterval);
+                }, 100);
 
                 // Jump focus to the phone field
                 const phoneField = $('#billing_phone');
@@ -315,7 +320,7 @@ jQuery(document).ready(function ($) {
                     console.log("👉 Jumping focus to phone field");
                     phoneField.focus();
                 }
-            }, 500);
+            }, 2000); // Increased delay for mobile stability
 
             setTimeout(() => {
                 console.log("🔄 Triggering WooCommerce update_checkout");
