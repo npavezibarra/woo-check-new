@@ -220,13 +220,17 @@ jQuery(document).ready(function ($) {
                 comunaInput[0].dispatchEvent(new Event('change', { bubbles: true }));
             }
 
-            // Explicitly close the autocomplete menu
-            if (comunaInput.data('ui-autocomplete')) {
-                comunaInput.autocomplete('close');
-            }
+            // Explicitly close the autocomplete menu with a slight delay to ensure selection is processed
+            setTimeout(() => {
+                if (comunaInput.data('ui-autocomplete')) {
+                    comunaInput.autocomplete('close');
+                }
+                // Force hide in case the plugin logic keeps it open
+                $(".ui-autocomplete").hide();
 
-            // Blur the input to close the keyboard on mobile
-            comunaInput.blur();
+                // Blur the input to close the keyboard on mobile
+                comunaInput.blur();
+            }, 100);
 
             syncRegionWithComuna(comunaInput, regionSelect);
 
