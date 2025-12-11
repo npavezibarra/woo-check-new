@@ -124,47 +124,6 @@ if (!function_exists('woo_check_render_confidential_message')) {
 }
 
 
-if (!function_exists('woo_check_render_confidential_message')) {
-    /**
-     * Render a full screen confidential message with a login button.
-     *
-     * @return string
-     */
-    function woo_check_render_confidential_message()
-    {
-        $container_style = 'display:flex;flex-direction:column;align-items:center;justify-content:center;'
-            . 'min-height:100vh;width:100%;background-color:#000;color:#fff;text-align:center;padding:2rem;'
-            . 'box-sizing:border-box;';
-
-        $button_style = 'margin-top:1.5rem;padding:0.75rem 2.5rem;border-radius:4px;border:1px solid #fff;'
-            . 'background-color:#000;color:#fff;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;';
-
-        $request_uri = isset($_SERVER['REQUEST_URI']) ? wp_unslash($_SERVER['REQUEST_URI']) : '';
-        $redirect_to = $request_uri ? home_url($request_uri) : home_url();
-        $redirect_to = wp_validate_redirect($redirect_to, home_url());
-
-        $unique_suffix = (string) wp_rand(1000, 999999);
-        $modal_id = 'woo-check-login-modal-' . $unique_suffix;
-
-        // Use the helper function to get the modal HTML
-        $modal_markup = woo_check_get_login_modal_html($modal_id, $redirect_to);
-
-        return sprintf(
-            '<div class="woo-check-confidential-message" data-woo-check-login-container style="%1$s">'
-            . '<p style="margin:0;font-size:1.5rem;">%2$s</p>'
-            . '<button type="button" class="woo-check-confidential-login" style="%3$s" data-woo-check-modal-target="%4$s">%5$s</button>'
-            . '%6$s'
-            . '</div>',
-            esc_attr($container_style),
-            esc_html__('Información Confidencial', 'woo-check'),
-            esc_attr($button_style),
-            esc_attr($modal_id),
-            esc_html__('Login', 'woo-check'),
-            $modal_markup
-        );
-    }
-}
-
 add_shortcode('villegas-packing-list', 'villegas_packing_list_shortcode');
 
 /**
