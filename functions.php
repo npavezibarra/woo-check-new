@@ -324,10 +324,16 @@ function villegas_packing_list_shortcode($atts)
 
     $order_region_cache = [];
 
+    // Limit summary to orders from the last 30 days to prevent memory exhaustion
+    $thirty_days_ago = (new DateTimeImmutable('30 days ago', $site_timezone))->format('Y-m-d H:i:s');
+
     $summary_orders = wc_get_orders(
         [
             'status' => 'processing',
-            'limit' => -1,
+            'limit' => 500, // Limit to 500 most recent orders instead of unlimited
+            'orderby' => 'date',
+            'order' => 'DESC',
+            'date_created' => '>=' . $thirty_days_ago, // Only last 30 days
             'return' => 'objects',
         ]
     );
@@ -1067,8 +1073,7 @@ function villegas_packing_list_shortcode($atts)
         if ($total_pages > 1) {
             ob_start();
             ?>
-            <nav class="villegas-packing-pagination"
-                aria-label="<?php esc_attr_e('Packing list pagination', 'woo-check'); ?>">
+            <nav class="villegas-packing-pagination" aria-label="<?php esc_attr_e('Packing list pagination', 'woo-check'); ?>">
                 <?php if ($page > 1): ?>
                     <a class="villegas-packing-pagination__button"
                         href="<?php echo esc_url(add_query_arg('packing_page', $page - 1)); ?>">
