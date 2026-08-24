@@ -13,7 +13,7 @@ class WooCheck_Courier_Router {
      * @return string Either 'recibelo' or 'shipit'.
      */
     public static function decide( $commune_id, $region_id ) {
-        if ( intval( $region_id ) === 7 ) {
+        if ( intval( $region_id ) === 7 && '1' === get_option( 'woocheck_recibelo_rm', '1' ) ) {
             return 'recibelo';
         }
 

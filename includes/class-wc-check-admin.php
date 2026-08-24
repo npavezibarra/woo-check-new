@@ -34,6 +34,15 @@ class WC_Check_Admin {
                 'default'           => '0',
             ]
         );
+        register_setting(
+            'woo_check_settings',
+            'woocheck_recibelo_rm',
+            [
+                'type'              => 'string',
+                'sanitize_callback' => [ $this, 'sanitize_recibelo_rm' ],
+                'default'           => '1',
+            ]
+        );
 
         add_settings_section(
             'woo_check_section',
@@ -81,9 +90,21 @@ class WC_Check_Admin {
             'woo_check_routing_section'
         );
 
+        add_settings_field(
+            'woocheck_recibelo_rm',
+            'Recibelo RM',
+            [ $this, 'recibelo_rm_field_html' ],
+            'woo-check-settings',
+            'woo_check_routing_section'
+        );
+
     }
 
     public function sanitize_force_shipit( $value ) {
+        return $value ? '1' : '0';
+    }
+
+    public function sanitize_recibelo_rm( $value ) {
         return $value ? '1' : '0';
     }
 
@@ -108,6 +129,16 @@ class WC_Check_Admin {
         <label>
             <input type="checkbox" name="woocheck_force_shipit" value="1" <?php checked( '1', $value ); ?> />
             <?php esc_html_e( 'Force send all orders to Shipit', 'woo-check' ); ?>
+        </label>
+        <?php
+    }
+
+    public function recibelo_rm_field_html() {
+        $value = get_option( 'woocheck_recibelo_rm', '1' );
+        ?>
+        <label>
+            <input type="checkbox" name="woocheck_recibelo_rm" value="1" <?php checked( '1', $value ); ?> />
+            <?php esc_html_e( 'Use Recibelo for RM (Región Metropolitana)', 'woo-check' ); ?>
         </label>
         <?php
     }
