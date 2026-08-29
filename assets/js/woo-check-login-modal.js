@@ -75,6 +75,7 @@
 
         modal.classList.remove('is-visible');
         modal.setAttribute('aria-hidden', 'true');
+        modal.setAttribute('hidden', 'hidden');
         modal.removeAttribute('data-woo-check-open');
         modal.removeEventListener('keydown', modal.__wooCheckFocusTrap);
         delete modal.__wooCheckFocusTrap;
@@ -98,6 +99,7 @@
             return;
         }
 
+        modal.removeAttribute('hidden');
         modal.classList.add('is-visible');
         modal.setAttribute('aria-hidden', 'false');
         modal.setAttribute('data-woo-check-open', 'true');
