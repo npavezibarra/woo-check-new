@@ -124,6 +124,50 @@ if ( ! function_exists( 'woo_check_render_confidential_message' ) ) {
 
 add_shortcode( 'villegas-packing-list', 'villegas_packing_list_shortcode' );
 
+if ( ! function_exists( 'villegas_packing_overview_log' ) ) {
+    /**
+     * Write an error log line namespaced for the packing overview widget.
+     *
+     * @param string $message  Log description.
+     * @param array  $context  Additional structured details.
+     */
+    function villegas_packing_overview_log( $message, array $context = [] ) {
+        $prefix = '[Packing Overview] ';
+
+        $context_string = '';
+
+        if ( ! empty( $context ) ) {
+            $json_flags = 0;
+
+            if ( defined( 'JSON_UNESCAPED_SLASHES' ) ) {
+                $json_flags |= JSON_UNESCAPED_SLASHES;
+            }
+
+            if ( defined( 'JSON_UNESCAPED_UNICODE' ) ) {
+                $json_flags |= JSON_UNESCAPED_UNICODE;
+            }
+
+            if ( function_exists( 'wp_json_encode' ) ) {
+                $context_string = wp_json_encode( $context, $json_flags );
+            } else {
+                $context_string = json_encode( $context, $json_flags );
+            }
+
+            if ( false === $context_string ) {
+                $context_string = ''; // Avoid logging "false" when encoding fails.
+            }
+        }
+
+        $log_line = $prefix . $message;
+
+        if ( '' !== $context_string ) {
+            $log_line .= ' ' . $context_string;
+        }
+
+        error_log( $log_line );
+    }
+}
+
 /**
  * Shortcode callback to display a paginated table of processing orders.
  *
@@ -249,20 +293,40 @@ function villegas_packing_list_shortcode( $atts ) {
         }
     }
 
-    $default_range_date = ( new DateTimeImmutable( 'now', $site_timezone ) )->format( 'Y-m-d' );
+    $current_time = new DateTimeImmutable( 'now', $site_timezone );
+    $default_end_obj = $current_time->setTime( 11, 0, 0 );
+    $default_start_obj = $default_end_obj->modify( '-1 day' );
 
-    $range_start_input = isset( $_GET['packing_start_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-    $range_end_input   = isset( $_GET['packing_end_date'] ) ? sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ) : $default_range_date; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $default_start_date = $default_start_obj->format( 'Y-m-d' );
+    $default_end_date   = $default_end_obj->format( 'Y-m-d' );
+
+    $has_start_date_param = isset( $_GET['packing_start_date'] ) && '' !== $_GET['packing_start_date']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $has_end_date_param   = isset( $_GET['packing_end_date'] ) && '' !== $_GET['packing_end_date']; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    $using_default_range  = ! $has_start_date_param && ! $has_end_date_param;
+
+    if ( $has_start_date_param ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $range_start_input = sanitize_text_field( wp_unslash( $_GET['packing_start_date'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    } else {
+        $range_start_input = $default_start_date;
+    }
+
+    if ( $has_end_date_param ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $range_end_input = sanitize_text_field( wp_unslash( $_GET['packing_end_date'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+    } else {
+        $range_end_input = $default_end_date;
+    }
 
     $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_start_input, $site_timezone );
     $range_end_obj   = DateTimeImmutable::createFromFormat( 'Y-m-d', $range_end_input, $site_timezone );
 
     if ( false === $range_start_obj ) {
-        $range_start_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+        $range_start_obj   = $default_start_obj;
+        $using_default_range = true;
     }
 
     if ( false === $range_end_obj ) {
-        $range_end_obj = DateTimeImmutable::createFromFormat( 'Y-m-d', $default_range_date, $site_timezone );
+        $range_end_obj     = $default_end_obj;
+        $using_default_range = true;
     }
 
     if ( $range_end_obj < $range_start_obj ) {
@@ -271,10 +335,25 @@ function villegas_packing_list_shortcode( $atts ) {
         $range_end_obj   = $tmp;
     }
 
-    $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
-    $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    if ( $using_default_range ) {
+        $range_start_day = $range_start_obj->setTime( 11, 0, 0 );
+        $range_end_day   = $range_end_obj->setTime( 11, 0, 0 );
+    } else {
+        $range_start_day = $range_start_obj->setTime( 0, 0, 0 );
+        $range_end_day   = $range_end_obj->setTime( 23, 59, 59 );
+    }
 
     $is_single_day_range = $range_start_day->format( 'Y-m-d' ) === $range_end_day->format( 'Y-m-d' );
+
+    $day_in_seconds         = defined( 'DAY_IN_SECONDS' ) ? DAY_IN_SECONDS : 86400;
+    $hour_in_seconds        = defined( 'HOUR_IN_SECONDS' ) ? HOUR_IN_SECONDS : 3600;
+    $range_duration_seconds = max( 0, $range_end_day->getTimestamp() - $range_start_day->getTimestamp() );
+
+    if ( ! $is_single_day_range && $using_default_range ) {
+        if ( abs( $range_duration_seconds - $day_in_seconds ) <= $hour_in_seconds ) {
+            $is_single_day_range = true;
+        }
+    }
 
     $summary_counts = [
         'orders_in_range'      => 0,
@@ -284,9 +363,11 @@ function villegas_packing_list_shortcode( $atts ) {
 
     $undetermined_regions_in_range = 0;
 
+    $hourly_slot_labels  = [];
+    $hourly_slot_bounds  = [];
     $hourly_region_counts = [
-        'region_metropolitana' => array_fill( 0, 24, 0 ),
-        'other_regions'        => array_fill( 0, 24, 0 ),
+        'region_metropolitana' => [],
+        'other_regions'        => [],
     ];
 
     $daily_region_counts = [
@@ -294,7 +375,55 @@ function villegas_packing_list_shortcode( $atts ) {
         'other_regions'        => [],
     ];
 
-    if ( ! $is_single_day_range ) {
+    if ( $is_single_day_range ) {
+        $hour_interval    = new DateInterval( 'PT1H' );
+        $hour_slot_cursor = $range_start_day;
+        $slot_guard       = 0;
+
+        while ( $hour_slot_cursor < $range_end_day && $slot_guard < 48 ) {
+            $hourly_slot_labels[] = $hour_slot_cursor->format( 'H:i' );
+
+            $slot_end = $hour_slot_cursor->add( $hour_interval );
+
+            if ( $slot_end > $range_end_day ) {
+                $slot_end = $range_end_day;
+            }
+
+            $hourly_slot_bounds[] = [
+                'start' => $hour_slot_cursor,
+                'end'   => $slot_end,
+            ];
+
+            $hour_slot_cursor = $slot_end;
+            $slot_guard++;
+        }
+
+        if ( empty( $hourly_slot_labels ) ) {
+            $hourly_slot_labels[] = $range_start_day->format( 'H:i' );
+            $hourly_slot_bounds[] = [
+                'start' => $range_start_day,
+                'end'   => $range_start_day->add( $hour_interval ),
+            ];
+        }
+
+        $hour_slot_count = count( $hourly_slot_labels );
+
+        $hourly_region_counts['region_metropolitana'] = array_fill( 0, $hour_slot_count, 0 );
+        $hourly_region_counts['other_regions']        = array_fill( 0, $hour_slot_count, 0 );
+
+        if ( 0 === $hour_slot_count ) {
+            villegas_packing_overview_log(
+                'No hourly slots were generated for the chart payload',
+                [
+                    'range_start'        => $range_start_day->format( DateTimeInterface::ATOM ),
+                    'range_end'          => $range_end_day->format( DateTimeInterface::ATOM ),
+                    'using_default'      => $using_default_range ? '1' : '0',
+                    'range_start_input'  => $range_start_input ?? '',
+                    'range_end_input'    => $range_end_input ?? '',
+                ]
+            );
+        }
+    } else {
         $current_day = $range_start_day;
 
         while ( $current_day <= $range_end_day ) {
@@ -354,20 +483,37 @@ function villegas_packing_list_shortcode( $atts ) {
             }
 
             if ( $is_in_range_day ) {
-                $order_hour = 0;
+                $hour_slot_index = null;
 
-                if ( isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
-                    $order_hour = (int) $localized_date->format( 'G' );
+                if ( $is_single_day_range && ! empty( $hourly_slot_bounds ) && isset( $localized_date ) && $localized_date instanceof DateTimeInterface ) {
+                    $last_slot_index = count( $hourly_slot_bounds ) - 1;
+
+                    foreach ( $hourly_slot_bounds as $slot_index => $slot_bounds ) {
+                        $slot_start = $slot_bounds['start'];
+                        $slot_end   = $slot_bounds['end'];
+
+                        if ( ! ( $localized_date >= $slot_start ) ) {
+                            continue;
+                        }
+
+                        $is_last_slot       = $slot_index === $last_slot_index;
+                        $matches_slot_range = ( $localized_date < $slot_end ) || ( $is_last_slot && $localized_date <= $slot_end );
+
+                        if ( $matches_slot_range ) {
+                            $hour_slot_index = $slot_index;
+                            break;
+                        }
+                    }
                 }
 
-                $order_hour = max( 0, min( 23, $order_hour ) );
+                $is_metropolitana = $is_metropolitana_order( $summary_order, $region_label );
 
-                if ( $is_metropolitana_order( $summary_order, $region_label ) ) {
+                if ( $is_metropolitana ) {
                     $summary_counts['region_metropolitana']++;
 
-                    if ( $is_single_day_range ) {
-                        $hourly_region_counts['region_metropolitana'][ $order_hour ]++;
-                    } else {
+                    if ( $is_single_day_range && null !== $hour_slot_index && isset( $hourly_region_counts['region_metropolitana'][ $hour_slot_index ] ) ) {
+                        $hourly_region_counts['region_metropolitana'][ $hour_slot_index ]++;
+                    } elseif ( ! $is_single_day_range ) {
                         $day_key = $localized_date->format( 'Y-m-d' );
 
                         if ( isset( $daily_region_counts['region_metropolitana'][ $day_key ] ) ) {
@@ -377,9 +523,9 @@ function villegas_packing_list_shortcode( $atts ) {
                 } else {
                     $summary_counts['other_regions']++;
 
-                    if ( $is_single_day_range ) {
-                        $hourly_region_counts['other_regions'][ $order_hour ]++;
-                    } else {
+                    if ( $is_single_day_range && null !== $hour_slot_index && isset( $hourly_region_counts['other_regions'][ $hour_slot_index ] ) ) {
+                        $hourly_region_counts['other_regions'][ $hour_slot_index ]++;
+                    } elseif ( ! $is_single_day_range ) {
                         $day_key = $localized_date->format( 'Y-m-d' );
 
                         if ( isset( $daily_region_counts['other_regions'][ $day_key ] ) ) {
@@ -789,15 +935,69 @@ function villegas_packing_list_shortcode( $atts ) {
         ];
 
         if ( $is_single_day_range ) {
-            $villegas_overview_chart_payload['labels'] = array_map(
-                static function ( $hour ) {
-                    return sprintf( '%02d:00', $hour );
-                },
-                range( 0, 23 )
-            );
+            $hourly_axis_labels = $hourly_slot_labels;
+            $hourly_rm_values   = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
+            $hourly_non_rm      = array_map( 'intval', $hourly_region_counts['other_regions'] );
 
-            $villegas_overview_chart_payload['rm']     = array_map( 'intval', $hourly_region_counts['region_metropolitana'] );
-            $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', $hourly_region_counts['other_regions'] );
+            if ( $using_default_range ) {
+                $final_axis_label = $range_end_day->format( 'H:i' );
+
+                if ( empty( $hourly_axis_labels ) || end( $hourly_axis_labels ) !== $final_axis_label ) {
+                    $hourly_axis_labels[] = $final_axis_label;
+                }
+
+                $hourly_rm_values[]  = null;
+                $hourly_non_rm[]     = null;
+            }
+
+            $label_count  = count( $hourly_axis_labels );
+            $rm_count     = count( $hourly_rm_values );
+            $non_rm_count = count( $hourly_non_rm );
+
+            if ( $label_count !== $rm_count || $label_count !== $non_rm_count ) {
+                $normalize_dataset_length = static function ( array $values, $target_length ) {
+                    $normalized_values = array_values( $values );
+                    $current_length    = count( $normalized_values );
+
+                    if ( $current_length > $target_length ) {
+                        $normalized_values = array_slice( $normalized_values, 0, $target_length );
+                    } elseif ( $current_length < $target_length ) {
+                        $normalized_values = array_pad( $normalized_values, $target_length, 0 );
+                    }
+
+                    return $normalized_values;
+                };
+
+                villegas_packing_overview_log(
+                    'Normalized hourly dataset lengths',
+                    [
+                        'label_count'      => $label_count,
+                        'rm_count_before'  => $rm_count,
+                        'non_rm_before'    => $non_rm_count,
+                        'using_default'    => $using_default_range ? '1' : '0',
+                        'range_start'      => $range_start_day->format( DateTimeInterface::ATOM ),
+                        'range_end'        => $range_end_day->format( DateTimeInterface::ATOM ),
+                    ]
+                );
+
+                $hourly_rm_values  = $normalize_dataset_length( $hourly_rm_values, $label_count );
+                $hourly_non_rm     = $normalize_dataset_length( $hourly_non_rm, $label_count );
+
+                villegas_packing_overview_log(
+                    'Hourly dataset lengths after normalization',
+                    [
+                        'label_count'     => $label_count,
+                        'rm_count_after'  => count( $hourly_rm_values ),
+                        'non_rm_after'    => count( $hourly_non_rm ),
+                    ]
+                );
+            }
+
+            $villegas_overview_chart_payload['labels'] = $hourly_axis_labels;
+            $villegas_overview_chart_payload['rm']     = $hourly_rm_values;
+            $villegas_overview_chart_payload['not_rm'] = $hourly_non_rm;
+            $villegas_overview_chart_payload['range_start_iso'] = $range_start_day->format( DateTimeInterface::ATOM );
+            $villegas_overview_chart_payload['range_end_iso']   = $range_end_day->format( DateTimeInterface::ATOM );
         } else {
             $chart_day_keys = array_keys( $daily_region_counts['region_metropolitana'] );
 
@@ -817,6 +1017,22 @@ function villegas_packing_list_shortcode( $atts ) {
             $villegas_overview_chart_payload['rm']     = array_map( 'intval', array_values( $daily_region_counts['region_metropolitana'] ) );
             $villegas_overview_chart_payload['not_rm'] = array_map( 'intval', array_values( $daily_region_counts['other_regions'] ) );
         }
+
+        villegas_packing_overview_log(
+            'Chart payload assembled',
+            [
+                'mode'              => $villegas_overview_chart_payload['mode'],
+                'labels'            => count( $villegas_overview_chart_payload['labels'] ),
+                'rm_points'         => count( $villegas_overview_chart_payload['rm'] ),
+                'non_rm_points'     => count( $villegas_overview_chart_payload['not_rm'] ),
+                'orders_in_range'   => $summary_counts['orders_in_range'],
+                'range_start'       => $range_start_day->format( DateTimeInterface::ATOM ),
+                'range_end'         => $range_end_day->format( DateTimeInterface::ATOM ),
+                'using_default'     => $using_default_range ? '1' : '0',
+                'is_single_day'     => $is_single_day_range ? '1' : '0',
+                'undetermined'      => $undetermined_regions_in_range,
+            ]
+        );
 
         $chart_aria_label   = $is_single_day_range
             ? __( 'Stacked hourly orders by region', 'woo-check' )
@@ -878,19 +1094,84 @@ function villegas_packing_list_shortcode( $atts ) {
 
     <script>
         ( function () {
+            var consoleAvailable = 'undefined' !== typeof console;
+
+            var logDebug = function ( message, payload ) {
+                if ( ! consoleAvailable || 'function' !== typeof console.log ) {
+                    return;
+                }
+
+                if ( 'undefined' !== typeof payload ) {
+                    console.log( '[Packing Overview] ' + message, payload );
+                } else {
+                    console.log( '[Packing Overview] ' + message );
+                }
+            };
+
+            var logError = function ( message, payload ) {
+                if ( ! consoleAvailable || 'function' !== typeof console.error ) {
+                    return;
+                }
+
+                if ( 'undefined' !== typeof payload ) {
+                    console.error( '[Packing Overview] ' + message, payload );
+                } else {
+                    console.error( '[Packing Overview] ' + message );
+                }
+            };
+
             if ( 'undefined' === typeof Chart ) {
+                logError( 'Chart.js library is not loaded on the page' );
                 return;
             }
 
             var chartCanvas = document.getElementById( 'villegasPackingOverviewChart' );
 
-            if ( ! chartCanvas || chartCanvas.dataset.chartRendered ) {
+            if ( ! chartCanvas ) {
+                logError( 'Chart canvas element could not be located in the DOM' );
                 return;
             }
 
-            chartCanvas.dataset.chartRendered = '1';
+            var markRendered = function ( canvas, shouldMark ) {
+                try {
+                    if ( canvas.dataset ) {
+                        if ( shouldMark ) {
+                            canvas.dataset.chartRendered = '1';
+                        } else {
+                            delete canvas.dataset.chartRendered;
+                        }
+                    }
+                } catch ( datasetError ) {
+                    logDebug( 'Unable to interact with dataset API', datasetError );
+                }
+
+                if ( shouldMark ) {
+                    canvas.setAttribute( 'data-chart-rendered', '1' );
+                } else {
+                    canvas.removeAttribute( 'data-chart-rendered' );
+                }
+            };
+
+            var alreadyRendered = false;
+
+            try {
+                alreadyRendered = Boolean( chartCanvas.dataset && chartCanvas.dataset.chartRendered );
+            } catch ( datasetReadError ) {
+                logDebug( 'Failed to inspect dataset API, falling back to attribute lookup', datasetReadError );
+            }
+
+            if ( ! alreadyRendered ) {
+                alreadyRendered = chartCanvas.hasAttribute( 'data-chart-rendered' );
+            }
+
+            if ( alreadyRendered ) {
+                logDebug( 'Skipping chart initialization because it is already rendered' );
+                return;
+            }
 
             var chartData = <?php echo wp_json_encode( $villegas_overview_chart_payload ); ?>;
+
+            logDebug( 'Chart data payload', chartData );
 
             var datasets = [
                 {
@@ -926,8 +1207,15 @@ function villegas_packing_list_shortcode( $atts ) {
                 var highestTotal = 0;
 
                 for ( var i = 0; i < dataLength; i++ ) {
-                    var rmValue = Array.isArray( chartData.rm ) ? Number( chartData.rm[ i ] || 0 ) : 0;
-                    var notRmValue = Array.isArray( chartData.not_rm ) ? Number( chartData.not_rm[ i ] || 0 ) : 0;
+                    var rmRaw = Array.isArray( chartData.rm ) ? chartData.rm[ i ] : undefined;
+                    var notRmRaw = Array.isArray( chartData.not_rm ) ? chartData.not_rm[ i ] : undefined;
+
+                    if ( rmRaw === null && notRmRaw === null ) {
+                        continue;
+                    }
+
+                    var rmValue = Number( rmRaw || 0 );
+                    var notRmValue = Number( notRmRaw || 0 );
 
                     highestTotal = Math.max( highestTotal, rmValue + notRmValue );
                 }
@@ -935,9 +1223,21 @@ function villegas_packing_list_shortcode( $atts ) {
                 yAxisMax = highestTotal > 20 ? highestTotal : 20;
             }
 
+            if (
+                Array.isArray( chartData.labels ) &&
+                ( chartData.labels.length !== ( Array.isArray( chartData.rm ) ? chartData.rm.length : 0 ) ||
+                    chartData.labels.length !== ( Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : 0 ) )
+            ) {
+                logError( 'Chart dataset counts do not match label count', {
+                    labels: chartData.labels.length,
+                    rm: Array.isArray( chartData.rm ) ? chartData.rm.length : null,
+                    not_rm: Array.isArray( chartData.not_rm ) ? chartData.not_rm.length : null
+                } );
+            }
+
             var elevenAmMarkerPlugin = {
                 id: 'elevenAmMarker',
-                afterDraw: function ( chart ) {
+                afterDatasetsDraw: function ( chart ) {
                     if ( chartData.mode !== 'hourly' ) {
                         return;
                     }
@@ -948,7 +1248,7 @@ function villegas_packing_list_shortcode( $atts ) {
                         labels = chart.data.labels;
                     }
                     var targetLabel = '11:00';
-                    var labelIndex = labels.indexOf( targetLabel );
+                    var labelIndex = labels.lastIndexOf( targetLabel );
 
                     if ( labelIndex === -1 ) {
                         return;
@@ -965,6 +1265,16 @@ function villegas_packing_list_shortcode( $atts ) {
 
                     if ( ! isFinite( xPosition ) ) {
                         return;
+                    }
+
+                    var chartArea = chart.chartArea || null;
+
+                    if ( chartArea ) {
+                        if ( xPosition < chartArea.left ) {
+                            xPosition = chartArea.left;
+                        } else if ( xPosition > chartArea.right ) {
+                            xPosition = chartArea.right;
+                        }
                     }
 
                     var ctx = chart.ctx;
@@ -1052,7 +1362,22 @@ function villegas_packing_list_shortcode( $atts ) {
                 }
             };
 
-            new Chart( chartCanvas.getContext( '2d' ), config );
+            var context = chartCanvas.getContext( '2d' );
+
+            if ( ! context ) {
+                logError( 'Canvas 2D context is not available for the packing overview chart' );
+                return;
+            }
+
+            try {
+                var chartInstance = new Chart( context, config );
+                markRendered( chartCanvas, true );
+                chartCanvas._packingOverviewChart = chartInstance;
+            } catch ( chartError ) {
+                logError( 'Failed to initialize the Chart.js instance', chartError );
+                logError( 'Chart.js payload snapshot for debugging', chartData );
+                markRendered( chartCanvas, false );
+            }
         } )();
         </script>
 
