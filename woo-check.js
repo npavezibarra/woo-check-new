@@ -212,7 +212,129 @@ jQuery(function($) {
         });
     };
 
+    const owningContactSelectors = {
+        container: '#owning-contact-view',
+        name: '#owning-contact-name-view',
+        email: '#owning-contact-email-view',
+        date: '#owning-contact-date-view'
+    };
+
+    const escapeHtml = function(value) {
+        return $('<div/>').text(value).html();
+    };
+
+    const buildContactParagraph = function(id, value) {
+        if (!value) {
+            return '';
+        }
+
+        const safeId = id.replace(/[^a-zA-Z0-9\-_:\.]/g, '');
+
+        return '<p id="' + safeId + '">' + escapeHtml(value) + '</p>';
+    };
+
+    const formatOwningContactView = function(target) {
+        const $container = target ? $(target) : $(owningContactSelectors.container);
+
+        if (!$container.length) {
+            return;
+        }
+
+        if ($container.find(owningContactSelectors.name).length) {
+            return;
+        }
+
+        const rawText = $.trim($container.text());
+
+        if (!rawText) {
+            $container.empty();
+            return;
+        }
+
+        const parts = rawText
+            .split(/[\u00B7\|\n]+/)
+            .map(function(part) {
+                return $.trim(part);
+            })
+            .filter(function(part) {
+                return part.length > 0;
+            });
+
+        if (!parts.length) {
+            return;
+        }
+
+        const fragments = [
+            buildContactParagraph(owningContactSelectors.name.substring(1), parts[0] || ''),
+            buildContactParagraph(owningContactSelectors.email.substring(1), parts[1] || ''),
+            buildContactParagraph(owningContactSelectors.date.substring(1), parts[2] || '')
+        ].filter(function(fragment) {
+            return fragment !== '';
+        });
+
+        if (!fragments.length) {
+            return;
+        }
+
+        $container.html(fragments.join(''));
+    };
+
+    const applyOwningContactFormatting = function(target) {
+        formatOwningContactView(target || owningContactSelectors.container);
+    };
+
     initialiseModals();
     $(window).on('load', initialiseModals);
     $(document.body).on('updated_checkout', initialiseModals);
+
+    let owningContactObserver = null;
+    let owningContactObservedElement = null;
+
+    const initOwningContactObserver = function() {
+        if (typeof window.MutationObserver === 'undefined') {
+            return;
+        }
+
+        const containerElement = document.querySelector(owningContactSelectors.container);
+
+        if (!containerElement || owningContactObservedElement === containerElement) {
+            return;
+        }
+
+        if (owningContactObserver) {
+            owningContactObserver.disconnect();
+        }
+
+        owningContactObserver = new window.MutationObserver(function() {
+            applyOwningContactFormatting(containerElement);
+        });
+
+        owningContactObserver.observe(containerElement, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
+
+        owningContactObservedElement = containerElement;
+    };
+
+    const refreshOwningContactView = function(target) {
+        applyOwningContactFormatting(target);
+        initOwningContactObserver();
+    };
+
+    refreshOwningContactView();
+
+    $(document.body).on('updated_checkout', function() {
+        refreshOwningContactView();
+    });
+
+    $(document).on('woo-check:owning-contact-refresh', function(event, target) {
+        refreshOwningContactView(target);
+    });
+
+    window.WooCheck = window.WooCheck || {};
+    window.WooCheck.refreshOwningContactView = function(target) {
+        refreshOwningContactView(target);
+    };
 });
